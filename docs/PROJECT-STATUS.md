@@ -28,6 +28,7 @@ Primary hackathon track: **Ecosystem DApps**. Secondary infrastructure contribut
 - Initial dark market-terminal UI, currently using explicitly labelled sample/fixture prices and illustrative chart.
 - Functional watchlist search.
 - Web app calls the API's read-only `/api/chain/status` endpoint and displays RPC identity status; Vite proxies `/api` to the local Fastify API during development.
+- Web app requests live quotes/candles only when API health confirms both a provider key and the explicit display flag are enabled; otherwise it stays on labelled fixture values. Provider quote timestamps are displayed.
 - Shared instrument catalogue: AAPL, NVDA, TSLA, MSFT all marked `reference`.
 - Fastify API source: health, market list, instrument details, quote and candles endpoints.
 - Twelve Data adapter: server-side key, eight-second timeout, response validation, normalized timestamps and OHLCV, provider errors mapped to stable codes, bounded 15-second quote/60-second candle in-memory cache. Public quote/candle routes are disabled by default behind `MARKET_DATA_DISPLAY_ENABLED` until provider display rights are confirmed.
