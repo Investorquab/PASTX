@@ -44,13 +44,14 @@ Errors use `{ "error": { "code": "...", "message": "...", "requestId": "..." } }
 |---|---|
 | `INVALID_INPUT` | Unsupported interval or invalid bounded query |
 | `NOT_FOUND` | Unknown instrument or route |
+| `MARKET_DATA_DISPLAY_DISABLED` | Public quote/candle display is disabled until provider terms are verified |
 | `PROVIDER_NOT_CONFIGURED` | `MARKET_DATA_API_KEY` is absent |
 | `PROVIDER_RATE_LIMIT` | Provider quota/rate limit reached |
 | `PROVIDER_UNAVAILABLE` | Provider request failed or timed out |
 | `PROVIDER_INVALID_RESPONSE` | Provider payload cannot be normalized safely |
 | `INTERNAL_ERROR` | Unexpected server error |
 
-The API applies a global rate limit of 60 requests per minute per client, security headers, and an eight-second provider timeout. Successful normalized quotes are cached in memory for 15 seconds and candle series for 60 seconds, with a maximum of 128 cache keys per cache. Cache entries are process-local and are not durable or shared across replicas. Provider-facing errors remain generic. Provider-specific payloads and credentials are not returned.
+Live quote and candle endpoints return `MARKET_DATA_DISPLAY_DISABLED` unless `MARKET_DATA_DISPLAY_ENABLED=true` is explicitly configured after confirming the provider license permits client-facing display. The flag defaults to false. The API applies a global rate limit of 60 requests per minute per client, security headers, and an eight-second provider timeout. Successful normalized quotes are cached in memory for 15 seconds and candle series for 60 seconds, with a maximum of 128 cache keys per cache. Cache entries are process-local and are not durable or shared across replicas. Provider-facing errors remain generic. Provider-specific payloads and credentials are not returned.
 
 ## Chain status semantics
 
