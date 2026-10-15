@@ -37,10 +37,10 @@ Primary hackathon track: **Ecosystem DApps**. Secondary infrastructure contribut
 - Web app calls the API's read-only `/api/chain/status` endpoint and displays RPC identity status; Vite proxies `/api` to the local Fastify API during development.
 - Web app requests live quotes/candles only when API health confirms both a provider key and the explicit display flag are enabled; otherwise it stays on labelled fixture values. Provider quote timestamps are displayed.
 - Shared instrument catalogue: AAPL, NVDA, TSLA, MSFT all marked `reference`.
-- Fastify API source: health, market list, instrument details, quote and candles endpoints.
+- Fastify API source: health, machine-readable capability discovery, market list, instrument details, quote and candles endpoints. The capability document separates implemented features from currently enabled features and explicitly reports wallet, balance, order-submission, transaction-history and atomic-settlement support as unavailable.
 - Twelve Data adapter: server-side key, eight-second timeout, response validation, normalized timestamps and OHLCV, provider errors mapped to stable codes, bounded 15-second quote/60-second candle in-memory cache. Public quote/candle routes are disabled by default behind `MARKET_DATA_DISPLAY_ENABLED` until provider display rights are confirmed.
 - Read-only Portaldot EVM chain adapter: probes configured RPC chain ID against expected ID `420420777`; reports not configured/unreachable/wrong network/verified and emits `verificationScope: "chain_id_only"`. The published [Portaldot V3 testnet guide](https://github.com/ItsCogumellum/portaldot-v3-testnet-guide) documents EVM RPC `https://testnetv3-eth-rpc.feso-apps.xyz`, Solidity execution through `revive`, and H160-to-SS58 mapping through `reviveApi.accountId`. PASTX has not yet verified live RPC reachability, block reads, wallet mapping, balances or transactions. Native Assets and Solidity contract assets are distinct until an explicit supported interoperability path is proven.
-- API security headers and global rate limit; rate-limit failures now share the normalized API error envelope and include a request ID when available.
+- API security headers and global rate limit; rate-limit failures now share the normalized API error envelope and include a request ID when available. Automated API coverage includes capability-contract boundaries and security-header assertions.
 - Unit tests for shared contracts, quote validation, provider behavior and API routes.
 - Docs: README, API, architecture, settlement design, security, testing, deployment and this handoff.
 - No real trades, wallet signing, on-chain balances, order book or Portaldot transaction have been implemented.
@@ -58,13 +58,18 @@ Always check the latest [GitHub Actions run](https://github.com/Investorquab/PAS
 - Do not enable real buy/sell before atomic settlement and rollback are proven.
 - Local smoke testing on Windows has passed for install, check, tests, build, combined development startup and API health. A fresh clean install with the committed lockfile should still be verified with `pnpm install --frozen-lockfile`. Live provider test requires a user-supplied key set locally, not in chat or Git.
 
+## External dependency status
+
+- Portaldot V3 RPC investigation is parked for now, per the engineering priority decision. On 15 October 2026, both documented hostnames (`testnetv3-eth-rpc.feso-apps.xyz` and `testnetv3-node.feso-apps.xyz`) returned DNS name does not exist through both Cloudflare DNS (1.1.1.1) and Google DNS (8.8.8.8). This blocks live-chain verification but does not block local/API/domain engineering. Do not repeatedly retry these endpoints as a substitute for continuing the project.
+- No live block, wallet mapping, balance, transaction or settlement evidence has been established. Keep all on-chain and trading capabilities disabled until the external endpoint/runtime is available and validated.
+
 ## Next engineering priorities
 
-1. Validate the latest chain-status scope change through CI; preserve the explicit boundary between chain-ID matching and actual runtime compatibility.
-2. Verify the documented V3 EVM RPC at runtime, then test block number, H160-to-SS58 mapping and read-only balance access. Keep native Assets vs `revive` tokens separate until explicit interoperability and atomic settlement are proven.
-3. Continue the API/security audit with focused automated tests for security headers, request IDs and provider failure paths; rate-limit response normalization and its 429 test are implemented. Latest CI run 38688735745 passed all 41 tests, type checks and builds.
-4. Choose and test one settlement path with all-or-nothing semantics only after runtime and asset interoperability are established.
-5. Implement wallet/portfolio/orders/transaction views against verified chain data only after the chain gates pass.
+1. Continue API/domain engineering and automated coverage without depending on live RPC availability.
+2. Complete API capability discovery, security/error contract coverage, market-data normalization edge cases, and deterministic order-intent domain foundations while preserving the non-executable trading boundary.
+3. Keep API, architecture, testing and project-status docs aligned with implementation and CI results.
+4. When a valid Portaldot endpoint becomes available, resume read-only runtime verification (block number, H160-to-SS58 mapping and balance access); do not treat chain-ID matching alone as integration proof.
+5. Choose and test a settlement path with all-or-nothing semantics only after runtime and asset interoperability are established.
 6. Prepare deployment, demo, pitch deck and evidence before the check-in/final deadlines.
 
 ## Documents policy
