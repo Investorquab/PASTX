@@ -78,6 +78,18 @@ describe("PASTX API", () => {
     await app.close();
   });
 
+  it("returns a normalized error when the API rate limit is exceeded", async () => {
+    const app = await buildApp({ logger: false });
+    let response;
+    for (let index = 0; index < 61; index += 1) {
+      response = await app.inject({ method: "GET", url: "/api/health" });
+    }
+    expect(response?.statusCode).toBe(429);
+    expect(response?.json().error).toMatchObject({ code: "RATE_LIMITED", message: "Too many requests. Please retry later." });
+    expect(response?.json().error.requestId).toBeTruthy();
+    await app.close();
+  });
+
   it("does not leak provider details on errors", async () => {
     const fakeAdapter = {
       getQuote: vi.fn().mockRejectedValue(new MarketDataError("PROVIDER_RATE_LIMIT", "Market data provider rate limit reached.", 429)),
