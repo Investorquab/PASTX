@@ -1,5 +1,6 @@
 export {
   MAX_PREVIEW_QUANTITY,
   parsePreviewQuantity,
-  calculateReferenceNotional
+  calculateReferenceNotional,
+  buildOrderIntentPreview
 } from "@pastx/shared";
