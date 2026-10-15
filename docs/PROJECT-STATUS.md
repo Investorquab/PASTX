@@ -19,14 +19,17 @@ Primary hackathon track: **Ecosystem DApps**. Secondary infrastructure contribut
 - Shared domain contracts: `packages/shared`.
 - Market provider boundary: `packages/market-data`, Twelve Data adapter.
 - Tests: Vitest.
-- CI: GitHub Actions typecheck, tests and build across workspace.
+- CI: GitHub Actions typecheck, tests and build across workspace; dependency installation now uses `pnpm install --frozen-lockfile`.
+- `pnpm-lock.yaml` is committed to pin the resolved workspace dependency graph and integrity metadata.
 - Wallet signing, balance reads, transaction submission and settlement adapter: deliberately not implemented until actual Portaldot V3 runtime/wallet support is verified. The read-only EVM chain-ID probe exists separately.
 - PostgreSQL, Redis, public SDK and contracts: deferred until a real requirement and validated architecture justify them.
 
 ## Current implementation
 
 - Local Windows smoke test on 15 October 2026: user cloned the repository, installed dependencies, and ran `pnpm check`, `pnpm test` (40 tests passed), and `pnpm build` successfully. The web preview rendered and the API started on port 4000; `/api/health` and `/api/chain/status` returned HTTP 200 in API logs. A manual request to `/health` returned 404 because the correct health route is `/api/health`.
-- Root `pnpm dev` was observed to start only the first long-running workspace dev process under the default recursive execution. Fixed root script to `pnpm --parallel --recursive --if-present dev` so web and API can run together; this fix has been committed but requires a fresh local pull and smoke test.
+- Root `pnpm dev` was fixed to `pnpm --parallel --recursive --if-present dev`; the user subsequently confirmed that both the web and API processes started together and the API health route returned 200.
+- On 15 October 2026, the user generated `pnpm-lock.yaml` with pnpm 10.15.0 and pushed commit `559be0b` to `main`.
+- CI workflow was updated in commit `5f0cde1` to install with `pnpm install --frozen-lockfile`, so CI will fail rather than silently rewrite an out-of-sync lockfile. The subsequent project-status documentation update records this change. Confirm the latest GitHub Actions run before claiming this exact workflow has passed.
 
 - Initial dark market-terminal UI, currently using explicitly labelled sample/fixture prices and illustrative chart.
 - Functional watchlist search.
@@ -44,26 +47,25 @@ Primary hackathon track: **Ecosystem DApps**. Secondary infrastructure contribut
 
 ## CI / verification policy
 
-Always check the latest [GitHub Actions run](https://github.com/Investorquab/PASTX/actions). The initial web-only build passed before the API workspace was introduced. Workspace-wide CI must finish green before claiming the new API/provider implementation passes. Do not infer green from a queued/in-progress run.
+Always check the latest [GitHub Actions run](https://github.com/Investorquab/PASTX/actions). Workspace CI must finish green before claiming the latest API/provider implementation or frozen-lockfile workflow passes. Do not infer green from a queued/in-progress run. The frozen-lockfile change was committed after the lockfile was added, so its first CI run is the important reproducibility check.
 
 ## Environment / human-only gates
 
 - No provider key is present in the repository. Use `.env.example` and a local untracked `.env`; do not commit secrets.
 - Confirm Twelve Data plan terms before using live data in a publicly accessible, client-facing application. Basic/free plan terms list internal non-display usage; public display may require an appropriate commercial plan.
-- Portaldot V3 testnet/RPC/runtime/wallet compatibility and asset/payment interoperability have not been proven by this repository work. The new chain probe is only an identity/reachability check.
+- Portaldot V3 testnet/RPC/runtime/wallet compatibility and asset/payment interoperability have not been proven by this repository work. The chain probe is only an identity/reachability check.
 - No chain transaction or deployment evidence exists yet.
 - Do not enable real buy/sell before atomic settlement and rollback are proven.
-- Local smoke testing on Windows is still required after CI: install dependencies, run check/test/build, start web and API, and test health/catalogue/error behavior. Live provider test requires a user-supplied key set locally, not in chat or Git.
+- Local smoke testing on Windows has passed for install, check, tests, build, combined development startup and API health. A fresh clean install with the committed lockfile should still be verified with `pnpm install --frozen-lockfile`. Live provider test requires a user-supplied key set locally, not in chat or Git.
 
 ## Next engineering priorities
 
-1. Fix any workspace CI errors until check, tests and build are green.
-2. Ensure reproducible dependency installation and commit a generated lockfile if tooling permits.
-3. Finish API client integration only after the UI can clearly distinguish provider data from fixtures and a permitted key/config is available.
-4. Inspect actual Portaldot V3 testnet guide/runtime and establish a verifiable RPC/wallet read path.
-5. Choose and test one settlement path with all-or-nothing semantics.
-6. Implement wallet/portfolio/orders/transaction views against verified chain data.
-7. Prepare deployment, demo, pitch deck and evidence before the check-in/final deadlines.
+1. Verify the frozen-lockfile CI run is green; fix any reproducibility or workspace issues.
+2. Inspect the actual Portaldot V3 guide/runtime and establish a verifiable RPC/wallet read path without assuming chain-ID compatibility proves EVM behavior.
+3. Audit API boundaries, market-data display controls, error handling and security behavior end-to-end.
+4. Choose and test one settlement path with all-or-nothing semantics only after runtime and asset interoperability are established.
+5. Implement wallet/portfolio/orders/transaction views against verified chain data.
+6. Prepare deployment, demo, pitch deck and evidence before the check-in/final deadlines.
 
 ## Documents policy
 
