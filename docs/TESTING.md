@@ -50,3 +50,8 @@ The CI workflow runs frozen-lockfile dependency installation, workspace type che
 ## Human-required verification
 
 CI cannot verify wallet UX, a live Portaldot testnet transaction, explorer evidence, provider account licensing, or deployment configuration. Those remain explicit release gates and must not be described as passed by unit tests.
+
+
+## Reference-only order intent tests
+
+Shared-domain tests cover normalized buy/sell previews for known catalogue symbols, invalid symbols and quantities, invalid/non-positive prices, overflow, and the invariant that every preview is marked `executable: false`. These checks validate calculation only; they do not prove wallet, balance, order submission or settlement behavior.
