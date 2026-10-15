@@ -9,6 +9,7 @@ const validQuote: MarketQuote = {
   currency: "USD",
   observedAt: "2026-10-15T03:00:00.000Z",
   source: "twelve_data",
+  delayed: null,
 };
 
 describe("isMarketQuote", () => {
@@ -41,6 +42,7 @@ describe("isMarketQuote", () => {
   it("rejects non-finite change and invalid timestamps", () => {
     expect(isMarketQuote({ ...validQuote, changePercent: Infinity })).toBe(false);
     expect(isMarketQuote({ ...validQuote, observedAt: "not-a-date" })).toBe(false);
+    expect(isMarketQuote({ ...validQuote, delayed: "unknown" })).toBe(false);
   });
 
   it("rejects unrecognized source labels", () => {
