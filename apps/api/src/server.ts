@@ -1,4 +1,11 @@
+import dotenv from "dotenv";
+import { resolve } from "node:path";
 import { buildApp } from "./app";
+
+// Support both an apps/api/.env file and the repository-root .env file.
+// Existing shell/deployment environment variables always take precedence.
+dotenv.config({ path: resolve(process.cwd(), ".env") });
+dotenv.config({ path: resolve(process.cwd(), "../../.env") });
 
 const portValue = Number(process.env.PORT ?? 4000);
 const host = process.env.HOST ?? "0.0.0.0";
