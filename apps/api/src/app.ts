@@ -3,11 +3,14 @@ import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import { MARKET_INSTRUMENTS, isCandleInterval, type ApiError, type MarketInstrument } from "@pastx/shared";
 import { MarketDataError, TwelveDataAdapter } from "@pastx/market-data";
+import { probePortaldotEvm, type ChainProbeResult } from "@pastx/chain-adapter";
 
 export type AppOptions = {
   marketDataApiKey?: string;
   logger?: boolean;
   marketData?: TwelveDataAdapter;
+  chainRpcUrl?: string;
+  chainProbe?: () => Promise<ChainProbeResult>;
 };
 
 function apiError(code: ApiError["error"]["code"], message: string, requestId?: string): ApiError {
@@ -22,6 +25,7 @@ function findInstrument(symbol: string): MarketInstrument | undefined {
 export async function buildApp(options: AppOptions = {}): Promise<FastifyInstance> {
   const app = Fastify({ logger: options.logger ?? true, requestIdHeader: "x-request-id" });
   const marketData = options.marketData ?? new TwelveDataAdapter(options.marketDataApiKey ?? process.env.MARKET_DATA_API_KEY);
+  const chainProbe = options.chainProbe ?? (() => probePortaldotEvm(options.chainRpcUrl ?? process.env.PORTALDOT_EVM_RPC_URL));
 
   await app.register(helmet);
   await app.register(rateLimit, { max: 60, timeWindow: "1 minute" });
@@ -32,6 +36,8 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
     marketDataConfigured: Boolean(options.marketDataApiKey ?? process.env.MARKET_DATA_API_KEY),
     tradingEnabled: false
   }));
+
+  app.get("/api/chain/status", async () => ({ item: await chainProbe() }));
 
   app.get("/api/markets", async () => ({
     items: MARKET_INSTRUMENTS,
