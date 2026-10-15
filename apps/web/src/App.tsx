@@ -130,7 +130,6 @@ function App() {
   const selectedOrderQuote = liveQuotes[orderSymbol];
   const orderUnitPrice = selectedOrderQuote?.price ?? Number(selectedOrderInstrument.price.replace(/[$,]/g, ""));
   const orderQuantityNumber = parsePreviewQuantity(orderQuantity);
-  const validOrderQuantity = orderQuantityNumber !== null;
   const orderNotional = calculateReferenceNotional(orderQuantity, orderUnitPrice);
   const orderCurrency = selectedOrderQuote?.currency ?? "USD";
   const chartAxisLabels = liveDataAvailable && liveCandles && liveCandles.length > 0
