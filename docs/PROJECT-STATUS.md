@@ -33,7 +33,7 @@ Primary hackathon track: **Ecosystem DApps**. Secondary infrastructure contribut
 
 - Initial dark market-terminal UI, currently using explicitly labelled sample/fixture prices and illustrative chart.
 - Functional watchlist search.
-- Interactive non-executable order preview with buy/sell side, quantity validation and estimated reference notional; submission is disabled and no order/transaction is created.
+- Interactive non-executable order preview with buy/sell side, quantity validation and estimated reference notional; arithmetic is centralized in `packages/shared`, submission is disabled and no order/transaction is created.
 - Web app calls the API's read-only `/api/chain/status` endpoint and displays RPC identity status; Vite proxies `/api` to the local Fastify API during development.
 - Web app requests live quotes/candles only when API health confirms both a provider key and the explicit display flag are enabled; otherwise it stays on labelled fixture values. Provider quote timestamps are displayed.
 - Shared instrument catalogue: AAPL, NVDA, TSLA, MSFT all marked `reference`.
