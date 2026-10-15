@@ -85,3 +85,29 @@ export function calculateReferenceNotional(rawQuantity: string, unitPrice: numbe
 }
 
 export type OrderSide = "buy" | "sell";
+
+export type OrderIntentPreview = {
+  side: OrderSide;
+  symbol: string;
+  quantity: number;
+  referencePrice: number;
+  referenceNotional: number;
+  currency: string;
+  executable: false;
+};
+
+/** Deterministic reference-only preview. This never creates or executes an order. */
+export function buildOrderIntentPreview(
+  side: OrderSide,
+  rawSymbol: string,
+  rawQuantity: string,
+  referencePrice: number
+): OrderIntentPreview | null {
+  if (side !== "buy" && side !== "sell") return null;
+  const symbol = rawSymbol.trim().toUpperCase();
+  const instrument = MARKET_INSTRUMENTS.find((item) => item.symbol === symbol);
+  const quantity = parsePreviewQuantity(rawQuantity);
+  const referenceNotional = calculateReferenceNotional(rawQuantity, referencePrice);
+  if (!instrument || quantity === null || referenceNotional === null) return null;
+  return { side, symbol, quantity, referencePrice, referenceNotional, currency: instrument.currency, executable: false };
+}
