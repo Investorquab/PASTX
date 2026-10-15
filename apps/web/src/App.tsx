@@ -85,6 +85,9 @@ function App() {
   const [liveQuotes, setLiveQuotes] = useState<Record<string, MarketQuote>>({});
   const [liveCandles, setLiveCandles] = useState<MarketCandle[] | null>(null);
   const [liveDataAvailable, setLiveDataAvailable] = useState(false);
+  const [orderSymbol, setOrderSymbol] = useState("AAPL");
+  const [orderSide, setOrderSide] = useState<"buy" | "sell">("buy");
+  const [orderQuantity, setOrderQuantity] = useState("1");
 
   useEffect(() => {
     let active = true;
@@ -122,6 +125,13 @@ function App() {
     };
   }, []);
 
+  const selectedOrderInstrument = referenceMarkets.find((market) => market.symbol === orderSymbol) ?? referenceMarkets[0];
+  const selectedOrderQuote = liveQuotes[orderSymbol];
+  const orderUnitPrice = selectedOrderQuote?.price ?? Number(selectedOrderInstrument.price.replace(/[$,]/g, ""));
+  const orderQuantityNumber = Number(orderQuantity);
+  const validOrderQuantity = orderQuantity.trim() !== "" && Number.isFinite(orderQuantityNumber) && orderQuantityNumber > 0 && orderQuantityNumber <= 1_000_000;
+  const orderNotional = validOrderQuantity ? orderQuantityNumber * orderUnitPrice : null;
+  const orderCurrency = selectedOrderQuote?.currency ?? "USD";
   const chartAxisLabels = liveDataAvailable && liveCandles && liveCandles.length > 0
     ? [0, Math.floor((liveCandles.length - 1) / 3), Math.floor(((liveCandles.length - 1) * 2) / 3), liveCandles.length - 1].map((index) => formatAxisDate(liveCandles[index].timestamp))
     : ["09:00", "12:00", "15:00", "18:00"];
@@ -255,6 +265,42 @@ function App() {
             <div className="chart-legend"><span /><span>{liveDataAvailable ? "AAPL close · Twelve Data" : "Illustrative index"}</span></div>
             <div className="chart-disclaimer">{liveDataAvailable ? "Historical external reference data; not an executable on-chain price." : "This graphic is a UI fixture, not a real index or a trading signal."}</div>
           </div>
+        </section>
+
+        <section className="panel order-ticket" aria-labelledby="order-preview-title">
+          <div className="panel-heading">
+            <div><h2 id="order-preview-title">Order ticket</h2><p>Interactive estimate only · no order is submitted</p></div>
+            <span className="feature-status">PREVIEW ONLY</span>
+          </div>
+          <div className="order-form-grid">
+            <label className="order-field">
+              <span>Reference instrument</span>
+              <select value={orderSymbol} onChange={(event) => setOrderSymbol(event.target.value)}>
+                {referenceMarkets.map((market) => <option key={market.symbol} value={market.symbol}>{market.symbol} · {market.name}</option>)}
+              </select>
+            </label>
+            <div className="order-field">
+              <span>Side</span>
+              <div className="order-side-control">
+                <button type="button" className={orderSide === "buy" ? "selected buy-side" : ""} onClick={() => setOrderSide("buy")}>Buy</button>
+                <button type="button" className={orderSide === "sell" ? "selected sell-side" : ""} onClick={() => setOrderSide("sell")}>Sell</button>
+              </div>
+            </div>
+            <label className="order-field">
+              <span>Quantity</span>
+              <input type="number" min="0.0001" max="1000000" step="0.0001" value={orderQuantity} onChange={(event) => setOrderQuantity(event.target.value)} />
+            </label>
+            <div className="order-estimate">
+              <span>Estimated reference value</span>
+              <strong>{orderNotional !== null && Number.isFinite(orderNotional) ? new Intl.NumberFormat("en-US", { style: "currency", currency: orderCurrency, maximumFractionDigits: 2 }).format(orderNotional) : "Enter a valid quantity"}</strong>
+              <small>{selectedOrderQuote ? `Twelve Data · as of ${formatTimestamp(selectedOrderQuote.observedAt)}` : "Sample price · not an execution quote"}</small>
+            </div>
+          </div>
+          <div className="order-preview-footer">
+            <span>{orderSide === "buy" ? "Buy" : "Sell"} preview: {validOrderQuantity ? orderQuantityNumber.toLocaleString("en-US", { maximumFractionDigits: 4 }) : "—"} {orderSymbol}</span>
+            <button className="connect-button" type="button" disabled title="Trade submission is disabled until Portaldot settlement is verified">Trading disabled</button>
+          </div>
+          <p className="order-disclaimer">This is a non-executable estimate using an external reference price. It is not a tokenized equity, an order, or proof of on-chain settlement.</p>
         </section>
 
         <section className="bottom-grid">
