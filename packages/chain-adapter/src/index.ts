@@ -3,9 +3,9 @@ import { createPublicClient, http } from "viem";
 export const PORTALDOT_V3_EVM_CHAIN_ID = 420420777;
 
 export type ChainProbeResult =
-  | { configured: false; reachable: false; networkMatches: false; expectedChainId: number; chainId: null; status: "not_configured" }
-  | { configured: true; reachable: false; networkMatches: false; expectedChainId: number; chainId: null; status: "unreachable" }
-  | { configured: true; reachable: true; networkMatches: boolean; expectedChainId: number; chainId: number; status: "verified" | "wrong_network" };
+  | { configured: false; reachable: false; networkMatches: false; expectedChainId: number; chainId: null; status: "not_configured"; verificationScope: "chain_id_only" }
+  | { configured: true; reachable: false; networkMatches: false; expectedChainId: number; chainId: null; status: "unreachable"; verificationScope: "chain_id_only" }
+  | { configured: true; reachable: true; networkMatches: boolean; expectedChainId: number; chainId: number; status: "verified" | "wrong_network"; verificationScope: "chain_id_only" };
 
 export type ChainIdReader = (rpcUrl: string) => Promise<number>;
 
@@ -29,7 +29,8 @@ export async function probePortaldotEvm(
       networkMatches: false,
       expectedChainId: PORTALDOT_V3_EVM_CHAIN_ID,
       chainId: null,
-      status: "not_configured"
+      status: "not_configured",
+      verificationScope: "chain_id_only"
     };
   }
 
@@ -43,7 +44,8 @@ export async function probePortaldotEvm(
       networkMatches,
       expectedChainId: PORTALDOT_V3_EVM_CHAIN_ID,
       chainId,
-      status: networkMatches ? "verified" : "wrong_network"
+      status: networkMatches ? "verified" : "wrong_network",
+      verificationScope: "chain_id_only"
     };
   } catch {
     return {
@@ -52,7 +54,8 @@ export async function probePortaldotEvm(
       networkMatches: false,
       expectedChainId: PORTALDOT_V3_EVM_CHAIN_ID,
       chainId: null,
-      status: "unreachable"
+      status: "unreachable",
+      verificationScope: "chain_id_only"
     };
   }
 }
