@@ -29,7 +29,7 @@ Primary hackathon track: **Ecosystem DApps**. Secondary infrastructure contribut
 - Local Windows smoke test on 15 October 2026: user cloned the repository, installed dependencies, and ran `pnpm check`, `pnpm test` (40 tests passed), and `pnpm build` successfully. The web preview rendered and the API started on port 4000; `/api/health` and `/api/chain/status` returned HTTP 200 in API logs. A manual request to `/health` returned 404 because the correct health route is `/api/health`.
 - Root `pnpm dev` was fixed to `pnpm --parallel --recursive --if-present dev`; the user subsequently confirmed that both the web and API processes started together and the API health route returned 200.
 - On 15 October 2026, the user generated `pnpm-lock.yaml` with pnpm 10.15.0 and pushed commit `559be0b` to `main`.
-- CI workflow was updated in commit `5f0cde1` to install with `pnpm install --frozen-lockfile`, so CI will fail rather than silently rewrite an out-of-sync lockfile. The subsequent project-status documentation update records this change. Confirm the latest GitHub Actions run before claiming this exact workflow has passed.
+- CI workflow was updated in commit `5f0cde1` to install with `pnpm install --frozen-lockfile`, so CI will fail rather than silently rewrite an out-of-sync lockfile. The subsequent project-status documentation update records this change. The latest run for the status-documentation commit is green: [GitHub Actions run 38687568448](https://github.com/Investorquab/PASTX/actions/runs/38687568448). The immediately preceding frozen-lockfile run was cancelled by the newer push, not failed; the green latest run executes the current workflow with the committed lockfile.
 
 - Initial dark market-terminal UI, currently using explicitly labelled sample/fixture prices and illustrative chart.
 - Functional watchlist search.
@@ -39,7 +39,7 @@ Primary hackathon track: **Ecosystem DApps**. Secondary infrastructure contribut
 - Shared instrument catalogue: AAPL, NVDA, TSLA, MSFT all marked `reference`.
 - Fastify API source: health, market list, instrument details, quote and candles endpoints.
 - Twelve Data adapter: server-side key, eight-second timeout, response validation, normalized timestamps and OHLCV, provider errors mapped to stable codes, bounded 15-second quote/60-second candle in-memory cache. Public quote/candle routes are disabled by default behind `MARKET_DATA_DISPLAY_ENABLED` until provider display rights are confirmed.
-- Read-only Portaldot EVM chain adapter: probes configured RPC chain ID against expected ID `420420777`; reports not configured/unreachable/wrong network/verified without exposing RPC URL. This does not establish settlement compatibility.
+- Read-only Portaldot EVM chain adapter: probes configured RPC chain ID against expected ID `420420777`; reports not configured/unreachable/wrong network/verified and emits `verificationScope: "chain_id_only"`. This does not establish canonical network identity, wallet compatibility, runtime behavior or settlement compatibility.
 - API security headers and global rate limit.
 - Unit tests for shared contracts, quote validation, provider behavior and API routes.
 - Docs: README, API, architecture, settlement design, security, testing, deployment and this handoff.
@@ -60,11 +60,11 @@ Always check the latest [GitHub Actions run](https://github.com/Investorquab/PAS
 
 ## Next engineering priorities
 
-1. Verify the frozen-lockfile CI run is green; fix any reproducibility or workspace issues.
+1. Validate the latest chain-status scope change through CI; preserve the explicit boundary between chain-ID matching and actual runtime compatibility.
 2. Inspect the actual Portaldot V3 guide/runtime and establish a verifiable RPC/wallet read path without assuming chain-ID compatibility proves EVM behavior.
-3. Audit API boundaries, market-data display controls, error handling and security behavior end-to-end.
+3. Complete the API/security audit with focused automated tests for rate limits, normalized errors, headers and provider failure paths.
 4. Choose and test one settlement path with all-or-nothing semantics only after runtime and asset interoperability are established.
-5. Implement wallet/portfolio/orders/transaction views against verified chain data.
+5. Implement wallet/portfolio/orders/transaction views against verified chain data only after the chain gates pass.
 6. Prepare deployment, demo, pitch deck and evidence before the check-in/final deadlines.
 
 ## Documents policy
