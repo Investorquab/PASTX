@@ -42,7 +42,7 @@ function MiniChart({ values }: { values?: number[] }) {
   const range = maximum - minimum || 1;
   const points = series.map((value, index) => `${(index / (series.length - 1)) * 100},${200 - ((value - minimum) / range) * 160}`).join(" ");
   return (
-    <svg className="chart-line" viewBox="0 0 100 220" preserveAspectRatio="none" role="img" aria-label="Illustrative upward market chart, not live price data">
+    <svg className="chart-line" viewBox="0 0 100 220" preserveAspectRatio="none" role="img" aria-label={values && values.length > 1 ? "Historical AAPL closing prices from Twelve Data" : "Illustrative upward market chart, not live price data"}>
       <defs>
         <linearGradient id="chart-fill" x1="0" x2="0" y1="0" y2="1">
           <stop offset="0%" stopColor="#64e5b4" stopOpacity=".24" />
