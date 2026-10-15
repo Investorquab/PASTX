@@ -31,11 +31,7 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
   const marketDataConfigured = Boolean((options.marketDataApiKey ?? process.env.MARKET_DATA_API_KEY)?.trim());
 
   await app.register(helmet);
-  await app.register(rateLimit, {
-    max: 60,
-    timeWindow: "1 minute",
-    errorResponseBuilder: (request) => apiError("RATE_LIMITED", "Too many requests. Please retry later.", request.id)
-  });
+  await app.register(rateLimit, { max: 60, timeWindow: "1 minute" });
 
   app.get("/api/health", async () => ({
     status: "ok",
@@ -112,8 +108,11 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
   });
 
   app.setErrorHandler((error, request, reply) => {
+    if (error.statusCode === 429) {
+      return reply.code(429).send(apiError("RATE_LIMITED", "Too many requests. Please retry later.", request.id));
+    }
     request.log.error({ err: error }, "Unhandled API error");
-    reply.code(500).send(apiError("INTERNAL_ERROR", "An unexpected server error occurred.", request.id));
+    return reply.code(500).send(apiError("INTERNAL_ERROR", "An unexpected server error occurred.", request.id));
   });
 
   return app;
