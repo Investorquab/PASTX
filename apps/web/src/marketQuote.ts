@@ -1,5 +1,6 @@
 import type { MarketQuote } from "@pastx/shared";
 
+export type { MarketQuote } from "@pastx/shared";
 const SYMBOL_PATTERN = /^[A-Z0-9.^_-]{1,20}$/;
 const CURRENCY_PATTERN = /^[A-Z]{3,8}$/;
 
