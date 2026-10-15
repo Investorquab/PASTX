@@ -12,6 +12,13 @@ For a trade that exchanges a payment asset for a market asset, the result must b
 
 If the chosen runtime cannot provide that guarantee for the intended participants and assets, do not expose the flow as a real trade.
 
+## Asset and price semantics
+
+- The current AAPL/NVDA/TSLA/MSFT catalogue is external reference data, not tokenized company equity. A trade cannot transfer a reference quote as though it were an owned asset.
+- Any demo payment asset (including native tPOTv3/POT) must be verified against the actual target runtime and account balance semantics before it is used in an order flow.
+- Do not invent a POT/USD conversion or treat an external stock quote as an executable on-chain price. A quote currency, price oracle, asset backing and settlement asset are separate concerns.
+- Every instrument must be labelled as `reference`, `simulated`, or `onchain`; only verified `onchain` instruments can be eligible for a real settlement path.
+
 ## Questions to resolve against the actual target runtime
 
 1. Is the intended V3 RPC reachable and the network identity confirmed?
