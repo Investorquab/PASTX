@@ -29,12 +29,12 @@ describe("PASTX API", () => {
       logger: false,
       chainProbe: async () => ({
         configured: true, reachable: true, networkMatches: true,
-        expectedChainId: PORTALDOT_V3_EVM_CHAIN_ID, chainId: PORTALDOT_V3_EVM_CHAIN_ID, status: "verified"
+        expectedChainId: PORTALDOT_V3_EVM_CHAIN_ID, chainId: PORTALDOT_V3_EVM_CHAIN_ID, status: "verified", verificationScope: "chain_id_only"
       })
     });
     const response = await app.inject({ method: "GET", url: "/api/chain/status" });
     expect(response.statusCode).toBe(200);
-    expect(response.json().item).toMatchObject({ status: "verified", chainId: 420420777 });
+    expect(response.json().item).toMatchObject({ status: "verified", chainId: 420420777, verificationScope: "chain_id_only" });
     expect(response.body).not.toContain("rpc.example");
     await app.close();
   });
