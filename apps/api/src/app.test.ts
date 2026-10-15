@@ -17,10 +17,38 @@ describe("PASTX API", () => {
     await app.close();
   });
 
+  it("publishes a capability contract that distinguishes implementation from enablement", async () => {
+    const app = await buildApp({ logger: false, marketDataApiKey: "configured-key", marketDataDisplayEnabled: false });
+    const response = await app.inject({ method: "GET", url: "/api/capabilities" });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      capabilities: {
+        referenceCatalogue: { implemented: true, enabled: true },
+        marketQuotes: { implemented: true, enabled: false },
+        marketCandles: { implemented: true, enabled: false },
+        chainIdentityProbe: { implemented: true, enabled: true, verificationScope: "chain_id_only" },
+        walletConnection: { implemented: false, enabled: false },
+        orderPreview: { implemented: true, enabled: true, execution: false },
+        orderSubmission: { implemented: false, enabled: false },
+        atomicSettlement: { implemented: false, enabled: false }
+      },
+      safety: { tradingEnabled: false, externalStockQuotesAreReferenceData: true }
+    });
+    await app.close();
+  });
+
   it("does not treat whitespace-only provider keys as configured", async () => {
     const app = await buildApp({ logger: false, marketDataApiKey: "   " });
     const response = await app.inject({ method: "GET", url: "/api/health" });
     expect(response.json().marketDataConfigured).toBe(false);
+    await app.close();
+  });
+
+  it("applies security headers to API responses", async () => {
+    const app = await buildApp({ logger: false });
+    const response = await app.inject({ method: "GET", url: "/api/health" });
+    expect(response.headers["x-content-type-options"]).toBe("nosniff");
+    expect(response.headers["x-frame-options"]).toBeTruthy();
     await app.close();
   });
 
