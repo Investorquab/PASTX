@@ -109,4 +109,35 @@ describe("TwelveDataAdapter", () => {
     await expect(providerFailure.getQuote(instrument)).rejects.toMatchObject({ code: "PROVIDER_UNAVAILABLE" });
   });
 
+
+  it("returns defensive copies of cached candle arrays and entries", async () => {
+    const adapter = new TwelveDataAdapter("test-key", fakeFetch({ values: [
+      { datetime: "2026-10-15 10:00:00", open: "10", high: "12", low: "9", close: "11", volume: "50" }
+    ] }));
+    const first = await adapter.getCandles(instrument, "1min", 1);
+    first[0].close = -999;
+    first.push({ timestamp: "invalid", open: 1, high: 1, low: 1, close: 1, volume: null });
+    const second = await adapter.getCandles(instrument, "1min", 1);
+    expect(second).toHaveLength(1);
+    expect(second[0].close).toBe(11);
+  });
+
+  it("normalizes transport failures and aborts to safe provider errors", async () => {
+    const transportFailure = new TwelveDataAdapter(
+      "test-key",
+      vi.fn(async () => { throw new TypeError("private transport details"); }) as unknown as typeof fetch
+    );
+    await expect(transportFailure.getQuote(instrument)).rejects.toMatchObject({
+      code: "PROVIDER_UNAVAILABLE", statusCode: 502, message: "Market data provider is unavailable."
+    });
+
+    const abortError = Object.assign(new Error("private abort details"), { name: "AbortError" });
+    const timedOut = new TwelveDataAdapter(
+      "test-key",
+      vi.fn(async () => { throw abortError; }) as unknown as typeof fetch
+    );
+    await expect(timedOut.getQuote(instrument)).rejects.toMatchObject({
+      code: "PROVIDER_UNAVAILABLE", statusCode: 504, message: "Market data provider timed out."
+    });
+  });
 });
