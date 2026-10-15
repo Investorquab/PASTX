@@ -38,7 +38,9 @@ pnpm install
 pnpm dev
 ```
 
-The web app and API have separate dev scripts. The Vite development server proxies `/api` to `http://127.0.0.1:4000`, so start both in separate terminals:
+The root `pnpm dev` command starts the web app and API dev servers in parallel. Vite proxies `/api` requests to `http://127.0.0.1:4000`. The web app is normally available at `http://localhost:5173`, and the API at `http://localhost:4000`.
+
+To start them separately, use two terminals:
 
 ```bash
 pnpm --filter @pastx/web dev
