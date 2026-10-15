@@ -7,6 +7,7 @@ import { probePortaldotEvm, type ChainProbeResult } from "@pastx/chain-adapter";
 
 export type AppOptions = {
   marketDataApiKey?: string;
+  marketDataDisplayEnabled?: boolean;
   logger?: boolean;
   marketData?: TwelveDataAdapter;
   chainRpcUrl?: string;
@@ -26,6 +27,7 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
   const app = Fastify({ logger: options.logger ?? true, requestIdHeader: "x-request-id" });
   const marketData = options.marketData ?? new TwelveDataAdapter(options.marketDataApiKey ?? process.env.MARKET_DATA_API_KEY);
   const chainProbe = options.chainProbe ?? (() => probePortaldotEvm(options.chainRpcUrl ?? process.env.PORTALDOT_EVM_RPC_URL));
+  const marketDataDisplayEnabled = options.marketDataDisplayEnabled ?? process.env.MARKET_DATA_DISPLAY_ENABLED === "true";
 
   await app.register(helmet);
   await app.register(rateLimit, { max: 60, timeWindow: "1 minute" });
@@ -34,6 +36,7 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
     status: "ok",
     service: "pastx-api",
     marketDataConfigured: Boolean(options.marketDataApiKey ?? process.env.MARKET_DATA_API_KEY),
+    marketDataDisplayEnabled,
     tradingEnabled: false
   }));
 
@@ -54,6 +57,7 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
   app.get<{ Params: { symbol: string } }>("/api/markets/:symbol/quote", async (request, reply) => {
     const instrument = findInstrument(request.params.symbol);
     if (!instrument) return reply.code(404).send(apiError("NOT_FOUND", "Market instrument was not found.", request.id));
+    if (!marketDataDisplayEnabled) return reply.code(403).send(apiError("MARKET_DATA_DISPLAY_DISABLED", "Live market-data display is disabled until provider terms are verified.", request.id));
     try {
       return { item: await marketData.getQuote(instrument) };
     } catch (error) {
@@ -85,6 +89,7 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
         return reply.code(400).send(apiError("INVALID_INPUT", "outputsize must be an integer between 1 and 500.", request.id));
       }
 
+      if (!marketDataDisplayEnabled) return reply.code(403).send(apiError("MARKET_DATA_DISPLAY_DISABLED", "Live market-data display is disabled until provider terms are verified.", request.id));
       try {
         return { symbol: instrument.symbol, interval, items: await marketData.getCandles(instrument, interval, outputsize) };
       } catch (error) {
