@@ -16,6 +16,7 @@ export type ChainStatus = {
   expectedChainId: number;
   chainId: number | null;
   status: "not_configured" | "unreachable" | "verified" | "wrong_network";
+  verificationScope: "chain_id_only";
 };
 
 export class ApiClientError extends Error {
@@ -57,7 +58,8 @@ export async function getChainStatus(fetchImpl: typeof fetch = fetch): Promise<C
     typeof status.expectedChainId !== "number" ||
     !(status.chainId === null || typeof status.chainId === "number") ||
     typeof status.status !== "string" ||
-    !allowed.includes(status.status)
+    !allowed.includes(status.status) ||
+    status.verificationScope !== "chain_id_only"
   ) {
     throw new ApiClientError("PASTX API returned an invalid chain status.");
   }
