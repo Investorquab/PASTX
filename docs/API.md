@@ -52,6 +52,10 @@ Errors use `{ "error": { "code": "...", "message": "...", "requestId": "..." } }
 
 The API applies a global rate limit of 60 requests per minute per client, security headers, an eight-second provider timeout, and generic provider-facing error messages. Provider-specific payloads and credentials are not returned.
 
+## Chain status semantics
+
+`GET /api/chain/status` reports `not_configured`, `unreachable`, `wrong_network`, or `verified`. The expected EVM chain ID is `420420777`, based on the [Portaldot V3 testnet guide](https://github.com/ItsCogumellum/portaldot-v3-testnet-guide). A `verified` result only proves that the configured RPC reports the expected chain ID at probe time; it does **not** prove wallet compatibility, runtime pallet behavior, asset interoperability, or safe settlement.
+
 ## Planned, not implemented
 
 - `GET /api/assets/onchain`
