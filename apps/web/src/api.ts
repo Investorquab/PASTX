@@ -97,6 +97,9 @@ export async function getMarketCandles(
   outputsize = 30,
   fetchImpl: typeof fetch = fetch
 ): Promise<MarketCandle[]> {
+  if (!Number.isInteger(outputsize) || outputsize < 1 || outputsize > 500) {
+    throw new ApiClientError("Candle output size must be an integer between 1 and 500.");
+  }
   const payload = await fetchJson(fetchImpl, `/api/markets/${encodeURIComponent(symbol)}/candles?interval=${encodeURIComponent(interval)}&outputsize=${outputsize}`);
   if (typeof payload !== "object" || payload === null || !("items" in payload) || !Array.isArray((payload as { items?: unknown }).items)) {
     throw new ApiClientError("PASTX API returned invalid candle data.");
