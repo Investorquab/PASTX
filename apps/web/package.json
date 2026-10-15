@@ -7,7 +7,7 @@
     "dev": "vite --host 0.0.0.0",
     "build": "tsc --noEmit -p tsconfig.json && vite build",
     "check": "tsc --noEmit -p tsconfig.json",
-    "test": "echo \"No web tests have been added yet\""
+    "test": "vitest run"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
@@ -19,6 +19,7 @@
     "@types/react-dom": "^19.1.0",
     "@vitejs/plugin-react": "^5.0.4",
     "typescript": "^5.9.3",
-    "vite": "^7.1.7"
+    "vite": "^7.1.7",
+    "vitest": "^3.2.4"
   }
 }
