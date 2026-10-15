@@ -1,6 +1,6 @@
 # PASTX API
 
-**Implementation status:** the Fastify health and reference-catalogue endpoints are implemented. Quote and candle routes are implemented behind a server-side Twelve Data adapter. Live provider responses require a configured key and successful CI/runtime verification. Portfolio, orders, chain assets and transaction endpoints remain planned.
+**Implementation status:** the Fastify health, capability, reference-catalogue and chain-status endpoints are implemented. Quote and candle routes are implemented behind a server-side Twelve Data adapter. Live provider responses require a configured key, explicit display enablement, and confirmation that the provider terms permit the intended use. Portfolio, orders, chain assets and transaction endpoints remain planned.
 
 ## Base URL
 
@@ -10,7 +10,9 @@ Local development defaults to `http://localhost:4000`. All routes are prefixed w
 
 | Method | Route | Behavior |
 |---|---|---|
-| GET | `/api/health` | Health, whether the provider key is configured, and explicit `tradingEnabled: false` |
+| GET | `/api/health` | Liveness, provider configuration/display flags, and explicit `tradingEnabled: false` |
+| GET | `/api/capabilities` | Authoritative machine-readable map of implemented, enabled and non-executable features |
+| GET | `/api/chain/status` | Read-only EVM chain-ID probe with a narrowly scoped verification label |
 | GET | `/api/markets` | Supported reference instrument catalogue |
 | GET | `/api/markets/:symbol` | Instrument metadata |
 | GET | `/api/markets/:symbol/quote` | Normalized quote from Twelve Data |
@@ -18,7 +20,21 @@ Local development defaults to `http://localhost:4000`. All routes are prefixed w
 
 Symbols are case-insensitive and limited to the explicit allow-listed catalogue (AAPL, NVDA, TSLA, MSFT). This prevents arbitrary provider proxying and uncontrolled symbol usage.
 
-### Quotes
+## Capability contract
+
+`GET /api/capabilities` gives the frontend and external clients one source of truth for feature gating. Each capability separates `implemented` from `enabled`; a feature may exist in code but remain disabled by configuration or safety gates.
+
+Current capability boundaries:
+- Reference catalogue: implemented and enabled.
+- Quotes and candles: implemented, enabled only when a provider key is configured and `MARKET_DATA_DISPLAY_ENABLED=true`.
+- Chain identity probe: enabled, but verification scope is `chain_id_only`.
+- Order preview: non-executable preview only.
+- Wallet connection, on-chain balances, order submission, transaction history and atomic settlement: not implemented and disabled.
+- Trading remains disabled regardless of capability response.
+
+The capability endpoint does not perform network probes or expose provider credentials, RPC URLs, wallet data or environment values. Do not treat `implemented: true` as evidence of production readiness or successful external integration.
+
+## Quotes
 
 A successful quote includes:
 - `symbol`: PASTX catalogue symbol;
@@ -30,7 +46,7 @@ A successful quote includes:
 
 The provider's API key is sent only by the server. It must never be added to the browser bundle or returned in API payloads.
 
-### Candles
+## Candles
 
 `GET /api/markets/AAPL/candles?interval=1day&outputsize=30`
 
