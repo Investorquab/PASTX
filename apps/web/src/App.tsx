@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { getChainStatus, type ChainStatus } from "./api";
 import {
   Activity,
   ArrowDownRight,
@@ -51,6 +52,43 @@ function MiniChart() {
 
 function App() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [chainStatus, setChainStatus] = useState<ChainStatus | null>(null);
+  const [chainStatusError, setChainStatusError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    getChainStatus()
+      .then((status) => {
+        if (active) setChainStatus(status);
+      })
+      .catch(() => {
+        if (active) setChainStatusError(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const chainStatusLabel = chainStatus
+    ? ({
+        not_configured: "RPC not configured",
+        unreachable: "RPC unreachable",
+        wrong_network: "Wrong network",
+        verified: "Chain ID verified"
+      } as const)[chainStatus.status]
+    : chainStatusError
+      ? "API unavailable"
+      : "Checking RPC…";
+  const chainStatusDetail = chainStatus?.status === "verified"
+    ? "Read-only identity check; settlement unverified"
+    : chainStatus?.status === "wrong_network"
+      ? `Expected chain ID ${chainStatus.expectedChainId}; received ${chainStatus.chainId}`
+      : chainStatus?.status === "unreachable"
+        ? "Configured RPC did not respond"
+        : chainStatus?.status === "not_configured"
+          ? `Expected EVM chain ID ${chainStatus.expectedChainId}`
+          : "Network integration not verified";
+
   const visibleMarkets = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
     if (!query) return referenceMarkets;
@@ -77,7 +115,7 @@ function App() {
         <div className="sidebar-bottom">
           <div className="network-card">
             <span className="network-dot" />
-            <div><strong>Network status</strong><small>Integration not verified</small></div>
+            <div><strong>Network status</strong><small>{chainStatusDetail}</small></div>
           </div>
           <a className="nav-item muted-link" href="#docs"><CircleHelp size={17} /> Documentation</a>
           <div className="sidebar-foot">PASTX PREVIEW <span>v0.1.0</span></div>
@@ -116,8 +154,8 @@ function App() {
           </article>
           <article className="summary-card">
             <div className="card-label">NETWORK <span className="tiny-icon"><Activity size={15} /></span></div>
-            <div className="summary-value network-value"><span className="status-ring" /> Not connected</div>
-            <div className="summary-note">V3 compatibility not yet verified</div>
+            <div className="summary-value network-value"><span className="status-ring" /> {chainStatusLabel}</div>
+            <div className="summary-note">Read-only RPC identity check; no wallet or trades</div>
           </article>
           <article className="summary-card">
             <div className="card-label">TRADE EXECUTION <span className="tiny-icon"><ShieldCheck size={15} /></span></div>
