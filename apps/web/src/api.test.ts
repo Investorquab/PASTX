@@ -62,6 +62,12 @@ describe("market data API client", () => {
     await expect(getMarketQuote("AAPL", fetcher as unknown as typeof fetch)).rejects.toBeInstanceOf(ApiClientError);
   });
 
+  it("rejects invalid candle limits before issuing a request", async () => {
+    const fetcher = vi.fn();
+    await expect(getMarketCandles("AAPL", "1day", 501, fetcher as unknown as typeof fetch)).rejects.toBeInstanceOf(ApiClientError);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
   it("validates OHLC candle relationships", async () => {
     const fetcher = async () => new Response(JSON.stringify({ items: [{
       timestamp: "2026-10-15T03:00:00.000Z", open: 10, high: 12, low: 9, close: 11, volume: 50
