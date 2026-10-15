@@ -21,6 +21,7 @@ External stock quotes are references only. They do not represent tokenized equit
 - `apps/api`: Fastify HTTP API with security headers, rate limiting and stable error responses.
 - `packages/shared`: domain types and supported instrument catalogue.
 - `packages/market-data`: Twelve Data adapter; provider credentials remain server-side.
+- `packages/chain-adapter`: read-only Portaldot EVM RPC identity probe; no transaction writes.
 - `docs/`: architecture, API, settlement, security, tests and deployment notes.
 
 See [Architecture](docs/ARCHITECTURE.md), [API](docs/API.md), [Settlement Design](docs/SETTLEMENT-DESIGN.md), [Hackathon Requirements](docs/HACKATHON-REQUIREMENTS.md), and [Project Status](docs/PROJECT-STATUS.md).
@@ -37,7 +38,7 @@ pnpm install
 pnpm dev
 ```
 
-The web app and API have separate dev scripts. To run them in separate terminals:
+The web app and API have separate dev scripts. The Vite development server proxies `/api` to `http://127.0.0.1:4000`, so start both in separate terminals:
 
 ```bash
 pnpm --filter @pastx/web dev
