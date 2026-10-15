@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { MARKET_INSTRUMENTS } from "@pastx/shared";
 import { MarketDataError, TwelveDataAdapter } from "@pastx/market-data";
 import { buildApp } from "./app";
+import { PORTALDOT_V3_EVM_CHAIN_ID } from "@pastx/chain-adapter";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -13,6 +14,21 @@ describe("PASTX API", () => {
     const response = await app.inject({ method: "GET", url: "/api/health" });
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({ status: "ok", tradingEnabled: false, marketDataConfigured: false });
+    await app.close();
+  });
+
+  it("reports chain status without exposing RPC URL or enabling writes", async () => {
+    const app = await buildApp({
+      logger: false,
+      chainProbe: async () => ({
+        configured: true, reachable: true, networkMatches: true,
+        expectedChainId: PORTALDOT_V3_EVM_CHAIN_ID, chainId: PORTALDOT_V3_EVM_CHAIN_ID, status: "verified"
+      })
+    });
+    const response = await app.inject({ method: "GET", url: "/api/chain/status" });
+    expect(response.statusCode).toBe(200);
+    expect(response.json().item).toMatchObject({ status: "verified", chainId: 420420777 });
+    expect(response.body).not.toContain("rpc.example");
     await app.close();
   });
 
