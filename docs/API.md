@@ -86,3 +86,10 @@ These routes must not be represented as operational until a supported Portaldot 
 ## Wallet and transaction flow
 
 The browser wallet must sign and submit transactions. The server must never sign with a user's private key or request seed phrases. A submitted transaction is not a completed trade; completion requires the selected receipt/event and resulting-state checks. Trading is currently disabled.
+
+
+## Reference-only order intent preview
+
+The shared domain exports `buildOrderIntentPreview(side, symbol, rawQuantity, referencePrice)`. It accepts only a buy/sell side, a known catalogue symbol, a finite positive quantity within the preview bound, and a finite positive reference price. It returns normalized symbol, quantity, reference price, reference notional, currency and `executable: false`, or `null` for invalid input.
+
+This is deterministic preview arithmetic only. It does not create an exchange order, guarantee a quote, reserve funds, check balances, authorize a transaction, or represent tokenized equity ownership. The preview must not be submitted to the chain or presented as a filled order.
