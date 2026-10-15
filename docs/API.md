@@ -50,7 +50,7 @@ Errors use `{ "error": { "code": "...", "message": "...", "requestId": "..." } }
 | `PROVIDER_INVALID_RESPONSE` | Provider payload cannot be normalized safely |
 | `INTERNAL_ERROR` | Unexpected server error |
 
-The API applies a global rate limit of 60 requests per minute per client, security headers, an eight-second provider timeout, and generic provider-facing error messages. Provider-specific payloads and credentials are not returned.
+The API applies a global rate limit of 60 requests per minute per client, security headers, and an eight-second provider timeout. Successful normalized quotes are cached in memory for 15 seconds and candle series for 60 seconds, with a maximum of 128 cache keys per cache. Cache entries are process-local and are not durable or shared across replicas. Provider-facing errors remain generic. Provider-specific payloads and credentials are not returned.
 
 ## Chain status semantics
 
