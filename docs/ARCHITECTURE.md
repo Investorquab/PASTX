@@ -43,7 +43,7 @@ flowchart TD
   VERIFY -. only after runtime verification .-> RPC
 ```
 
-The browser must not contain provider secrets. The API must never request or store a user's wallet seed phrase or private key.
+The browser must not contain provider secrets. The UI checks API health before requesting live quote/candle data and stays on labelled fixtures unless both the server-side provider key and explicit display flag are enabled. The API must never request or store a user's wallet seed phrase or private key.
 
 ## Market data
 
