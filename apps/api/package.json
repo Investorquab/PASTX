@@ -15,7 +15,8 @@
     "@fastify/rate-limit": "^10.3.0",
     "@pastx/market-data": "workspace:*",
     "@pastx/shared": "workspace:*",
-    "fastify": "^5.6.1"
+    "fastify": "^5.6.1",
+    "@pastx/chain-adapter": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.18.6",
