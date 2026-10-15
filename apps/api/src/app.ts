@@ -31,7 +31,11 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
   const marketDataConfigured = Boolean((options.marketDataApiKey ?? process.env.MARKET_DATA_API_KEY)?.trim());
 
   await app.register(helmet);
-  await app.register(rateLimit, { max: 60, timeWindow: "1 minute" });
+  await app.register(rateLimit, {
+    max: 60,
+    timeWindow: "1 minute",
+    errorResponseBuilder: (request) => apiError("RATE_LIMITED", "Too many requests. Please retry later.", request.id)
+  });
 
   app.get("/api/health", async () => ({
     status: "ok",
