@@ -23,7 +23,7 @@ External stock quotes are references only. They do not represent tokenized equit
 - `packages/market-data`: Twelve Data adapter; provider credentials remain server-side.
 - `docs/`: architecture, API, settlement, security, tests and deployment notes.
 
-See [Architecture](docs/ARCHITECTURE.md), [API](docs/API.md), and [Settlement Design](docs/SETTLEMENT-DESIGN.md).
+See [Architecture](docs/ARCHITECTURE.md), [API](docs/API.md), [Settlement Design](docs/SETTLEMENT-DESIGN.md), [Hackathon Requirements](docs/HACKATHON-REQUIREMENTS.md), and [Project Status](docs/PROJECT-STATUS.md).
 
 ## Requirements
 
