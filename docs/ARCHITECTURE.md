@@ -14,7 +14,7 @@
 ## Current workspace
 
 - `apps/web`: React + TypeScript + Vite market-terminal preview.
-- `apps/api`: Fastify API, validation, rate limiting, safe errors and server-only provider key.
+- `apps/api`: Fastify API, validation, rate limiting, safe errors, server-only provider key, and a machine-readable capability contract for frontend feature gating.
 - `packages/shared`: market catalogue, domain types, candle intervals and API error contract.
 - `packages/market-data`: vendor adapter for Twelve Data, normalized quotes/candles and provider error mapping.
 - `packages/chain-adapter`: read-only EVM RPC identity probe; no transaction signing or submission.
@@ -34,6 +34,7 @@ flowchart TD
   FUTURE[Future wallet client]
   VERIFY[Verified chain adapter and settlement flow]
 
+  WEB -->|GET /api/capabilities| API
   WEB -->|GET /api/chain/status| API
   API --> CATALOG
   API --> DATA
@@ -43,7 +44,7 @@ flowchart TD
   VERIFY -. only after runtime verification .-> RPC
 ```
 
-The browser must not contain provider secrets. The UI checks API health before requesting live quote/candle data and stays on labelled fixtures unless both the server-side provider key and explicit display flag are enabled. The API must never request or store a user's wallet seed phrase or private key.
+The browser must not contain provider secrets. The UI can use `/api/capabilities` as the authoritative feature-gating contract; it distinguishes code being implemented from a feature being enabled. Quote/candle capability is enabled only when both the server-side provider key and explicit display flag are present. The UI stays on labelled fixtures otherwise. The API must never request or store a user's wallet seed phrase or private key. The capability document explicitly marks wallet connection, on-chain balances, order submission, transaction history and atomic settlement as not implemented, and it never enables trading.
 
 ## Market data
 
