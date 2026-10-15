@@ -82,3 +82,8 @@ See [Settlement Design](SETTLEMENT-DESIGN.md).
 - Use PostgreSQL only when there is a concrete need for durable records or indexed chain history.
 - Add Redis only if measured caching, rate limiting or job coordination needs justify it.
 - Defer cross-chain bridges, matching engines and authentication expansion until the core flow works.
+
+
+## Reference-only order intent domain
+
+The shared package owns deterministic order-preview validation so the web app does not maintain separate arithmetic. It accepts a known reference-catalogue symbol, a buy/sell side, bounded positive quantity, and positive finite reference price. The result is explicitly `executable: false`; it is not an order, balance check, authorization, or transaction. Live trading remains disabled.
