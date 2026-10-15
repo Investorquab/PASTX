@@ -79,7 +79,7 @@ function App() {
           <div className="breadcrumb">PASTX <span>/</span> Markets</div>
           <div className="top-actions">
             <span className="preview-pill"><span /> PREVIEW · SAMPLE DATA</span>
-            <button className="icon-button" aria-label="Notifications"><Bell size={18} /></button>
+            <button className="icon-button" aria-label="Notifications" type="button" disabled title="Notifications are not implemented in this preview"><Bell size={18} /></button>
             <button className="connect-button" type="button" disabled title="Wallet connection will be added after chain compatibility testing"><Wallet size={16} /> Wallet integration pending</button>
           </div>
         </header>
@@ -90,7 +90,7 @@ function App() {
             <h1>Markets, <span>in perspective.</span></h1>
             <p>Explore reference instruments and prepare for on-chain markets built for Portaldot.</p>
           </div>
-          <div className="search-box"><Search size={17} /><input aria-label="Search markets" placeholder="Search markets..." /><kbd>⌘ K</kbd></div>
+          <div className="search-box"><Search size={17} /><input aria-label="Search markets" placeholder="Search markets..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /><kbd>Search</kbd></div>
         </section>
 
         <div className="notice" role="note">
@@ -120,11 +120,11 @@ function App() {
           <div className="panel market-panel">
             <div className="panel-heading">
               <div><h2>Watchlist</h2><p>Reference instruments · sample values</p></div>
-              <button className="subtle-button" type="button">All markets <ChevronDown size={14} /></button>
+              <button className="subtle-button" type="button" disabled title="This preview contains a curated reference watchlist">Reference list <ChevronDown size={14} /></button>
             </div>
             <div className="market-table">
               <div className="table-head"><span>INSTRUMENT</span><span>REFERENCE PRICE</span><span>24H CHANGE*</span></div>
-              {referenceMarkets.map((market) => (
+              {visibleMarkets.map((market) => (
                 <div className="market-row" key={market.symbol}>
                   <div className="instrument">
                     <span className={`instrument-icon icon-${market.symbol.toLowerCase()}`}>{market.initials}</span>
@@ -141,7 +141,7 @@ function App() {
           <div className="panel chart-panel">
             <div className="panel-heading">
               <div><h2>Market overview</h2><p>Illustrative trend · no live feed</p></div>
-              <button className="subtle-button" type="button">1D <ChevronDown size={14} /></button>
+              <button className="subtle-button" type="button" disabled title="Chart intervals are not connected to historical data yet">Preview <ChevronDown size={14} /></button>
             </div>
             <div className="chart-metric"><strong>Market trend preview</strong><span className="positive"><ArrowUpRight size={15} /> Illustrative</span></div>
             <div className="chart-wrap"><div className="chart-grid"><i /><i /><i /><i /></div><MiniChart /></div>
