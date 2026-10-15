@@ -1,4 +1,4 @@
-import Fastify, { type FastifyInstance } from "fastify";
+import Fastify, { type FastifyError, type FastifyInstance } from "fastify";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import { MARKET_INSTRUMENTS, isCandleInterval, type ApiError, type MarketInstrument } from "@pastx/shared";
@@ -107,7 +107,7 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
     reply.code(404).send(apiError("NOT_FOUND", "Route was not found.", request.id));
   });
 
-  app.setErrorHandler((error, request, reply) => {
+  app.setErrorHandler((error: FastifyError, request, reply) => {
     if (error.statusCode === 429) {
       return reply.code(429).send(apiError("RATE_LIMITED", "Too many requests. Please retry later.", request.id));
     }
