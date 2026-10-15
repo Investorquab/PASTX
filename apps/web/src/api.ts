@@ -1,3 +1,14 @@
+import type { MarketCandle, MarketQuote, CandleInterval } from "@pastx/shared";
+import { isMarketQuote } from "./marketQuote";
+
+export type ApiHealth = {
+  status: "ok";
+  service: string;
+  marketDataConfigured: boolean;
+  marketDataDisplayEnabled: boolean;
+  tradingEnabled: false;
+};
+
 export type ChainStatus = {
   configured: boolean;
   reachable: boolean;
@@ -52,4 +63,75 @@ export async function getChainStatus(fetchImpl: typeof fetch = fetch): Promise<C
   }
 
   return status as unknown as ChainStatus;
+}
+
+export async function getApiHealth(fetchImpl: typeof fetch = fetch): Promise<ApiHealth> {
+  const payload = await fetchJson(fetchImpl, "/api/health");
+  if (typeof payload !== "object" || payload === null) throw new ApiClientError("PASTX API returned invalid health status.");
+  const health = payload as Record<string, unknown>;
+  if (
+    health.status !== "ok" ||
+    typeof health.service !== "string" ||
+    typeof health.marketDataConfigured !== "boolean" ||
+    typeof health.marketDataDisplayEnabled !== "boolean" ||
+    health.tradingEnabled !== false
+  ) throw new ApiClientError("PASTX API returned invalid health status.");
+  return health as unknown as ApiHealth;
+}
+
+export async function getMarketQuote(symbol: string, fetchImpl: typeof fetch = fetch): Promise<MarketQuote> {
+  const payload = await fetchJson(fetchImpl, `/api/markets/${encodeURIComponent(symbol)}/quote`);
+  if (typeof payload !== "object" || payload === null || !("item" in payload)) {
+    throw new ApiClientError("PASTX API returned an invalid market quote.");
+  }
+  const item = (payload as { item?: unknown }).item;
+  if (!isMarketQuote(item) || item.source !== "twelve_data") {
+    throw new ApiClientError("PASTX API returned an invalid market quote.");
+  }
+  return item;
+}
+
+export async function getMarketCandles(
+  symbol: string,
+  interval: CandleInterval = "1day",
+  outputsize = 30,
+  fetchImpl: typeof fetch = fetch
+): Promise<MarketCandle[]> {
+  const payload = await fetchJson(fetchImpl, `/api/markets/${encodeURIComponent(symbol)}/candles?interval=${encodeURIComponent(interval)}&outputsize=${outputsize}`);
+  if (typeof payload !== "object" || payload === null || !("items" in payload) || !Array.isArray((payload as { items?: unknown }).items)) {
+    throw new ApiClientError("PASTX API returned invalid candle data.");
+  }
+  const items = (payload as { items: unknown[] }).items;
+  const candles = items.map((item): MarketCandle | null => {
+    if (typeof item !== "object" || item === null) return null;
+    const candle = item as Record<string, unknown>;
+    const validDate = typeof candle.timestamp === "string" && Number.isFinite(Date.parse(candle.timestamp));
+    const nums = [candle.open, candle.high, candle.low, candle.close];
+    if (!validDate || !nums.every((value) => typeof value === "number" && Number.isFinite(value) && value > 0)) return null;
+    const open = candle.open as number;
+    const high = candle.high as number;
+    const low = candle.low as number;
+    const close = candle.close as number;
+    const volume = candle.volume;
+    if (high < Math.max(open, close, low) || low > Math.min(open, close, high)) return null;
+    if (!(volume === null || (typeof volume === "number" && Number.isFinite(volume) && volume >= 0))) return null;
+    return { timestamp: candle.timestamp as string, open, high, low, close, volume };
+  });
+  if (candles.some((item) => item === null)) throw new ApiClientError("PASTX API returned malformed candle data.");
+  return candles as MarketCandle[];
+}
+
+async function fetchJson(fetchImpl: typeof fetch, url: string): Promise<unknown> {
+  let response: Response;
+  try {
+    response = await fetchImpl(url, { headers: { accept: "application/json" } });
+  } catch {
+    throw new ApiClientError("PASTX API is unavailable.");
+  }
+  if (!response.ok) throw new ApiClientError("PASTX API request failed.", response.status);
+  try {
+    return await response.json();
+  } catch {
+    throw new ApiClientError("PASTX API returned an invalid response.", response.status);
+  }
 }
