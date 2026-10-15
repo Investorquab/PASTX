@@ -19,16 +19,23 @@ If the chosen runtime cannot provide that guarantee for the intended participant
 - Do not invent a POT/USD conversion or treat an external stock quote as an executable on-chain price. A quote currency, price oracle, asset backing and settlement asset are separate concerns.
 - Every instrument must be labelled as `reference`, `simulated`, or `onchain`; only verified `onchain` instruments can be eligible for a real settlement path.
 
+## Portaldot V3 facts from the published testnet guide
+
+The [Portaldot V3 Testnet Guide](https://github.com/ItsCogumellum/portaldot-v3-testnet-guide) documents a Solidity-compatible EVM JSON-RPC endpoint using `revive`: `https://testnetv3-eth-rpc.feso-apps.xyz`, chain ID `420420777`, and test token symbol `tPOTv3` with 14 decimals. It also documents mapping an EVM H160 address to a native `AccountId32`/SS58 address through `reviveApi.accountId` before funding from the native side. The guide explicitly warns that an H160 address derived from a key is not necessarily the same address as that key’s Ethereum address.
+
+These are **documented testnet configuration facts**, not proof that the endpoint is reachable now or that PASTX has completed an integration test. The guide’s [FAQ](https://github.com/ItsCogumellum/portaldot-v3-testnet-guide/blob/main/FAQ.md) says native `assets` and `revive` Solidity contracts are distinct models unless an explicit adapter/wrapper exists, and direct cross-calls between WASM/ink! and Solidity are awaiting confirmation. Therefore, do not assume a native Assets token can be transferred inside a Solidity settlement call.
+
 ## Questions to resolve against the actual target runtime
 
-1. Is the intended V3 RPC reachable and the network identity confirmed?
-2. Which runtime version and transaction interfaces are active?
-3. Are native assets and the chosen contract environment interoperable? Do not infer this from general Polkadot capabilities.
-4. Can the payment and asset transfer execute atomically under the intended authorization model?
-5. Who can initiate, cancel, or redirect settlement?
-6. Are replay protection, duplicate submission handling and clear failure states implemented?
-7. Can success be verified from receipts/events and resulting balances?
-8. Can the same behavior be reproduced on the target V3 environment, not only a local or legacy node?
+1. Is the documented V3 EVM RPC reachable now, and does it report the expected chain ID and a current block number?
+2. Which runtime version and transaction interfaces are active on that endpoint?
+3. Is the intended market asset native `assets`, an ERC-20 deployed through `revive`, or another explicitly documented representation?
+4. Can the payment and market-asset transfer execute atomically within the same supported execution environment and authorization model?
+5. How is the H160-to-SS58 mapping resolved, displayed and funded in the actual wallet flow?
+6. Who can initiate, cancel, or redirect settlement?
+7. Are replay protection, duplicate submission handling and clear failure states implemented?
+8. Can success be verified from receipts/events and resulting balances?
+9. Can the same behavior be reproduced on the target V3 environment, not only a local or legacy node?
 
 ## Candidate routes
 
