@@ -53,6 +53,10 @@ The adapter uses bounded timeouts, normalized timestamps/numbers, response-shape
 
 ## Chain-adapter boundary
 
+The published [Portaldot V3 testnet guide](https://github.com/ItsCogumellum/portaldot-v3-testnet-guide) documents the EVM JSON-RPC endpoint `https://testnetv3-eth-rpc.feso-apps.xyz`, chain ID `420420777`, Solidity execution through `revive`, and an H160-to-native-SS58 mapping through `reviveApi.accountId`. The current PASTX adapter has **not** yet demonstrated live endpoint reachability or wallet/account mapping. A matching chain ID is not a substitute for a block read, account mapping, balance read, transaction simulation, or transaction receipt.
+
+Native `assets` tokens and Solidity contracts under `revive` are separate asset/execution models in the guide; interoperability and direct cross-module atomicity are not established. Keep PASTX trading disabled until the selected asset/payment route is tested end-to-end.
+
 Proposed operations:
 - `getNetworkInfo()`
 - `getAssetMetadata(assetId)`
