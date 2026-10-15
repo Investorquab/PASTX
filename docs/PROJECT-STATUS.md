@@ -25,6 +25,9 @@ Primary hackathon track: **Ecosystem DApps**. Secondary infrastructure contribut
 
 ## Current implementation
 
+- Local Windows smoke test on 15 October 2026: user cloned the repository, installed dependencies, and ran `pnpm check`, `pnpm test` (40 tests passed), and `pnpm build` successfully. The web preview rendered and the API started on port 4000; `/api/health` and `/api/chain/status` returned HTTP 200 in API logs. A manual request to `/health` returned 404 because the correct health route is `/api/health`.
+- Root `pnpm dev` was observed to start only the first long-running workspace dev process under the default recursive execution. Fixed root script to `pnpm --parallel --recursive --if-present dev` so web and API can run together; this fix has been committed but requires a fresh local pull and smoke test.
+
 - Initial dark market-terminal UI, currently using explicitly labelled sample/fixture prices and illustrative chart.
 - Functional watchlist search.
 - Interactive non-executable order preview with buy/sell side, quantity validation and estimated reference notional; submission is disabled and no order/transaction is created.
