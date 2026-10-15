@@ -17,6 +17,7 @@
 - `apps/api`: Fastify API, validation, rate limiting, safe errors and server-only provider key.
 - `packages/shared`: market catalogue, domain types, candle intervals and API error contract.
 - `packages/market-data`: vendor adapter for Twelve Data, normalized quotes/candles and provider error mapping.
+- `packages/chain-adapter`: read-only EVM RPC identity probe; no transaction signing or submission.
 - `packages/chain-adapter`: planned; no chain writes or reads should be assumed.
 - `packages/sdk`: planned until public interfaces are proven.
 - `docs/`: architecture, API contract, settlement decisions, security, testing and deployment.
@@ -25,9 +26,10 @@
 
 ```text
 React web app (sample data is explicitly labelled)
-  └── future API client ──> Fastify API
-                             ├── allow-listed market catalogue
-                             └── Twelve Data adapter (server-side API key)
+  └── Fastify API
+       ├── allow-listed market catalogue
+       ├── Twelve Data adapter (server-side API key)
+       └── read-only Portaldot EVM chain-ID probe (optional RPC URL)
 
 Future wallet client ──> verified Portaldot chain adapter ──> RPC
                                                        └── receipts/events/state
