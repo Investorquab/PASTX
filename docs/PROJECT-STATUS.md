@@ -60,7 +60,8 @@ Always check the latest [GitHub Actions run](https://github.com/Investorquab/PAS
 
 ## External dependency status
 
-- Portaldot V3 RPC investigation is parked for now, per the engineering priority decision. On 15 October 2026, both documented hostnames (`testnetv3-eth-rpc.feso-apps.xyz` and `testnetv3-node.feso-apps.xyz`) returned DNS name does not exist through both Cloudflare DNS (1.1.1.1) and Google DNS (8.8.8.8). This blocks live-chain verification but does not block local/API/domain engineering. Do not repeatedly retry these endpoints as a substitute for continuing the project.
+- Portaldot's official X announcement states that **Portaldot Mainnet V3.0 launches on 16 October 2026**. This is an announcement, not proof that the network is already live or that any previously published endpoint is correct for the new mainnet. Keep current chain integration read-only and disabled for writes until official V3.0 endpoint/runtime details are verified.
+- Portaldot V3 testnet RPC investigation is parked for now, per the engineering priority decision. On 15 October 2026, both documented hostnames (`testnetv3-eth-rpc.feso-apps.xyz` and `testnetv3-node.feso-apps.xyz`) returned DNS name does not exist through both Cloudflare DNS (1.1.1.1) and Google DNS (8.8.8.8). This blocks live-chain verification but does not block local/API/domain engineering. Do not repeatedly retry these endpoints as a substitute for continuing the project.
 - No live block, wallet mapping, balance, transaction or settlement evidence has been established. Keep all on-chain and trading capabilities disabled until the external endpoint/runtime is available and validated.
 
 ## Next engineering priorities
@@ -76,6 +77,12 @@ Always check the latest [GitHub Actions run](https://github.com/Investorquab/PAS
 
 Update `docs/API.md` whenever routes or schemas change, `docs/ARCHITECTURE.md` whenever boundaries or dependencies change, `docs/TESTING.md` whenever test coverage changes, and `docs/PROJECT-STATUS.md` at meaningful implementation milestones. At release, consolidate temporary planning notes only after preserving requirements, security decisions and evidence.
 
+
+## Engineering milestone — provider resilience tests
+
+- Added regression coverage that callers cannot mutate cached candle data through returned arrays/objects.
+- Added coverage for generic transport failures and timeout/abort normalization, asserting safe messages and stable error codes.
+- CI run [#162](https://github.com/Investorquab/PASTX/actions/runs/38691768142) passed workspace checks, tests and build for commit `3c6f4ce` before this new test-only change. The current revision must pass its own CI before being called green.
 
 ## Engineering milestone — order intent domain
 
