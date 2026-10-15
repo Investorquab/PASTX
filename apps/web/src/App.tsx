@@ -64,6 +64,10 @@ function formatQuotePrice(quote: MarketQuote | undefined, fixturePrice: string):
   }).format(quote.price);
 }
 
+function formatTimestamp(timestamp: string): string {
+  return `${new Date(timestamp).toISOString().replace("T", " ").slice(0, 16)} UTC`;
+}
+
 function formatQuoteChange(quote: MarketQuote | undefined, fixtureChange: string): string {
   if (!quote) return fixtureChange;
   const sign = quote.changePercent > 0 ? "+" : "";
@@ -223,7 +227,7 @@ function App() {
                     <span className={`instrument-icon icon-${market.symbol.toLowerCase()}`}>{market.initials}</span>
                     <span><strong>{market.symbol}</strong><small>{market.name}</small><em>{market.category}</em></span>
                   </div>
-                  <strong className="market-price">{formatQuotePrice(liveQuotes[market.symbol], market.price)}</strong>
+                  <div className="price-cell"><strong className="market-price">{formatQuotePrice(liveQuotes[market.symbol], market.price)}</strong>{liveQuotes[market.symbol] && <small className="quote-time">as of {formatTimestamp(liveQuotes[market.symbol].observedAt)}</small>}</div>
                   <span className={`market-change ${(liveQuotes[market.symbol]?.changePercent ?? (market.positive ? 1 : -1)) >= 0 ? "positive" : "negative"}`}>{(liveQuotes[market.symbol]?.changePercent ?? (market.positive ? 1 : -1)) >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}{formatQuoteChange(liveQuotes[market.symbol], market.change)}</span>
                 </div>
               ))}
