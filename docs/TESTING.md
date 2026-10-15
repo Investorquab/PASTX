@@ -7,7 +7,7 @@ Vitest suites are included for:
 - read-only chain identity probe for missing RPC configuration, expected chain ID, wrong network, invalid ID and RPC failure;
 - browser API client for valid chain status, malformed payloads, HTTP errors and transport failure;
 - quote shape validation;
-- Twelve Data quote/candle normalization, missing API key, provider rate-limit errors and malformed OHLC payloads;
+- Twelve Data quote/candle normalization, missing API key, provider rate-limit errors, malformed timestamps/OHLC payloads and quote-cache expiry;
 - API health flags, catalogue output, unknown symbols, bounded candle query parameters and safe provider errors.
 
 The CI workflow runs workspace type checks, unit tests and production builds. Refer to the latest [GitHub Actions run](https://github.com/Investorquab/PASTX/actions) for the actual status. A test is not considered passed until the corresponding run is green.
