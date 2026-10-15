@@ -40,6 +40,10 @@ Do not put the key in `VITE_*` variables, browser code, screenshots or commits. 
 
 Before public client-facing display, verify the provider account's license and terms. The Twelve Data Basic plan describes internal non-display access; external display is listed under business pricing plans.
 
+## Optional Portaldot RPC probe
+
+Set `PORTALDOT_EVM_RPC_URL` to the public RPC endpoint for the intended Portaldot V3 EVM environment. The API route `GET /api/chain/status` performs a read-only chain-ID check against `420420777`. An unreachable or wrong network is reported explicitly; the endpoint never submits a transaction or exposes the configured URL. A matching chain ID is not proof of asset interoperability or settlement safety.
+
 ## Quality gate
 
 ```bash
