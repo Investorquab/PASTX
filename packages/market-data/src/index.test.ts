@@ -78,5 +78,10 @@ describe("TwelveDataAdapter", () => {
       { datetime: "2026-10-15 10:00:00", open: "10", high: "9", low: "8", close: "11" }
     ] }));
     await expect(malformed.getCandles(instrument, "1min", 1)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
+
+    const negativeVolume = new TwelveDataAdapter("test-key", fakeFetch({ values: [
+      { datetime: "2026-10-15 10:00:00", open: "10", high: "12", low: "9", close: "11", volume: "-1" }
+    ] }));
+    await expect(negativeVolume.getCandles(instrument, "1min", 1)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
   });
 });
