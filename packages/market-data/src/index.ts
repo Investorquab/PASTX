@@ -104,11 +104,13 @@ export class TwelveDataAdapter {
     const changePercent = parseFiniteNumber(payload.percent_change);
     const currency = typeof payload.currency === "string" ? payload.currency.toUpperCase() : instrument.currency;
     const rawTimestamp = payload.timestamp;
-    const timestamp = typeof rawTimestamp === "number" || (typeof rawTimestamp === "string" && /^\d+$/.test(rawTimestamp))
-      ? new Date(Number(rawTimestamp) * 1000).toISOString()
-      : typeof payload.datetime === "string" && Number.isFinite(Date.parse(payload.datetime))
-        ? new Date(payload.datetime).toISOString()
-        : null;
+    let timestamp: string | null = null;
+    if (typeof rawTimestamp === "number" || (typeof rawTimestamp === "string" && /^\d+$/.test(rawTimestamp))) {
+      const parsedTimestamp = new Date(Number(rawTimestamp) * 1000);
+      if (Number.isFinite(parsedTimestamp.getTime())) timestamp = parsedTimestamp.toISOString();
+    } else if (typeof payload.datetime === "string" && Number.isFinite(Date.parse(payload.datetime))) {
+      timestamp = new Date(payload.datetime).toISOString();
+    }
 
     if (price === null || price <= 0 || change === null || changePercent === null || !timestamp || !/^[A-Z]{3,8}$/.test(currency)) {
       throw new MarketDataError("PROVIDER_INVALID_RESPONSE", "Market data provider quote was missing required fields.", 502);
