@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getApiHealth, getChainStatus, getMarketCandles, getMarketQuote, type ChainStatus } from "./api";
 import type { MarketCandle, MarketQuote } from "@pastx/shared";
+import { calculateReferenceNotional, parsePreviewQuantity } from "./orderPreview";
 import {
   Activity,
   ArrowDownRight,
@@ -128,9 +129,9 @@ function App() {
   const selectedOrderInstrument = referenceMarkets.find((market) => market.symbol === orderSymbol) ?? referenceMarkets[0];
   const selectedOrderQuote = liveQuotes[orderSymbol];
   const orderUnitPrice = selectedOrderQuote?.price ?? Number(selectedOrderInstrument.price.replace(/[$,]/g, ""));
-  const orderQuantityNumber = Number(orderQuantity);
-  const validOrderQuantity = orderQuantity.trim() !== "" && Number.isFinite(orderQuantityNumber) && orderQuantityNumber > 0 && orderQuantityNumber <= 1_000_000;
-  const orderNotional = validOrderQuantity ? orderQuantityNumber * orderUnitPrice : null;
+  const orderQuantityNumber = parsePreviewQuantity(orderQuantity);
+  const validOrderQuantity = orderQuantityNumber !== null;
+  const orderNotional = calculateReferenceNotional(orderQuantity, orderUnitPrice);
   const orderCurrency = selectedOrderQuote?.currency ?? "USD";
   const chartAxisLabels = liveDataAvailable && liveCandles && liveCandles.length > 0
     ? [0, Math.floor((liveCandles.length - 1) / 3), Math.floor(((liveCandles.length - 1) * 2) / 3), liveCandles.length - 1].map((index) => formatAxisDate(liveCandles[index].timestamp))
@@ -297,7 +298,7 @@ function App() {
             </div>
           </div>
           <div className="order-preview-footer">
-            <span>{orderSide === "buy" ? "Buy" : "Sell"} preview: {validOrderQuantity ? orderQuantityNumber.toLocaleString("en-US", { maximumFractionDigits: 4 }) : "—"} {orderSymbol}</span>
+            <span>{orderSide === "buy" ? "Buy" : "Sell"} preview: {orderQuantityNumber !== null ? orderQuantityNumber.toLocaleString("en-US", { maximumFractionDigits: 4 }) : "—"} {orderSymbol}</span>
             <button className="connect-button" type="button" disabled title="Trade submission is disabled until Portaldot settlement is verified">Trading disabled</button>
           </div>
           <p className="order-disclaimer">This is a non-executable estimate using an external reference price. It is not a tokenized equity, an order, or proof of on-chain settlement.</p>
