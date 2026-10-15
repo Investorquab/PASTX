@@ -10,7 +10,7 @@ Vitest suites are included for:
 - order-preview quantity and reference-notional arithmetic, including invalid input and overflow;
 - quote shape validation;
 - Twelve Data quote/candle normalization, missing API key, provider rate-limit errors, malformed timestamps/OHLC payloads and quote-cache expiry;
-- API health flags, catalogue output, unknown symbols, bounded candle query parameters and safe provider errors.
+- API health flags, catalogue output, unknown symbols, bounded candle query parameters, safe provider errors, and normalized rate-limit responses.
 
 The CI workflow runs workspace type checks, unit tests and production builds. Refer to the latest [GitHub Actions run](https://github.com/Investorquab/PASTX/actions) for the actual status. A test is not considered passed until the corresponding run is green.
 
