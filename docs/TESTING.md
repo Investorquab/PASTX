@@ -1,16 +1,16 @@
 # PASTX Testing Strategy
 
-**Status:** test plan. Test suites will be added with the corresponding implementation.
+## Current automated coverage
 
-## Test levels
+Vitest suites are included for:
+- shared instrument classifications and candle interval allow-list;
+- quote shape validation;
+- Twelve Data quote/candle normalization, missing API key, provider rate-limit errors and malformed OHLC payloads;
+- API health flags, catalogue output, unknown symbols, bounded candle query parameters and safe provider errors.
 
-### Unit
-- market-data normalization and missing fields;
-- input validation and amount precision;
-- instrument classification;
-- candle timestamp/interval conversion;
-- transaction-state mapping;
-- error-code mapping.
+The CI workflow runs workspace type checks, unit tests and production builds. Refer to the latest [GitHub Actions run](https://github.com/Investorquab/PASTX/actions) for the actual status. A test is not considered passed until the corresponding run is green.
+
+## Remaining test levels
 
 ### Component
 - loading, empty, stale, delayed and provider-error states;
@@ -43,6 +43,6 @@
 5. Portfolio balances are based on verified chain state.
 6. External reference quotes are never presented as guaranteed execution prices.
 
-## CI expectations
+## Human-required verification
 
-When package scaffolding exists, CI should run formatting/lint checks, TypeScript checks, unit tests and a production build. Add browser and chain integration tests as those implementations become available. Do not mark a test as passed unless it ran.
+CI cannot verify wallet UX, a live Portaldot testnet transaction, explorer evidence, provider account licensing, or deployment configuration. Those remain explicit release gates and must not be described as passed by unit tests.
