@@ -29,7 +29,7 @@ Primary hackathon track: **Ecosystem DApps**. Secondary infrastructure contribut
 - Local Windows smoke test on 15 October 2026: user cloned the repository, installed dependencies, and ran `pnpm check`, `pnpm test` (40 tests passed), and `pnpm build` successfully. The web preview rendered and the API started on port 4000; `/api/health` and `/api/chain/status` returned HTTP 200 in API logs. A manual request to `/health` returned 404 because the correct health route is `/api/health`.
 - Root `pnpm dev` was fixed to `pnpm --parallel --recursive --if-present dev`; the user subsequently confirmed that both the web and API processes started together and the API health route returned 200.
 - On 15 October 2026, the user generated `pnpm-lock.yaml` with pnpm 10.15.0 and pushed commit `559be0b` to `main`.
-- CI workflow was updated in commit `5f0cde1` to install with `pnpm install --frozen-lockfile`, so CI will fail rather than silently rewrite an out-of-sync lockfile. The subsequent project-status documentation update records this change. The lockfile/frozen-install workflow passed, and the latest engineering CI run [38688735745](https://github.com/Investorquab/PASTX/actions/runs/38688735745) is green after the chain-status scope and normalized rate-limit changes. That run passed workspace type checks, all 41 unit tests, and builds.
+- CI workflow was updated in commit `5f0cde1` to install with `pnpm install --frozen-lockfile`, so CI will fail rather than silently rewrite an out-of-sync lockfile. The subsequent project-status documentation update records this change. The lockfile/frozen-install workflow passed, and the capability-contract engineering CI run [#144](https://github.com/Investorquab/PASTX/actions/runs/38690844224) passed workspace type checks, unit tests and builds after the API capability-discovery change.
 
 - Initial dark market-terminal UI, currently using explicitly labelled sample/fixture prices and illustrative chart.
 - Functional watchlist search.
@@ -47,7 +47,7 @@ Primary hackathon track: **Ecosystem DApps**. Secondary infrastructure contribut
 
 ## CI / verification policy
 
-Always check the latest [GitHub Actions run](https://github.com/Investorquab/PASTX/actions). Workspace CI must finish green before claiming the latest API/provider implementation or frozen-lockfile workflow passes. Do not infer green from a queued/in-progress run. The frozen-lockfile change was committed after the lockfile was added, so its first CI run is the important reproducibility check.
+Always check the latest [GitHub Actions run](https://github.com/Investorquab/PASTX/actions). Workspace CI must finish green before claiming the latest API/provider implementation or frozen-lockfile workflow passes. Do not infer green from a queued/in-progress run. The frozen-lockfile change was committed after the lockfile was added, so its first CI run is the important reproducibility check. The capability-discovery API, its tests, and the associated API/architecture documentation passed CI run #144.
 
 ## Environment / human-only gates
 
