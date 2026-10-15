@@ -30,7 +30,7 @@ Primary hackathon track: **Ecosystem DApps**. Secondary infrastructure contribut
 - Web app calls the API's read-only `/api/chain/status` endpoint and displays RPC identity status; Vite proxies `/api` to the local Fastify API during development.
 - Shared instrument catalogue: AAPL, NVDA, TSLA, MSFT all marked `reference`.
 - Fastify API source: health, market list, instrument details, quote and candles endpoints.
-- Twelve Data adapter: server-side key, eight-second timeout, response validation, normalized timestamps and OHLCV, provider errors mapped to stable codes, bounded 15-second quote/60-second candle in-memory cache.
+- Twelve Data adapter: server-side key, eight-second timeout, response validation, normalized timestamps and OHLCV, provider errors mapped to stable codes, bounded 15-second quote/60-second candle in-memory cache. Public quote/candle routes are disabled by default behind `MARKET_DATA_DISPLAY_ENABLED` until provider display rights are confirmed.
 - Read-only Portaldot EVM chain adapter: probes configured RPC chain ID against expected ID `420420777`; reports not configured/unreachable/wrong network/verified without exposing RPC URL. This does not establish settlement compatibility.
 - API security headers and global rate limit.
 - Unit tests for shared contracts, quote validation, provider behavior and API routes.
