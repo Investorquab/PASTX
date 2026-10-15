@@ -50,6 +50,9 @@ function providerError(payload: unknown): ProviderErrorPayload | null {
 }
 
 export class TwelveDataAdapter {
+  private readonly quoteCache = new Map<string, { expiresAt: number; value: MarketQuote }>();
+  private readonly candleCache = new Map<string, { expiresAt: number; value: MarketCandle[] }>();
+
   constructor(
     private readonly apiKey: string | undefined,
     private readonly fetchImpl: FetchLike = fetch,
@@ -96,6 +99,11 @@ export class TwelveDataAdapter {
   }
 
   async getQuote(instrument: MarketInstrument): Promise<MarketQuote> {
+    const cacheKey = instrument.symbol;
+    const cached = this.quoteCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) return { ...cached.value };
+    if (cached) this.quoteCache.delete(cacheKey);
+
     const payload = asRecord(await this.request("/quote", { symbol: instrument.providerSymbol ?? instrument.symbol }));
     if (!payload) throw new MarketDataError("PROVIDER_INVALID_RESPONSE", "Market data provider returned an unexpected quote.", 502);
 
@@ -116,7 +124,7 @@ export class TwelveDataAdapter {
       throw new MarketDataError("PROVIDER_INVALID_RESPONSE", "Market data provider quote was missing required fields.", 502);
     }
 
-    return {
+    const quote: MarketQuote = {
       symbol: instrument.symbol,
       price,
       change,
@@ -126,9 +134,16 @@ export class TwelveDataAdapter {
       source: "twelve_data",
       delayed: null
     };
+    this.quoteCache.set(cacheKey, { expiresAt: Date.now() + 15_000, value: quote });
+    return { ...quote };
   }
 
   async getCandles(instrument: MarketInstrument, interval: CandleInterval, outputSize: number): Promise<MarketCandle[]> {
+    const cacheKey = `${instrument.symbol}:${interval}:${outputSize}`;
+    const cached = this.candleCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) return cached.value.map((candle) => ({ ...candle }));
+    if (cached) this.candleCache.delete(cacheKey);
+
     const payload = asRecord(await this.request("/time_series", {
       symbol: instrument.providerSymbol ?? instrument.symbol,
       interval,
@@ -140,7 +155,7 @@ export class TwelveDataAdapter {
       throw new MarketDataError("PROVIDER_INVALID_RESPONSE", "Market data provider returned an unexpected candle series.", 502);
     }
 
-    return values.map((value): MarketCandle => {
+    const candles = values.map((value): MarketCandle => {
       const item = asRecord(value);
       const timestamp = typeof item?.datetime === "string" && Number.isFinite(Date.parse(item.datetime))
         ? new Date(item.datetime).toISOString()
@@ -155,5 +170,7 @@ export class TwelveDataAdapter {
       }
       return { timestamp, open, high, low, close, volume };
     });
+    this.candleCache.set(cacheKey, { expiresAt: Date.now() + 60_000, value: candles });
+    return candles.map((candle) => ({ ...candle }));
   }
 }
