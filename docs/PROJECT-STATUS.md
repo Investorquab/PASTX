@@ -29,7 +29,7 @@ Primary hackathon track: **Ecosystem DApps**. Secondary infrastructure contribut
 - Local Windows smoke test on 15 October 2026: user cloned the repository, installed dependencies, and ran `pnpm check`, `pnpm test` (40 tests passed), and `pnpm build` successfully. The web preview rendered and the API started on port 4000; `/api/health` and `/api/chain/status` returned HTTP 200 in API logs. A manual request to `/health` returned 404 because the correct health route is `/api/health`.
 - Root `pnpm dev` was fixed to `pnpm --parallel --recursive --if-present dev`; the user subsequently confirmed that both the web and API processes started together and the API health route returned 200.
 - On 15 October 2026, the user generated `pnpm-lock.yaml` with pnpm 10.15.0 and pushed commit `559be0b` to `main`.
-- CI workflow was updated in commit `5f0cde1` to install with `pnpm install --frozen-lockfile`, so CI will fail rather than silently rewrite an out-of-sync lockfile. The subsequent project-status documentation update records this change. The latest run for the status-documentation commit is green: [GitHub Actions run 38687568448](https://github.com/Investorquab/PASTX/actions/runs/38687568448). The immediately preceding frozen-lockfile run was cancelled by the newer push, not failed; the green latest run executes the current workflow with the committed lockfile.
+- CI workflow was updated in commit `5f0cde1` to install with `pnpm install --frozen-lockfile`, so CI will fail rather than silently rewrite an out-of-sync lockfile. The subsequent project-status documentation update records this change. The lockfile/frozen-install workflow passed, and the latest engineering CI run [38688735745](https://github.com/Investorquab/PASTX/actions/runs/38688735745) is green after the chain-status scope and normalized rate-limit changes. That run passed workspace type checks, all 41 unit tests, and builds.
 
 - Initial dark market-terminal UI, currently using explicitly labelled sample/fixture prices and illustrative chart.
 - Functional watchlist search.
@@ -62,7 +62,7 @@ Always check the latest [GitHub Actions run](https://github.com/Investorquab/PAS
 
 1. Validate the latest chain-status scope change through CI; preserve the explicit boundary between chain-ID matching and actual runtime compatibility.
 2. Inspect the actual Portaldot V3 guide/runtime and establish a verifiable RPC/wallet read path without assuming chain-ID compatibility proves EVM behavior.
-3. Continue the API/security audit with focused automated tests for security headers, request IDs and provider failure paths; rate-limit response normalization and its 429 test are implemented.
+3. Continue the API/security audit with focused automated tests for security headers, request IDs and provider failure paths; rate-limit response normalization and its 429 test are implemented. Latest CI run 38688735745 passed all 41 tests, type checks and builds.
 4. Choose and test one settlement path with all-or-nothing semantics only after runtime and asset interoperability are established.
 5. Implement wallet/portfolio/orders/transaction views against verified chain data only after the chain gates pass.
 6. Prepare deployment, demo, pitch deck and evidence before the check-in/final deadlines.
