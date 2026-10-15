@@ -28,6 +28,7 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
   const marketData = options.marketData ?? new TwelveDataAdapter(options.marketDataApiKey ?? process.env.MARKET_DATA_API_KEY);
   const chainProbe = options.chainProbe ?? (() => probePortaldotEvm(options.chainRpcUrl ?? process.env.PORTALDOT_EVM_RPC_URL));
   const marketDataDisplayEnabled = options.marketDataDisplayEnabled ?? process.env.MARKET_DATA_DISPLAY_ENABLED === "true";
+  const marketDataConfigured = Boolean((options.marketDataApiKey ?? process.env.MARKET_DATA_API_KEY)?.trim());
 
   await app.register(helmet);
   await app.register(rateLimit, { max: 60, timeWindow: "1 minute" });
@@ -35,7 +36,7 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
   app.get("/api/health", async () => ({
     status: "ok",
     service: "pastx-api",
-    marketDataConfigured: Boolean(options.marketDataApiKey ?? process.env.MARKET_DATA_API_KEY),
+    marketDataConfigured,
     marketDataDisplayEnabled,
     tradingEnabled: false
   }));
