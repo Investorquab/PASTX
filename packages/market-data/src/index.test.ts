@@ -84,4 +84,29 @@ describe("TwelveDataAdapter", () => {
     ] }));
     await expect(negativeVolume.getCandles(instrument, "1min", 1)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
   });
+
+  it("returns defensive copies so callers cannot mutate cached quotes", async () => {
+    const adapter = new TwelveDataAdapter("test-key", fakeFetch({
+      symbol: "AAPL", close: "247.96", change: "3.04", percent_change: "1.24",
+      currency: "USD", timestamp: 1792033200
+    }));
+    const first = await adapter.getQuote(instrument);
+    first.price = -999;
+    expect((await adapter.getQuote(instrument)).price).toBe(247.96);
+  });
+
+  it("maps invalid JSON and upstream failures to safe normalized errors", async () => {
+    const invalidJson = new TwelveDataAdapter(
+      "test-key",
+      vi.fn(async () => new Response("upstream stack trace", { status: 200 })) as unknown as typeof fetch
+    );
+    await expect(invalidJson.getQuote(instrument)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
+
+    const providerFailure = new TwelveDataAdapter(
+      "test-key",
+      fakeFetch({ status: "error", code: 500, message: "private provider text" }, 500)
+    );
+    await expect(providerFailure.getQuote(instrument)).rejects.toMatchObject({ code: "PROVIDER_UNAVAILABLE" });
+  });
+
 });
