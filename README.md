@@ -2,7 +2,7 @@
 
 **Portaldot Asset & Stock Trading Exchange** — a market-discovery application designed around the Portaldot ecosystem.
 
-> **Status: early engineering foundation.** The web terminal is a preview using labelled fixture data. The Fastify market API and Twelve Data adapter are implemented in source with automated tests. Do not consider live quotes verified until CI passes and the provider key/account terms are configured. PASTX is not yet a functioning exchange; wallet, on-chain asset, and settlement integrations are not enabled.
+> **Status: early engineering foundation.** The web terminal is a preview using labelled fixture data. The Fastify market API and Twelve Data adapter are implemented in source with automated tests. Live quote/candle routes are disabled by default. Do not enable client-facing display until the provider account terms permit it and CI passes. PASTX is not yet a functioning exchange; wallet, on-chain asset, and settlement integrations are not enabled.
 
 ## Product direction
 
@@ -47,7 +47,7 @@ pnpm --filter @pastx/api dev
 
 The web app defaults to Vite's local development port; the API defaults to `http://localhost:4000`.
 
-Copy `.env.example` to `.env` for local API configuration. Set `MARKET_DATA_API_KEY` on the API process only. Never add a real key to Git or a `VITE_*` variable. Without a key, the API returns a clear `PROVIDER_NOT_CONFIGURED` error rather than invented quote data.
+Copy `.env.example` to `.env` for local API configuration. Set `MARKET_DATA_API_KEY` on the API process only. Never add a real key to Git or a `VITE_*` variable. Without a key, the API returns a clear `PROVIDER_NOT_CONFIGURED` error rather than invented quote data. Quote/candle display is also blocked unless `MARKET_DATA_DISPLAY_ENABLED=true`; confirm client-facing display rights before enabling it.
 
 ## API examples
 
