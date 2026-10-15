@@ -41,6 +41,29 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
     tradingEnabled: false
   }));
 
+  // The capability document gives clients one authoritative, explicit feature
+  // contract. "Implemented" does not mean externally enabled or production-ready.
+  app.get("/api/capabilities", async () => ({
+    service: "pastx-api",
+    capabilities: {
+      referenceCatalogue: { implemented: true, enabled: true },
+      marketQuotes: { implemented: true, enabled: marketDataDisplayEnabled && marketDataConfigured },
+      marketCandles: { implemented: true, enabled: marketDataDisplayEnabled && marketDataConfigured },
+      chainIdentityProbe: { implemented: true, enabled: true, verificationScope: "chain_id_only" },
+      walletConnection: { implemented: false, enabled: false },
+      onchainBalances: { implemented: false, enabled: false },
+      orderPreview: { implemented: true, enabled: true, execution: false },
+      orderSubmission: { implemented: false, enabled: false },
+      transactionHistory: { implemented: false, enabled: false },
+      atomicSettlement: { implemented: false, enabled: false }
+    },
+    safety: {
+      tradingEnabled: false,
+      externalStockQuotesAreReferenceData: true,
+      marketDataDisplayRequiresProviderPermission: true
+    }
+  }));
+
   app.get("/api/chain/status", async () => ({ item: await chainProbe() }));
 
   app.get("/api/markets", async () => ({
@@ -82,7 +105,7 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
       }
 
       const rawSize = request.query.outputsize ?? "30";
-      if (!/^\d+$/.test(rawSize)) {
+      if (!/^\\d+$/.test(rawSize)) {
         return reply.code(400).send(apiError("INVALID_INPUT", "outputsize must be an integer between 1 and 500.", request.id));
       }
       const outputsize = Number(rawSize);
