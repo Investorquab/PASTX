@@ -6,11 +6,11 @@ describe("getChainStatus", () => {
     const fetcher = vi.fn(async () => new Response(JSON.stringify({
       item: {
         configured: true, reachable: true, networkMatches: true,
-        expectedChainId: 420420777, chainId: 420420777, status: "verified"
+        expectedChainId: 420420777, chainId: 420420777, status: "verified", verificationScope: "chain_id_only"
       }
     }), { status: 200 }));
     await expect(getChainStatus(fetcher as unknown as typeof fetch)).resolves.toMatchObject({
-      status: "verified", chainId: 420420777, networkMatches: true
+      status: "verified", chainId: 420420777, networkMatches: true, verificationScope: "chain_id_only"
     });
   });
 
@@ -21,7 +21,7 @@ describe("getChainStatus", () => {
   });
 
   it("rejects malformed API payloads", async () => {
-    const fetcher = async () => new Response(JSON.stringify({ item: { status: "unknown" } }), { status: 200 });
+    const fetcher = async () => new Response(JSON.stringify({ item: { status: "unknown", verificationScope: "chain_id_only" } }), { status: 200 });
     await expect(getChainStatus(fetcher as unknown as typeof fetch)).rejects.toBeInstanceOf(ApiClientError);
   });
 
