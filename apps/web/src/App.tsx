@@ -50,6 +50,15 @@ function MiniChart() {
 }
 
 function App() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const visibleMarkets = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    if (!query) return referenceMarkets;
+    return referenceMarkets.filter((market) =>
+      [market.symbol, market.name, market.category].some((field) => field.toLowerCase().includes(query))
+    );
+  }, [searchTerm]);
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
