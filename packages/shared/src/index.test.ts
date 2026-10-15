@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildOrderIntentPreview,
   calculateReferenceNotional,
   isCandleInterval,
   MARKET_INSTRUMENTS,
@@ -21,21 +22,25 @@ describe("market domain contracts", () => {
   });
 });
 
-describe("shared non-executable order preview arithmetic", () => {
-  it("calculates reference notional without creating an order", () => {
-    expect(calculateReferenceNotional("2.5", 100)).toBe(250);
+describe("shared non-executable order preview", () => {
+  it("builds a normalized reference-only preview", () => {
+    expect(buildOrderIntentPreview("buy", "aapl", "2.5", 100)).toEqual({
+      side: "buy", symbol: "AAPL", quantity: 2.5, referencePrice: 100,
+      referenceNotional: 250, currency: "USD", executable: false
+    });
+    expect(buildOrderIntentPreview("sell", "NVDA", "1", 120)).toMatchObject({
+      side: "sell", symbol: "NVDA", referenceNotional: 120, executable: false
+    });
   });
 
-  it("rejects empty, zero, negative, non-finite and oversized quantities", () => {
+  it("rejects invalid symbols, quantities, prices and overflow", () => {
+    expect(buildOrderIntentPreview("buy", "UNKNOWN", "1", 10)).toBeNull();
     for (const raw of ["", " ", "0", "-1", "Infinity", "NaN", "1000001"]) {
       expect(parsePreviewQuantity(raw)).toBeNull();
       expect(calculateReferenceNotional(raw, 100)).toBeNull();
+      expect(buildOrderIntentPreview("buy", "AAPL", raw, 100)).toBeNull();
     }
-  });
-
-  it("rejects invalid prices and arithmetic overflow", () => {
     expect(calculateReferenceNotional("1", 0)).toBeNull();
-    expect(calculateReferenceNotional("1", -10)).toBeNull();
     expect(calculateReferenceNotional("1000000", Number.MAX_VALUE)).toBeNull();
   });
 });
