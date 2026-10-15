@@ -15,7 +15,7 @@
 
 - `apps/web`: React + TypeScript + Vite market-terminal preview.
 - `apps/api`: Fastify API, validation, rate limiting, safe errors, server-only provider key, and a machine-readable capability contract for frontend feature gating.
-- `packages/shared`: market catalogue, domain types, candle intervals and API error contract.
+- `packages/shared`: market catalogue, domain types, candle intervals, API error contract and reusable non-executable order-preview arithmetic.
 - `packages/market-data`: vendor adapter for Twelve Data, normalized quotes/candles and provider error mapping.
 - `packages/chain-adapter`: read-only EVM RPC identity probe; no transaction signing or submission.
 - `packages/sdk`: planned until public interfaces are proven.
