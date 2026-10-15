@@ -20,13 +20,14 @@ Primary hackathon track: **Ecosystem DApps**. Secondary infrastructure contribut
 - Market provider boundary: `packages/market-data`, Twelve Data adapter.
 - Tests: Vitest.
 - CI: GitHub Actions typecheck, tests and build across workspace.
-- Wallet and chain adapter: deliberately not implemented until actual Portaldot V3 runtime/wallet support is verified.
+- Wallet signing, balance reads, transaction submission and settlement adapter: deliberately not implemented until actual Portaldot V3 runtime/wallet support is verified. The read-only EVM chain-ID probe exists separately.
 - PostgreSQL, Redis, public SDK and contracts: deferred until a real requirement and validated architecture justify them.
 
 ## Current implementation
 
 - Initial dark market-terminal UI, currently using explicitly labelled sample/fixture prices and illustrative chart.
 - Functional watchlist search.
+- Web app calls the API's read-only `/api/chain/status` endpoint and displays RPC identity status; Vite proxies `/api` to the local Fastify API during development.
 - Shared instrument catalogue: AAPL, NVDA, TSLA, MSFT all marked `reference`.
 - Fastify API source: health, market list, instrument details, quote and candles endpoints.
 - Twelve Data adapter: server-side key, eight-second timeout, response validation, normalized timestamps and OHLCV, provider errors mapped to stable codes.
