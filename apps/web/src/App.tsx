@@ -64,6 +64,10 @@ function formatQuotePrice(quote: MarketQuote | undefined, fixturePrice: string):
   }).format(quote.price);
 }
 
+function formatAxisDate(timestamp: string): string {
+  return new Date(timestamp).toISOString().slice(5, 10);
+}
+
 function formatTimestamp(timestamp: string): string {
   return `${new Date(timestamp).toISOString().replace("T", " ").slice(0, 16)} UTC`;
 }
@@ -117,6 +121,10 @@ function App() {
       active = false;
     };
   }, []);
+
+  const chartAxisLabels = liveDataAvailable && liveCandles && liveCandles.length > 0
+    ? [0, Math.floor((liveCandles.length - 1) / 3), Math.floor(((liveCandles.length - 1) * 2) / 3), liveCandles.length - 1].map((index) => formatAxisDate(liveCandles[index].timestamp))
+    : ["09:00", "12:00", "15:00", "18:00"];
 
   const chainStatusLabel = chainStatus
     ? ({
@@ -243,7 +251,7 @@ function App() {
             </div>
             <div className="chart-metric"><strong>{liveDataAvailable ? "AAPL close history" : "Market trend preview"}</strong><span className="positive"><ArrowUpRight size={15} /> {liveDataAvailable ? "Historical reference" : "Illustrative"}</span></div>
             <div className="chart-wrap"><div className="chart-grid"><i /><i /><i /><i /></div><MiniChart values={liveCandles?.map((candle) => candle.close)} /></div>
-            <div className="chart-axis"><span>09:00</span><span>12:00</span><span>15:00</span><span>18:00</span></div>
+            <div className="chart-axis">{chartAxisLabels.map((label, index) => <span key={`${label}-${index}`}>{label}</span>)}</div>
             <div className="chart-legend"><span /><span>{liveDataAvailable ? "AAPL close · Twelve Data" : "Illustrative index"}</span></div>
             <div className="chart-disclaimer">{liveDataAvailable ? "Historical external reference data; not an executable on-chain price." : "This graphic is a UI fixture, not a real index or a trading signal."}</div>
           </div>
