@@ -55,7 +55,7 @@ Live quote and candle endpoints return `MARKET_DATA_DISPLAY_DISABLED` unless `MA
 
 ## Chain status semantics
 
-`GET /api/chain/status` reports `not_configured`, `unreachable`, `wrong_network`, or `verified`. The expected EVM chain ID is `420420777`, based on the [Portaldot V3 testnet guide](https://github.com/ItsCogumellum/portaldot-v3-testnet-guide). A `verified` result only proves that the configured RPC reports the expected chain ID at probe time; it does **not** prove wallet compatibility, runtime pallet behavior, asset interoperability, or safe settlement.
+`GET /api/chain/status` reports `not_configured`, `unreachable`, `wrong_network`, or `verified` and includes `verificationScope: "chain_id_only"` in every result. The expected EVM chain ID is `420420777`, based on the [Portaldot V3 testnet guide](https://github.com/ItsCogumellum/portaldot-v3-testnet-guide). The `verified` label means only that the configured RPC reported the expected chain ID at probe time. It does **not** prove the endpoint is the intended canonical network, wallet compatibility, runtime pallet behavior, asset interoperability, transaction execution, or safe settlement. The explicit scope field is intended to prevent consumers from interpreting chain-ID matching as full integration verification.
 
 ## Planned, not implemented
 
