@@ -75,3 +75,11 @@ Always check the latest [GitHub Actions run](https://github.com/Investorquab/PAS
 ## Documents policy
 
 Update `docs/API.md` whenever routes or schemas change, `docs/ARCHITECTURE.md` whenever boundaries or dependencies change, `docs/TESTING.md` whenever test coverage changes, and `docs/PROJECT-STATUS.md` at meaningful implementation milestones. At release, consolidate temporary planning notes only after preserving requirements, security decisions and evidence.
+
+
+## Engineering milestone — order intent domain
+
+- Shared deterministic order-preview validation now covers known catalogue symbols, buy/sell side, bounded positive quantity and positive finite reference price.
+- Preview output is marked `executable: false`; no order is submitted and no balance or token ownership is implied.
+- The web app uses the shared implementation; API, architecture and testing docs were updated.
+- RPC remains parked. Check CI before calling the current revision green.
