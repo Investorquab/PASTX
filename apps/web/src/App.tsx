@@ -141,7 +141,7 @@ function App() {
         not_configured: "RPC not configured",
         unreachable: "RPC unreachable",
         wrong_network: "Wrong network",
-        verified: "Chain ID verified"
+        verified: "Chain ID matches"
       } as const)[chainStatus.status]
     : chainStatusError
       ? "API unavailable"
