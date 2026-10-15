@@ -34,9 +34,15 @@ describe("TwelveDataAdapter", () => {
     await expect(adapter.getQuote(instrument)).rejects.toMatchObject({ code: "PROVIDER_RATE_LIMIT", statusCode: 429 });
   });
 
-  it("rejects malformed quote payloads", async () => {
-    const adapter = new TwelveDataAdapter("test-key", fakeFetch({ symbol: "AAPL", close: "not-a-price" }));
-    await expect(adapter.getQuote(instrument)).rejects.toBeInstanceOf(MarketDataError);
+  it("rejects malformed quote payloads and out-of-range timestamps", async () => {
+    const malformedPrice = new TwelveDataAdapter("test-key", fakeFetch({ symbol: "AAPL", close: "not-a-price" }));
+    await expect(malformedPrice.getQuote(instrument)).rejects.toBeInstanceOf(MarketDataError);
+
+    const malformedTimestamp = new TwelveDataAdapter("test-key", fakeFetch({
+      symbol: "AAPL", close: "247.96", change: "3.04", percent_change: "1.24",
+      currency: "USD", timestamp: 999999999999999999
+    }));
+    await expect(malformedTimestamp.getQuote(instrument)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
   });
 
   it("normalizes candle data and rejects invalid OHLC relationships", async () => {
