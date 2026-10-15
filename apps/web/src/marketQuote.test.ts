@@ -4,10 +4,11 @@ import { isMarketQuote, type MarketQuote } from "./marketQuote";
 const validQuote: MarketQuote = {
   symbol: "AAPL",
   price: 247.96,
+  change: 3.04,
   changePercent: 1.24,
   currency: "USD",
   observedAt: "2026-10-15T03:00:00.000Z",
-  source: "provider",
+  source: "twelve_data",
 };
 
 describe("isMarketQuote", () => {
