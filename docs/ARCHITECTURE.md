@@ -18,21 +18,29 @@
 - `packages/shared`: market catalogue, domain types, candle intervals and API error contract.
 - `packages/market-data`: vendor adapter for Twelve Data, normalized quotes/candles and provider error mapping.
 - `packages/chain-adapter`: read-only EVM RPC identity probe; no transaction signing or submission.
-- `packages/chain-adapter`: planned; no chain writes or reads should be assumed.
 - `packages/sdk`: planned until public interfaces are proven.
 - `docs/`: architecture, API contract, settlement decisions, security, testing and deployment.
 
 ## System boundaries
 
-```text
-React web app (sample data is explicitly labelled)
-  └── Fastify API
-       ├── allow-listed market catalogue
-       ├── Twelve Data adapter (server-side API key)
-       └── read-only Portaldot EVM chain-ID probe (optional RPC URL)
+```mermaid
+flowchart TD
+  WEB[React + Vite web app]
+  API[Fastify API]
+  CATALOG[Allow-listed reference catalogue]
+  DATA[Twelve Data adapter]
+  CHAIN[Read-only Portaldot EVM identity probe]
+  RPC[Optional Portaldot RPC endpoint]
+  FUTURE[Future wallet client]
+  VERIFY[Verified chain adapter and settlement flow]
 
-Future wallet client ──> verified Portaldot chain adapter ──> RPC
-                                                       └── receipts/events/state
+  WEB -->|GET /api/chain/status| API
+  API --> CATALOG
+  API --> DATA
+  API --> CHAIN
+  CHAIN -->|eth_chainId only| RPC
+  FUTURE -. not implemented .-> VERIFY
+  VERIFY -. only after runtime verification .-> RPC
 ```
 
 The browser must not contain provider secrets. The API must never request or store a user's wallet seed phrase or private key.
