@@ -14,15 +14,13 @@ From the repository root:
 
 ```bash
 pnpm install
+pnpm dev
 ```
 
-Start the web app and API in separate terminals:
+The root command starts the web app and API dev processes in parallel. To start either service independently, use separate terminals:
 
 ```bash
 pnpm --filter @pastx/web dev
-```
-
-```bash
 pnpm --filter @pastx/api dev
 ```
 
