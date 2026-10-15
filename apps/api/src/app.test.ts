@@ -17,6 +17,13 @@ describe("PASTX API", () => {
     await app.close();
   });
 
+  it("does not treat whitespace-only provider keys as configured", async () => {
+    const app = await buildApp({ logger: false, marketDataApiKey: "   " });
+    const response = await app.inject({ method: "GET", url: "/api/health" });
+    expect(response.json().marketDataConfigured).toBe(false);
+    await app.close();
+  });
+
   it("reports chain status without exposing RPC URL or enabling writes", async () => {
     const app = await buildApp({
       logger: false,
