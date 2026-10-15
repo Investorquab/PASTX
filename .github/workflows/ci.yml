@@ -28,5 +28,7 @@ jobs:
         run: pnpm install --no-frozen-lockfile
       - name: Typecheck
         run: pnpm --filter @pastx/web check
+      - name: Unit tests
+        run: pnpm --filter @pastx/web test
       - name: Build
         run: pnpm --filter @pastx/web build
