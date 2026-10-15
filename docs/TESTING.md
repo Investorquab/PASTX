@@ -9,10 +9,10 @@ Vitest suites are included for:
 - quote/candle client validation and the rule that fixture quotes cannot be accepted as provider data;
 - shared order-preview quantity and reference-notional arithmetic consumed by the web app, including invalid input and overflow;
 - quote shape validation;
-- Twelve Data quote/candle normalization, missing API key, provider rate-limit errors, malformed timestamps/OHLC payloads and quote-cache expiry;
+- Twelve Data quote/candle normalization, missing API key, provider rate-limit errors, malformed timestamps/OHLC payloads, quote-cache expiry, defensive cache copies, transport failures and timeout mapping;
 - API health flags, machine-readable capability contract, security headers, catalogue output, unknown symbols, bounded candle query parameters, safe provider errors, and normalized rate-limit responses.
 
-The CI workflow runs frozen-lockfile dependency installation, workspace type checks, unit tests and production builds. The capability-discovery change passed all three quality stages in [CI run #144](https://github.com/Investorquab/PASTX/actions/runs/38690844224). Refer to the latest [GitHub Actions run](https://github.com/Investorquab/PASTX/actions) for the actual status. A test is not considered passed until the corresponding run is green.
+The CI workflow runs frozen-lockfile dependency installation, workspace type checks, unit tests and production builds. The capability-discovery change passed all three quality stages in [CI run #144](https://github.com/Investorquab/PASTX/actions/runs/38690844224). The order-intent/provider regression suite also passed in [CI run #162](https://github.com/Investorquab/PASTX/actions/runs/38691768142). Refer to the latest [GitHub Actions run](https://github.com/Investorquab/PASTX/actions) for the actual status. A test is not considered passed until the corresponding run is green.
 
 ## Remaining test levels
 
