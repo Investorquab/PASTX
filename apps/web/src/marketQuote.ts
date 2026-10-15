@@ -19,6 +19,7 @@ export function isMarketQuote(value: unknown): value is MarketQuote {
     Number.isFinite(quote.change) &&
     typeof quote.currency === "string" &&
     CURRENCY_PATTERN.test(quote.currency) &&
+    (quote.delayed === null || typeof quote.delayed === "boolean") &&
     typeof quote.observedAt === "string" &&
     quote.observedAt.length > 0 &&
     Number.isFinite(Date.parse(quote.observedAt)) &&
