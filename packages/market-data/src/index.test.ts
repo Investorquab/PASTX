@@ -29,6 +29,27 @@ describe("TwelveDataAdapter", () => {
     expect(Number.isFinite(Date.parse(quote.observedAt))).toBe(true);
   });
 
+  it("caches successful quotes briefly and refreshes after expiry", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-15T03:00:00.000Z"));
+    try {
+      const fetcher = fakeFetch({
+        symbol: "AAPL", close: "247.96", change: "3.04", percent_change: "1.24",
+        currency: "USD", timestamp: 1792033200
+      });
+      const adapter = new TwelveDataAdapter("test-key", fetcher);
+      await adapter.getQuote(instrument);
+      await adapter.getQuote(instrument);
+      expect(fetcher).toHaveBeenCalledTimes(1);
+
+      vi.advanceTimersByTime(15_001);
+      await adapter.getQuote(instrument);
+      expect(fetcher).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("maps rate limiting to a stable error without exposing provider details", async () => {
     const adapter = new TwelveDataAdapter("test-key", fakeFetch({ status: "error", code: 429, message: "private provider text" }, 429));
     await expect(adapter.getQuote(instrument)).rejects.toMatchObject({ code: "PROVIDER_RATE_LIMIT", statusCode: 429 });
