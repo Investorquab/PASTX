@@ -36,6 +36,7 @@ export type MarketCandle = {
 export type ApiErrorCode =
   | "INVALID_INPUT"
   | "NOT_FOUND"
+  | "MARKET_DATA_DISPLAY_DISABLED"
   | "PROVIDER_NOT_CONFIGURED"
   | "PROVIDER_RATE_LIMIT"
   | "PROVIDER_UNAVAILABLE"
