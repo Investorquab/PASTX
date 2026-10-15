@@ -26,7 +26,7 @@ pnpm --filter @pastx/web dev
 pnpm --filter @pastx/api dev
 ```
 
-The API listens on `0.0.0.0:4000` by default. The web app uses Vite's local development server and proxies `/api` requests to the Fastify API at `http://127.0.0.1:4000`. The UI reads the API's read-only chain status; market prices and chart remain fixture data.
+The API listens on `0.0.0.0:4000` by default. The web app uses Vite's local development server and proxies `/api` requests to the Fastify API at `http://127.0.0.1:4000`. The UI reads the API's read-only chain status. It requests provider quotes/candles only if the API health response says the key is configured and `MARKET_DATA_DISPLAY_ENABLED=true`; otherwise it stays on labelled fixture data.
 
 ## Configure market data
 
