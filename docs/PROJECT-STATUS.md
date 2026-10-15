@@ -39,7 +39,7 @@ Primary hackathon track: **Ecosystem DApps**. Secondary infrastructure contribut
 - Shared instrument catalogue: AAPL, NVDA, TSLA, MSFT all marked `reference`.
 - Fastify API source: health, market list, instrument details, quote and candles endpoints.
 - Twelve Data adapter: server-side key, eight-second timeout, response validation, normalized timestamps and OHLCV, provider errors mapped to stable codes, bounded 15-second quote/60-second candle in-memory cache. Public quote/candle routes are disabled by default behind `MARKET_DATA_DISPLAY_ENABLED` until provider display rights are confirmed.
-- Read-only Portaldot EVM chain adapter: probes configured RPC chain ID against expected ID `420420777`; reports not configured/unreachable/wrong network/verified and emits `verificationScope: "chain_id_only"`. This does not establish canonical network identity, wallet compatibility, runtime behavior or settlement compatibility.
+- Read-only Portaldot EVM chain adapter: probes configured RPC chain ID against expected ID `420420777`; reports not configured/unreachable/wrong network/verified and emits `verificationScope: "chain_id_only"`. The published [Portaldot V3 testnet guide](https://github.com/ItsCogumellum/portaldot-v3-testnet-guide) documents EVM RPC `https://testnetv3-eth-rpc.feso-apps.xyz`, Solidity execution through `revive`, and H160-to-SS58 mapping through `reviveApi.accountId`. PASTX has not yet verified live RPC reachability, block reads, wallet mapping, balances or transactions. Native Assets and Solidity contract assets are distinct until an explicit supported interoperability path is proven.
 - API security headers and global rate limit; rate-limit failures now share the normalized API error envelope and include a request ID when available.
 - Unit tests for shared contracts, quote validation, provider behavior and API routes.
 - Docs: README, API, architecture, settlement design, security, testing, deployment and this handoff.
@@ -61,7 +61,7 @@ Always check the latest [GitHub Actions run](https://github.com/Investorquab/PAS
 ## Next engineering priorities
 
 1. Validate the latest chain-status scope change through CI; preserve the explicit boundary between chain-ID matching and actual runtime compatibility.
-2. Inspect the actual Portaldot V3 guide/runtime and establish a verifiable RPC/wallet read path without assuming chain-ID compatibility proves EVM behavior.
+2. Verify the documented V3 EVM RPC at runtime, then test block number, H160-to-SS58 mapping and read-only balance access. Keep native Assets vs `revive` tokens separate until explicit interoperability and atomic settlement are proven.
 3. Continue the API/security audit with focused automated tests for security headers, request IDs and provider failure paths; rate-limit response normalization and its 429 test are implemented. Latest CI run 38688735745 passed all 41 tests, type checks and builds.
 4. Choose and test one settlement path with all-or-nothing semantics only after runtime and asset interoperability are established.
 5. Implement wallet/portfolio/orders/transaction views against verified chain data only after the chain gates pass.
