@@ -52,7 +52,7 @@ curl --connect-timeout 3 --max-time 8 -sS \
   "$PORTALDOT_EVM_RPC_URL"
 ```
 
-For chain ID `420420777`, the JSON-RPC result should be `0x190c4e89`. If the RPC is unreachable or reports a different chain ID, do not connect a wallet or submit transactions.
+For chain ID `420420777`, the JSON-RPC result should be `0x190f1ca9`. If the RPC is unreachable or reports a different chain ID, do not connect a wallet or submit transactions.
 
 ## Quality gate
 
