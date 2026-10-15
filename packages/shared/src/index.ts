@@ -83,3 +83,5 @@ export function calculateReferenceNotional(rawQuantity: string, unitPrice: numbe
   const notional = quantity * unitPrice;
   return Number.isFinite(notional) ? notional : null;
 }
+
+export type OrderSide = "buy" | "sell";
