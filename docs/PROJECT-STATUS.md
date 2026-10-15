@@ -30,6 +30,7 @@ Primary hackathon track: **Ecosystem DApps**. Secondary infrastructure contribut
 - Shared instrument catalogue: AAPL, NVDA, TSLA, MSFT all marked `reference`.
 - Fastify API source: health, market list, instrument details, quote and candles endpoints.
 - Twelve Data adapter: server-side key, eight-second timeout, response validation, normalized timestamps and OHLCV, provider errors mapped to stable codes.
+- Read-only Portaldot EVM chain adapter: probes configured RPC chain ID against expected ID `420420777`; reports not configured/unreachable/wrong network/verified without exposing RPC URL. This does not establish settlement compatibility.
 - API security headers and global rate limit.
 - Unit tests for shared contracts, quote validation, provider behavior and API routes.
 - Docs: README, API, architecture, settlement design, security, testing, deployment and this handoff.
@@ -43,7 +44,7 @@ Always check the latest [GitHub Actions run](https://github.com/Investorquab/PAS
 
 - No provider key is present in the repository. Use `.env.example` and a local untracked `.env`; do not commit secrets.
 - Confirm Twelve Data plan terms before using live data in a publicly accessible, client-facing application. Basic/free plan terms list internal non-display usage; public display may require an appropriate commercial plan.
-- Portaldot V3 testnet/RPC/runtime/wallet compatibility and asset/payment interoperability have not been proven by this repository work.
+- Portaldot V3 testnet/RPC/runtime/wallet compatibility and asset/payment interoperability have not been proven by this repository work. The new chain probe is only an identity/reachability check.
 - No chain transaction or deployment evidence exists yet.
 - Do not enable real buy/sell before atomic settlement and rollback are proven.
 - Local smoke testing on Windows is still required after CI: install dependencies, run check/test/build, start web and API, and test health/catalogue/error behavior. Live provider test requires a user-supplied key set locally, not in chat or Git.
