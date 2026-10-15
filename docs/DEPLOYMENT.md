@@ -31,10 +31,11 @@ The API listens on `0.0.0.0:4000` by default. The web app uses Vite's local deve
 ## Configure market data
 
 1. Copy `.env.example` to an untracked local `.env`.
-2. Set `MARKET_DATA_API_KEY` in the environment of the API process only.
+2. Set `MARKET_DATA_API_KEY` in the environment of the API process only. Keep `MARKET_DATA_DISPLAY_ENABLED=false` until the provider account explicitly permits public/client-facing display. The quote and candle routes are blocked by default.
 3. Restart the API process.
-4. Verify `GET /api/health` reports `marketDataConfigured: true`.
-5. Test `GET /api/markets/AAPL/quote` and `GET /api/markets/AAPL/candles?interval=1day&outputsize=30`.
+4. Verify `GET /api/health` reports `marketDataConfigured: true` and `marketDataDisplayEnabled: false`.
+5. With display disabled, verify quote/candle endpoints return `MARKET_DATA_DISPLAY_DISABLED`.
+6. Only after provider licensing is confirmed, set `MARKET_DATA_DISPLAY_ENABLED=true`, restart the API, and test `GET /api/markets/AAPL/quote` and `GET /api/markets/AAPL/candles?interval=1day&outputsize=30`.
 
 Do not put the key in `VITE_*` variables, browser code, screenshots or commits. Without a key, quote/candle endpoints should return `PROVIDER_NOT_CONFIGURED`, not fabricated market data.
 
