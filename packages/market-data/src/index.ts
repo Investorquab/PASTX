@@ -53,6 +53,19 @@ export class TwelveDataAdapter {
   private readonly quoteCache = new Map<string, { expiresAt: number; value: MarketQuote }>();
   private readonly candleCache = new Map<string, { expiresAt: number; value: MarketCandle[] }>();
 
+  private storeCache<T>(
+    cache: Map<string, { expiresAt: number; value: T }>,
+    key: string,
+    value: T,
+    ttlMs: number
+  ): void {
+    if (cache.size >= 128 && !cache.has(key)) {
+      const oldestKey = cache.keys().next().value;
+      if (oldestKey !== undefined) cache.delete(oldestKey);
+    }
+    cache.set(key, { expiresAt: Date.now() + ttlMs, value });
+  }
+
   constructor(
     private readonly apiKey: string | undefined,
     private readonly fetchImpl: FetchLike = fetch,
@@ -134,7 +147,7 @@ export class TwelveDataAdapter {
       source: "twelve_data",
       delayed: null
     };
-    this.quoteCache.set(cacheKey, { expiresAt: Date.now() + 15_000, value: quote });
+    this.storeCache(this.quoteCache, cacheKey, quote, 15_000);
     return { ...quote };
   }
 
@@ -170,7 +183,7 @@ export class TwelveDataAdapter {
       }
       return { timestamp, open, high, low, close, volume };
     });
-    this.candleCache.set(cacheKey, { expiresAt: Date.now() + 60_000, value: candles });
+    this.storeCache(this.candleCache, cacheKey, candles, 60_000);
     return candles.map((candle) => ({ ...candle }));
   }
 }
