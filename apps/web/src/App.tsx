@@ -135,6 +135,7 @@ function App() {
                   <span className={`market-change ${market.positive ? "positive" : "negative"}`}>{market.positive ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}{market.change}</span>
                 </div>
               ))}
+              {visibleMarkets.length === 0 && <div className="empty-state">No reference instruments match “{searchTerm}”.</div>}
             </div>
             <div className="panel-foot">* Sample values for layout preview only. No external market-data provider is connected.</div>
           </div>
