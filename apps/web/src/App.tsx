@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { getChainStatus, type ChainStatus } from "./api";
+import { getApiHealth, getChainStatus, getMarketCandles, getMarketQuote, type ChainStatus } from "./api";
+import type { MarketCandle, MarketQuote } from "@pastx/shared";
 import {
   Activity,
   ArrowDownRight,
@@ -34,8 +35,12 @@ const referenceMarkets: MarketItem[] = [
 
 const candles = [34, 42, 37, 51, 47, 43, 59, 55, 65, 60, 73, 67, 77, 70, 84, 79, 90, 82, 96, 88, 103, 95, 108, 101, 116, 110, 122, 113, 128, 121, 136, 130, 143, 135, 151, 145, 158, 149, 166, 158, 174, 166, 183, 175, 191, 182, 199, 191, 208, 200, 217, 210];
 
-function MiniChart() {
-  const points = candles.map((y, index) => `${(index / (candles.length - 1)) * 100},${220 - y}`).join(" ");
+function MiniChart({ values }: { values?: number[] }) {
+  const series = values && values.length > 1 ? values : candles;
+  const minimum = Math.min(...series);
+  const maximum = Math.max(...series);
+  const range = maximum - minimum || 1;
+  const points = series.map((value, index) => `${(index / (series.length - 1)) * 100},${200 - ((value - minimum) / range) * 160}`).join(" ");
   return (
     <svg className="chart-line" viewBox="0 0 100 220" preserveAspectRatio="none" role="img" aria-label="Illustrative upward market chart, not live price data">
       <defs>
@@ -50,10 +55,28 @@ function MiniChart() {
   );
 }
 
+function formatQuotePrice(quote: MarketQuote | undefined, fixturePrice: string): string {
+  if (!quote) return fixturePrice;
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: quote.currency,
+    maximumFractionDigits: 2
+  }).format(quote.price);
+}
+
+function formatQuoteChange(quote: MarketQuote | undefined, fixtureChange: string): string {
+  if (!quote) return fixtureChange;
+  const sign = quote.changePercent > 0 ? "+" : "";
+  return `${sign}${quote.changePercent.toFixed(2)}%`;
+}
+
 function App() {
   const [searchTerm, setSearchTerm] = useState("");
   const [chainStatus, setChainStatus] = useState<ChainStatus | null>(null);
   const [chainStatusError, setChainStatusError] = useState(false);
+  const [liveQuotes, setLiveQuotes] = useState<Record<string, MarketQuote>>({});
+  const [liveCandles, setLiveCandles] = useState<MarketCandle[] | null>(null);
+  const [liveDataAvailable, setLiveDataAvailable] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -63,6 +86,28 @@ function App() {
       })
       .catch(() => {
         if (active) setChainStatusError(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    getApiHealth()
+      .then(async (health) => {
+        if (!health.marketDataConfigured || !health.marketDataDisplayEnabled) return;
+        const [quotes, candles] = await Promise.all([
+          Promise.all(referenceMarkets.map((market) => getMarketQuote(market.symbol))),
+          getMarketCandles("AAPL", "1day", 30)
+        ]);
+        if (!active) return;
+        setLiveQuotes(Object.fromEntries(quotes.map((quote) => [quote.symbol, quote])));
+        setLiveCandles(candles);
+        setLiveDataAvailable(true);
+      })
+      .catch(() => {
+        // Keep the labelled fixture preview if provider data is unavailable.
       });
     return () => {
       active = false;
@@ -126,7 +171,7 @@ function App() {
         <header className="topbar">
           <div className="breadcrumb">PASTX <span>/</span> Markets</div>
           <div className="top-actions">
-            <span className="preview-pill"><span /> PREVIEW · SAMPLE DATA</span>
+            <span className="preview-pill"><span /> {liveDataAvailable ? "LIVE DATA · TWELVE DATA" : "PREVIEW · SAMPLE DATA"}</span>
             <button className="icon-button" aria-label="Notifications" type="button" disabled title="Notifications are not implemented in this preview"><Bell size={18} /></button>
             <button className="connect-button" type="button" disabled title="Wallet connection will be added after chain compatibility testing"><Wallet size={16} /> Wallet integration pending</button>
           </div>
@@ -143,7 +188,7 @@ function App() {
 
         <div className="notice" role="note">
           <ShieldCheck size={18} />
-          <div><strong>Preview environment</strong><span>Prices and chart below are illustrative fixtures, not live quotes. No trades or wallet transactions are enabled.</span></div>
+          <div><strong>{liveDataAvailable ? "Live reference data" : "Preview environment"}</strong><span>{liveDataAvailable ? "Quotes and candles are sourced from Twelve Data. They are external reference prices, not on-chain equity or guaranteed execution prices. No trades or wallet transactions are enabled." : "Prices and chart below are illustrative fixtures, not live quotes. No trades or wallet transactions are enabled."}</span></div>
         </div>
 
         <section className="summary-grid" aria-label="Market overview">
@@ -167,7 +212,7 @@ function App() {
         <section className="market-layout">
           <div className="panel market-panel">
             <div className="panel-heading">
-              <div><h2>Watchlist</h2><p>Reference instruments · sample values</p></div>
+              <div><h2>Watchlist</h2><p>{liveDataAvailable ? "External reference prices · Twelve Data" : "Reference instruments · sample values"}</p></div>
               <button className="subtle-button" type="button" disabled title="This preview contains a curated reference watchlist">Reference list <ChevronDown size={14} /></button>
             </div>
             <div className="market-table">
@@ -178,25 +223,25 @@ function App() {
                     <span className={`instrument-icon icon-${market.symbol.toLowerCase()}`}>{market.initials}</span>
                     <span><strong>{market.symbol}</strong><small>{market.name}</small><em>{market.category}</em></span>
                   </div>
-                  <strong className="market-price">{market.price}</strong>
-                  <span className={`market-change ${market.positive ? "positive" : "negative"}`}>{market.positive ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}{market.change}</span>
+                  <strong className="market-price">{formatQuotePrice(liveQuotes[market.symbol], market.price)}</strong>
+                  <span className={`market-change ${(liveQuotes[market.symbol]?.changePercent ?? (market.positive ? 1 : -1)) >= 0 ? "positive" : "negative"}`}>{(liveQuotes[market.symbol]?.changePercent ?? (market.positive ? 1 : -1)) >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}{formatQuoteChange(liveQuotes[market.symbol], market.change)}</span>
                 </div>
               ))}
               {visibleMarkets.length === 0 && <div className="empty-state">No reference instruments match “{searchTerm}”.</div>}
             </div>
-            <div className="panel-foot">* Sample values for layout preview only. No external market-data provider is connected.</div>
+            <div className="panel-foot">{liveDataAvailable ? "Source: Twelve Data · reference prices only; these instruments are not verified on-chain equities." : "* Sample values for layout preview only. No external market-data provider is connected."}</div>
           </div>
 
           <div className="panel chart-panel">
             <div className="panel-heading">
-              <div><h2>Market overview</h2><p>Illustrative trend · no live feed</p></div>
+              <div><h2>Market overview</h2><p>{liveDataAvailable ? "AAPL historical closes · Twelve Data" : "Illustrative trend · no live feed"}</p></div>
               <button className="subtle-button" type="button" disabled title="Chart intervals are not connected to historical data yet">Preview <ChevronDown size={14} /></button>
             </div>
-            <div className="chart-metric"><strong>Market trend preview</strong><span className="positive"><ArrowUpRight size={15} /> Illustrative</span></div>
-            <div className="chart-wrap"><div className="chart-grid"><i /><i /><i /><i /></div><MiniChart /></div>
+            <div className="chart-metric"><strong>{liveDataAvailable ? "AAPL close history" : "Market trend preview"}</strong><span className="positive"><ArrowUpRight size={15} /> {liveDataAvailable ? "Historical reference" : "Illustrative"}</span></div>
+            <div className="chart-wrap"><div className="chart-grid"><i /><i /><i /><i /></div><MiniChart values={liveCandles?.map((candle) => candle.close)} /></div>
             <div className="chart-axis"><span>09:00</span><span>12:00</span><span>15:00</span><span>18:00</span></div>
-            <div className="chart-legend"><span /><span>Illustrative index</span></div>
-            <div className="chart-disclaimer">This graphic is a UI fixture, not a real index or a trading signal.</div>
+            <div className="chart-legend"><span /><span>{liveDataAvailable ? "AAPL close · Twelve Data" : "Illustrative index"}</span></div>
+            <div className="chart-disclaimer">{liveDataAvailable ? "Historical external reference data; not an executable on-chain price." : "This graphic is a UI fixture, not a real index or a trading signal."}</div>
           </div>
         </section>
 
