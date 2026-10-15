@@ -1,88 +1,83 @@
 # PASTX
 
-**Portaldot Asset & Stock Trading Exchange** — a market-discovery and trading application designed around the Portaldot ecosystem.
+**Portaldot Asset & Stock Trading Exchange** — a market-discovery application designed around the Portaldot ecosystem.
 
-> **Status: early engineering foundation.** PASTX is not yet a functioning exchange. Market, wallet, and settlement integrations must be verified before they are represented as operational.
+> **Status: early engineering foundation.** The web terminal is a preview using labelled fixture data. The Fastify market API and Twelve Data adapter are implemented in source with automated tests. Do not consider live quotes verified until CI passes and the provider key/account terms are configured. PASTX is not yet a functioning exchange; wallet, on-chain asset, and settlement integrations are not enabled.
 
 ## Product direction
 
 PASTX aims to provide:
-- A searchable market catalogue and asset detail pages.
-- Interactive historical price charts and clearly sourced reference quotes.
-- Wallet connection and verified on-chain asset/balance reads.
-- Buy/sell workflows with explicit review, signing, pending, success, and failure states.
-- Portfolio, order history, and verifiable transaction receipts.
-- A reusable TypeScript SDK after the core interfaces and transaction path are proven.
+- A searchable catalogue with clear distinction between reference instruments, simulated markets and verified on-chain assets.
+- Historical charts and market data with source, currency and timestamp.
+- A portfolio and activity view derived from verifiable chain state.
+- A safe order flow that makes asset/payment, quantity, fees and network explicit before the user's wallet signs.
+- Atomic settlement only after Portaldot runtime compatibility is demonstrated.
 
-Google sign-in, a custom matching engine, and cross-chain settlement are not part of the initial MVP.
+External stock quotes are references only. They do not represent tokenized equity, ownership rights, backing, or executable PASTX prices.
 
-## Truth in market data
+## Architecture
 
-A stock-market reference quote is not an executable on-chain price. A catalogue entry must be classified as one of:
-1. **Reference instrument** — external price data only; not tradable through PASTX.
-2. **Simulated instrument** — test/demo behavior, clearly labelled as simulated.
-3. **On-chain asset** — a specific, verified asset on a supported network, with its actual transfer and settlement behavior documented.
+- `apps/web`: React + TypeScript + Vite market terminal.
+- `apps/api`: Fastify HTTP API with security headers, rate limiting and stable error responses.
+- `packages/shared`: domain types and supported instrument catalogue.
+- `packages/market-data`: Twelve Data adapter; provider credentials remain server-side.
+- `docs/`: architecture, API, settlement, security, tests and deployment notes.
 
-A token must not be described as legal ownership of company shares unless its rights, backing, and applicable legal arrangements support that claim.
+See [Architecture](docs/ARCHITECTURE.md), [API](docs/API.md), and [Settlement Design](docs/SETTLEMENT-DESIGN.md).
 
-## Proposed stack
+## Requirements
 
-- React + TypeScript + Vite
-- Tailwind CSS and shadcn/ui
-- TradingView Lightweight Charts for rendering
-- TanStack Query for server-state management
-- Fastify + TypeScript for the server API
-- PostgreSQL only when durable application/indexing data is needed
-- pnpm workspaces
-- Vitest and Playwright for tests
-- Portaldot chain adapter selected only after runtime compatibility is verified
-
-The chart renderer and market-data provider are separate. Provider selection depends on licensing, quotas, required instruments, and budget.
-
-## Repository layout
-
-```text
-apps/web/                 Web application
-apps/api/                 Server-side API
-packages/shared/          Shared types and validation
-packages/chain-adapter/   Portaldot integration boundary
-packages/market-data/     Market-data provider abstraction
-packages/sdk/             Future public developer SDK
-docs/                     Architecture, security, API and test plans
-tests/                    Integration and end-to-end tests
-```
-
-Folders will be introduced with their package manifests as implementation begins.
+- Node.js 22+
+- pnpm 10.15.0 (pinned in the root manifest)
 
 ## Local development
 
-The workspace and app packages are being established. Until the first runnable app package and lockfile are committed, there is no working app command to run.
-
-Once the scaffold is implemented, the intended workflow is:
-
 ```bash
-corepack enable
 pnpm install
 pnpm dev
-pnpm check
-pnpm test
 ```
 
-See [Architecture](docs/ARCHITECTURE.md), [Settlement Design](docs/SETTLEMENT-DESIGN.md), [API](docs/API.md), [Security](docs/SECURITY.md), [Testing](docs/TESTING.md), and [Deployment](docs/DEPLOYMENT.md).
+The web app and API have separate dev scripts. To run them in separate terminals:
 
-## Engineering gates
+```bash
+pnpm --filter @pastx/web dev
+pnpm --filter @pastx/api dev
+```
 
-1. Establish reproducible tooling and a clean baseline.
-2. Build the market-terminal shell with labelled fixture data.
-3. Validate market-data provider behavior and chart rendering.
-4. Verify Portaldot runtime, wallet, asset, and transaction capabilities.
-5. Prove settlement atomicity and failure rollback before enabling real trades.
-6. Deploy and publish only evidence that has actually been verified.
+The web app defaults to Vite's local development port; the API defaults to `http://localhost:4000`.
 
-## Security
+Copy `.env.example` to `.env` for local API configuration. Set `MARKET_DATA_API_KEY` on the API process only. Never add a real key to Git or a `VITE_*` variable. Without a key, the API returns a clear `PROVIDER_NOT_CONFIGURED` error rather than invented quote data.
 
-Never commit private keys, seed phrases, API credentials, production environment files, or user secrets. Use `.env.example` for variable names and safe placeholders only. Do not let an API server or language model request or handle users' wallet private keys.
+## API examples
 
-## Project status
+```bash
+curl http://localhost:4000/api/health
+curl http://localhost:4000/api/markets
+curl http://localhost:4000/api/markets/AAPL
+curl http://localhost:4000/api/markets/AAPL/quote
+curl "http://localhost:4000/api/markets/AAPL/candles?interval=1day&outputsize=30"
+```
 
-This repository is a public hackathon project. Design documents describe intended behavior; they do not imply deployed contracts, a live V3 testnet integration, live market data, or successful on-chain trades. See [Settlement Design](docs/SETTLEMENT-DESIGN.md) for unresolved verification gates.
+The quote and candles routes require a valid provider key and provider access for the requested symbols. Current Twelve Data Basic terms describe free access as internal/non-display; verify licensing before exposing live data in a public client-facing app. See [Twelve Data business pricing](https://twelvedata.com/pricing-business).
+
+## Quality checks
+
+```bash
+pnpm check
+pnpm test
+pnpm build
+```
+
+CI status: [GitHub Actions](https://github.com/Investorquab/PASTX/actions).
+
+## Portaldot integration and release gates
+
+The repository deliberately does not enable wallet connection or trade submission yet. The Portaldot V3 testnet/runtime, supported wallet path, asset/payment interoperability, and atomic settlement must be verified before implementation is represented as complete. See [Settlement Design](docs/SETTLEMENT-DESIGN.md) and [Security](docs/SECURITY.md).
+
+## Hackathon fit
+
+PASTX is primarily an **Ecosystem DApp**: a consumer-facing market/asset application. The API and provider-normalization layer also contributes to **Modular Cloud & Middleware**. The final submission must demonstrate actual Portaldot V3 usage, deployment evidence, and at least one verifiable core flow; a UI-only preview is not sufficient.
+
+## License
+
+No license has been declared yet. Confirm project licensing before accepting external contributions or redistributing code.
