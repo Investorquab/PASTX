@@ -185,7 +185,7 @@ function App() {
             <span className="network-dot" />
             <div><strong>Network status</strong><small>{chainStatusDetail}</small></div>
           </div>
-          <a className="nav-item muted-link" href="#docs"><CircleHelp size={17} /> Documentation</a>
+          <a className="nav-item muted-link" href="https://github.com/Investorquab/PASTX#readme" target="_blank" rel="noreferrer"><CircleHelp size={17} /> Documentation</a>
           <div className="sidebar-foot">PASTX PREVIEW <span>v0.1.0</span></div>
         </div>
       </aside>
