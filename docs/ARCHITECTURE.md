@@ -1,6 +1,6 @@
 # PASTX Architecture
 
-**Status:** proposed architecture; integrations are not yet verified.
+**Status:** the web preview, shared domain contracts, market-data adapter and HTTP market API are scaffolded. The API is implemented in source; the provider and CI tests must pass before considering the integration verified. Portaldot wallet/settlement integration is not implemented.
 
 ## Goals
 
@@ -11,48 +11,37 @@
 - Make order status auditable from transaction evidence.
 - Keep the MVP small enough to deliver and test within the hackathon.
 
+## Current workspace
+
+- `apps/web`: React + TypeScript + Vite market-terminal preview.
+- `apps/api`: Fastify API, validation, rate limiting, safe errors and server-only provider key.
+- `packages/shared`: market catalogue, domain types, candle intervals and API error contract.
+- `packages/market-data`: vendor adapter for Twelve Data, normalized quotes/candles and provider error mapping.
+- `packages/chain-adapter`: planned; no chain writes or reads should be assumed.
+- `packages/sdk`: planned until public interfaces are proven.
+- `docs/`: architecture, API contract, settlement decisions, security, testing and deployment.
+
 ## System boundaries
 
 ```text
-React web app
-  ├── Market API ──> PASTX API ──> Market-data provider
-  │                         └──> cache / optional PostgreSQL
-  └── Wallet adapter ──> Portaldot chain adapter ──> configured RPC
-                                                └──> receipts/events/state
+React web app (sample data is explicitly labelled)
+  └── future API client ──> Fastify API
+                             ├── allow-listed market catalogue
+                             └── Twelve Data adapter (server-side API key)
 
-Future SDK ──> public, typed interfaces from shared packages
+Future wallet client ──> verified Portaldot chain adapter ──> RPC
+                                                       └── receipts/events/state
 ```
 
-The browser may read public chain state and request signatures, but it must not contain provider secrets. The API must never request or store a user's wallet seed phrase or private key.
+The browser must not contain provider secrets. The API must never request or store a user's wallet seed phrase or private key.
 
-## Proposed workspace
+## Market data
 
-- `apps/web`: routes, market UI, wallet connection, order ticket, portfolio.
-- `apps/api`: HTTP routes, input validation, provider credentials, caching and application services.
-- `packages/shared`: shared types, schemas, error shapes and domain enums.
-- `packages/market-data`: vendor-neutral interface and normalized quote/candle types.
-- `packages/chain-adapter`: network checks, metadata/balance reads, transaction submission and receipt verification.
-- `packages/sdk`: future public SDK built from proven interfaces.
-- `contracts/`: only if a contract-based route is validated and needed.
-- `docs/`: decisions, operational instructions and verification evidence.
+The catalogue currently contains AAPL, NVDA, TSLA and MSFT as **reference instruments**. They are external price references, not equity tokens and not executable on-chain assets. Quote and candle routes use Twelve Data via `MARKET_DATA_API_KEY`. The provider's free/basic terms distinguish internal non-display usage from client-facing external display; do not publicly display live provider data until the account and licensing tier are confirmed. The UI therefore remains clearly labelled as fixture/sample data until a permitted provider configuration and end-to-end display integration are verified.
 
-## Data ownership
+The adapter uses bounded timeouts, normalized timestamps/numbers, response-shape checks, OHLC validation, stable error mapping, and no provider-detail leakage. It does not guess whether data is delayed.
 
-| Data | Authority |
-|---|---|
-| External stock reference price and candles | Named market-data provider, with source and timestamp |
-| On-chain asset metadata and balances | Verified Portaldot runtime state |
-| Settlement result | Transaction receipt/events plus resulting state |
-| Watchlist/preferences | App persistence, if enabled |
-| Convenient activity index | Derived from verified chain evidence; never the settlement authority |
-
-## Market-data interface
-
-A provider adapter should support instrument lookup, quote retrieval and historical OHLCV candles. Streaming can be added when needed. Normalize timestamps, currency, interval and missing-data behavior at the provider boundary.
-
-The UI must distinguish delayed, historical, unavailable and live data. Do not invent a quote or imply external stock prices are executable on-chain prices.
-
-## Chain-adapter interface
+## Chain-adapter boundary
 
 Proposed operations:
 - `getNetworkInfo()`
