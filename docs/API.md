@@ -18,7 +18,7 @@ Local development defaults to `http://localhost:4000`. All routes are prefixed w
 | GET | `/api/markets/:symbol/quote` | Normalized quote from Twelve Data |
 | GET | `/api/markets/:symbol/candles` | Normalized OHLCV candles from Twelve Data |
 
-Symbols are case-insensitive and limited to the explicit allow-listed catalogue (AAPL, NVDA, TSLA, MSFT). This prevents arbitrary provider proxying and uncontrolled symbol usage.
+Symbols are case-insensitive and limited to the explicit allow-listed catalogue (AAPL, NVDA, TSLA, MSFT). This prevents arbitrary provider proxying and uncontrolled symbol usage. The external Twelve Data adapter additionally accepts only instruments classified as `reference` with a non-empty explicit `providerSymbol` mapping; simulated and on-chain instruments cannot be sent to the stock-price provider.
 
 ## Capability contract
 
