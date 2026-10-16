@@ -49,3 +49,5 @@ export async function probePortaldotEvm(
     return { configured: true, reachable: false, networkMatches: false, expectedChainId, chainId: null, blockNumber: null, status: "unreachable", verificationScope: VERIFICATION_SCOPE };
   }
 }
+
+export { verifyPinnedOnchainAssetRegistry } from "./pinned-asset-registry";

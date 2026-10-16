@@ -23,7 +23,7 @@ export type OnchainAssetMetadata = {
 
 export type OnchainAssetDiscovery =
   | { status: "available"; chainId: number; items: OnchainAssetMetadata[]; observedAt: string }
-  | { status: "unavailable"; items: []; reason: "runtime_adapter_unverified" | "registry_not_configured" };
+  | { status: "unavailable"; items: []; reason: "runtime_adapter_unverified" | "registry_not_configured" | "registry_integrity_failed" };
 
 export type MarketQuote = {
   symbol: string;

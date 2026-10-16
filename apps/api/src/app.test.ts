@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MARKET_INSTRUMENTS } from "@pastx/shared";
 import { MarketDataError, TwelveDataAdapter } from "@pastx/market-data";
@@ -27,7 +28,8 @@ describe("PASTX API", () => {
         marketQuotes: { implemented: true, enabled: false },
         marketCandles: { implemented: true, enabled: false },
         chainIdentityProbe: { implemented: true, enabled: true, verificationScope: "chain_id_and_latest_block_read" },
-        onchainAssetDiscovery: { implemented: false, enabled: false, reason: "runtime_adapter_unverified" },
+        onchainAssetRegistryIntegrity: { implemented: true, configured: false, verified: false, status: "not_configured", assetCount: 0, reason: "registry_not_configured" },
+        onchainAssetDiscovery: { implemented: false, enabled: false, reason: "registry_not_configured" },
         walletConnection: { implemented: false, enabled: false },
         orderPreview: { implemented: true, enabled: true, execution: false },
         orderSubmission: { implemented: false, enabled: false },
@@ -98,11 +100,91 @@ describe("PASTX API", () => {
     try {
       const response = await app.inject({ method: "GET", url: "/api/assets/onchain" });
       expect(response.statusCode).toBe(200);
-      expect(response.json()).toEqual({ status: "unavailable", items: [], reason: "runtime_adapter_unverified" });
+      expect(response.json()).toEqual({ status: "unavailable", items: [], reason: "registry_not_configured" });
       const capabilities = await app.inject({ method: "GET", url: "/api/capabilities" });
-      expect(capabilities.json().capabilities.onchainAssetDiscovery).toEqual({ implemented: false, enabled: false, reason: "runtime_adapter_unverified" });
+      expect(capabilities.json().capabilities.onchainAssetDiscovery).toEqual({ implemented: false, enabled: false, reason: "registry_not_configured" });
+      expect(capabilities.json().capabilities.onchainAssetRegistryIntegrity).toMatchObject({ status: "not_configured", configured: false, verified: false });
       expect(capabilities.json().capabilities.onchainBalances).toEqual({ implemented: false, enabled: false });
     } finally { await app.close(); }
+  });
+
+
+
+  it("treats blank optional registry environment placeholders as unconfigured", async () => {
+    const app = await buildApp({
+      logger: false,
+      onchainAssetRegistryJson: "",
+      onchainAssetRegistrySha256: ""
+    });
+    try {
+      const status = await app.inject({ method: "GET", url: "/api/assets/onchain/registry-status" });
+      expect(status.json()).toEqual({
+        status: "not_configured",
+        configured: false,
+        verified: false,
+        assetCount: 0,
+        reason: "registry_not_configured"
+      });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it("reports pinned registry integrity without enabling discovery", async () => {
+    const rawJson = JSON.stringify([{
+      chainId: PORTALDOT_V3_EVM_CHAIN_ID,
+      contractAddress: "0x1111111111111111111111111111111111111111",
+      symbol: "USDC",
+      name: "USD Coin",
+      decimals: 6,
+      provenance: "verified_registry"
+    }]);
+    const sha256 = createHash("sha256").update(rawJson).digest("hex");
+    const app = await buildApp({
+      logger: false,
+      onchainAssetRegistryJson: rawJson,
+      onchainAssetRegistrySha256: sha256
+    });
+    try {
+      const status = await app.inject({ method: "GET", url: "/api/assets/onchain/registry-status" });
+      expect(status.statusCode).toBe(200);
+      expect(status.json()).toEqual({ status: "verified", configured: true, verified: true, assetCount: 1 });
+
+      const assets = await app.inject({ method: "GET", url: "/api/assets/onchain" });
+      expect(assets.json()).toEqual({ status: "unavailable", items: [], reason: "runtime_adapter_unverified" });
+
+      const capabilities = await app.inject({ method: "GET", url: "/api/capabilities" });
+      expect(capabilities.json().capabilities.onchainAssetRegistryIntegrity).toMatchObject({ verified: true, assetCount: 1 });
+      expect(capabilities.json().capabilities.onchainAssetDiscovery).toEqual({ implemented: false, enabled: false, reason: "runtime_adapter_unverified" });
+      expect(capabilities.json().capabilities.onchainBalances).toEqual({ implemented: false, enabled: false });
+      expect(capabilities.json().safety.tradingEnabled).toBe(false);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it("fails closed on a mismatched registry digest and reports no assets", async () => {
+    const rawJson = JSON.stringify([{
+      chainId: PORTALDOT_V3_EVM_CHAIN_ID,
+      contractAddress: "0x1111111111111111111111111111111111111111",
+      symbol: "USDC",
+      name: "USD Coin",
+      decimals: 6,
+      provenance: "verified_registry"
+    }]);
+    const app = await buildApp({
+      logger: false,
+      onchainAssetRegistryJson: rawJson,
+      onchainAssetRegistrySha256: "0".repeat(64)
+    });
+    try {
+      const status = await app.inject({ method: "GET", url: "/api/assets/onchain/registry-status" });
+      expect(status.json()).toMatchObject({ status: "invalid", configured: true, verified: false, assetCount: 0, reason: "digest_mismatch" });
+      const assets = await app.inject({ method: "GET", url: "/api/assets/onchain" });
+      expect(assets.json()).toEqual({ status: "unavailable", items: [], reason: "registry_integrity_failed" });
+    } finally {
+      await app.close();
+    }
   });
 
   it("returns only explicitly classified reference catalogue entries", async () => {

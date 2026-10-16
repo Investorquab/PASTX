@@ -13,7 +13,8 @@ Local development defaults to `http://localhost:4000`. All routes are prefixed w
 | GET | `/api/health` | Liveness, provider configuration/display flags, and explicit `tradingEnabled: false` |
 | GET | `/api/capabilities` | Authoritative machine-readable map of implemented, enabled and non-executable features |
 | GET | `/api/chain/status` | Read-only EVM chain-ID and latest-block probe with a narrowly scoped verification label |
-| GET | `/api/assets/onchain` | Explicit discovery status; currently unavailable until a supported runtime adapter and trusted asset registry are verified |
+| GET | `/api/assets/onchain` | Explicit discovery status; remains unavailable until canonical chain/runtime verification is complete |
+| GET | `/api/assets/onchain/registry-status` | Reports whether configured registry bytes match a digest pin and pass metadata validation; does not enable discovery |
 | GET | `/api/markets` | Supported reference instrument catalogue |
 | GET | `/api/markets/:symbol` | Instrument metadata |
 | GET | `/api/markets/:symbol/quote` | Normalized quote from Twelve Data |
@@ -29,12 +30,13 @@ Current capability boundaries:
 - Reference catalogue: implemented and enabled.
 - Quotes and candles: implemented, enabled only when a provider key is configured and `MARKET_DATA_DISPLAY_ENABLED=true`.
 - Chain probe: enabled, with verification scope `chain_id_and_latest_block_read`.
-- On-chain asset discovery: unavailable; the API returns `status: "unavailable"`, an empty `items` list, and `reason: "runtime_adapter_unverified"`. This is not evidence that the chain has no assets or that a wallet has zero balances.
+- On-chain registry integrity: `onchainAssetRegistryIntegrity` reports `not_configured`, `invalid`, or `verified` after checking exact JSON bytes against a configured SHA-256 pin and validating metadata.
+- On-chain asset discovery: remains disabled even when registry integrity is verified. `/api/assets/onchain` returns `status: "unavailable"` and an empty `items` list until canonical chain/runtime verification is independently complete. Missing and invalid registry configuration returns `registry_not_configured` or `registry_integrity_failed`. An empty list is not evidence that the chain has no assets or a wallet has zero balances.
 - Order preview: non-executable preview only.
 - Wallet connection, on-chain balances, order submission, transaction history and atomic settlement: not implemented and disabled.
 - Trading remains disabled regardless of capability response.
 
-The capability endpoint does not perform network probes or expose provider credentials, RPC URLs, wallet data or environment values. Do not treat `implemented: true` as evidence of production readiness or successful external integration.
+The capability endpoint does not perform network probes or expose provider credentials, RPC URLs, wallet data, registry contents, registry digest pins or environment values. Do not treat `implemented: true` as evidence of production readiness or successful external integration.
 
 ## Quotes
 
