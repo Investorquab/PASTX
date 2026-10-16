@@ -79,6 +79,90 @@ describe("TwelveDataAdapter", () => {
     }
   });
 
+  it("coalesces concurrent quote requests for the same mapped instrument", async () => {
+    let resolveFetch!: (response: Response) => void;
+    const fetcher = vi.fn(() => new Promise<Response>((resolve) => { resolveFetch = resolve; })) as unknown as typeof fetch;
+    const adapter = new TwelveDataAdapter("test-key", fetcher);
+
+    const firstRequest = adapter.getQuote(instrument);
+    const secondRequest = adapter.getQuote(instrument);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+
+    resolveFetch(new Response(JSON.stringify({
+      symbol: "AAPL", close: "247.96", change: "3.04", percent_change: "1.24",
+      currency: "USD", timestamp: 1792033200
+    }), { status: 200, headers: { "content-type": "application/json" } }));
+
+    const [first, second] = await Promise.all([firstRequest, secondRequest]);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    first.price = -999;
+    expect(second.price).toBe(247.96);
+  });
+
+  it("coalesces concurrent candle requests and returns independent arrays", async () => {
+    let resolveFetch!: (response: Response) => void;
+    const fetcher = vi.fn(() => new Promise<Response>((resolve) => { resolveFetch = resolve; })) as unknown as typeof fetch;
+    const adapter = new TwelveDataAdapter("test-key", fetcher);
+
+    const firstRequest = adapter.getCandles(instrument, "1min", 1);
+    const secondRequest = adapter.getCandles(instrument, "1min", 1);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+
+    resolveFetch(new Response(JSON.stringify({
+      meta: { symbol: "AAPL", interval: "1min", currency: "USD" },
+      values: [{ datetime: "2026-10-15 10:00:00", open: "10", high: "12", low: "9", close: "11", volume: "50" }]
+    }), { status: 200, headers: { "content-type": "application/json" } }));
+
+    const [first, second] = await Promise.all([firstRequest, secondRequest]);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    first[0].close = -999;
+    first.push({ timestamp: "invalid", open: 1, high: 1, low: 1, close: 1, volume: null });
+    expect(second).toHaveLength(1);
+    expect(second[0].close).toBe(11);
+  });
+
+  it("coalesces concurrent quote requests for the same mapped instrument", async () => {
+    let resolveFetch!: (response: Response) => void;
+    const fetcher = vi.fn(() => new Promise<Response>((resolve) => { resolveFetch = resolve; })) as unknown as typeof fetch;
+    const adapter = new TwelveDataAdapter("test-key", fetcher);
+
+    const firstRequest = adapter.getQuote(instrument);
+    const secondRequest = adapter.getQuote(instrument);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+
+    resolveFetch(new Response(JSON.stringify({
+      symbol: "AAPL", close: "247.96", change: "3.04", percent_change: "1.24",
+      currency: "USD", timestamp: 1792033200
+    }), { status: 200, headers: { "content-type": "application/json" } }));
+
+    const [first, second] = await Promise.all([firstRequest, secondRequest]);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    first.price = -999;
+    expect(second.price).toBe(247.96);
+  });
+
+  it("coalesces concurrent candle requests and returns independent arrays", async () => {
+    let resolveFetch!: (response: Response) => void;
+    const fetcher = vi.fn(() => new Promise<Response>((resolve) => { resolveFetch = resolve; })) as unknown as typeof fetch;
+    const adapter = new TwelveDataAdapter("test-key", fetcher);
+
+    const firstRequest = adapter.getCandles(instrument, "1min", 1);
+    const secondRequest = adapter.getCandles(instrument, "1min", 1);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+
+    resolveFetch(new Response(JSON.stringify({
+      meta: { symbol: "AAPL", interval: "1min", currency: "USD" },
+      values: [{ datetime: "2026-10-15 10:00:00", open: "10", high: "12", low: "9", close: "11", volume: "50" }]
+    }), { status: 200, headers: { "content-type": "application/json" } }));
+
+    const [first, second] = await Promise.all([firstRequest, secondRequest]);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    first[0].close = -999;
+    first.push({ timestamp: "invalid", open: 1, high: 1, low: 1, close: 1, volume: null });
+    expect(second).toHaveLength(1);
+    expect(second[0].close).toBe(11);
+  });
+
   it("maps rate limiting to a stable error without exposing provider details", async () => {
     const adapter = new TwelveDataAdapter("test-key", fakeFetch({ status: "error", code: 429, message: "private provider text" }, 429));
     await expect(adapter.getQuote(instrument)).rejects.toMatchObject({ code: "PROVIDER_RATE_LIMIT", statusCode: 429 });

@@ -52,6 +52,8 @@ function providerError(payload: unknown): ProviderErrorPayload | null {
 export class TwelveDataAdapter {
   private readonly quoteCache = new Map<string, { expiresAt: number; value: MarketQuote }>();
   private readonly candleCache = new Map<string, { expiresAt: number; value: MarketCandle[] }>();
+  private readonly quoteInflight = new Map<string, Promise<MarketQuote>>();
+  private readonly candleInflight = new Map<string, Promise<MarketCandle[]>>();
 
   private storeCache<T>(
     cache: Map<string, { expiresAt: number; value: T }>,
@@ -64,6 +66,23 @@ export class TwelveDataAdapter {
       if (oldestKey !== undefined) cache.delete(oldestKey);
     }
     cache.set(key, { expiresAt: Date.now() + ttlMs, value });
+  }
+
+  private async singleFlight<T>(
+    flights: Map<string, Promise<T>>,
+    key: string,
+    load: () => Promise<T>
+  ): Promise<T> {
+    const existing = flights.get(key);
+    if (existing) return existing;
+
+    const pending = load();
+    flights.set(key, pending);
+    try {
+      return await pending;
+    } finally {
+      if (flights.get(key) === pending) flights.delete(key);
+    }
   }
 
   constructor(
@@ -115,103 +134,107 @@ export class TwelveDataAdapter {
     if (instrument.kind !== "reference" || !instrument.providerSymbol?.trim()) {
       throw new MarketDataError("PROVIDER_INVALID_RESPONSE", "External market data is restricted to explicitly mapped reference instruments.", 400);
     }
-    const cacheKey = instrument.symbol;
+    const cacheKey = `${instrument.symbol}:${instrument.providerSymbol.trim().toUpperCase()}:${instrument.currency}`;
     const cached = this.quoteCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) return { ...cached.value };
     if (cached) this.quoteCache.delete(cacheKey);
 
-    const payload = asRecord(await this.request("/quote", { symbol: instrument.providerSymbol ?? instrument.symbol }));
-    if (!payload) throw new MarketDataError("PROVIDER_INVALID_RESPONSE", "Market data provider returned an unexpected quote.", 502);
+    return { ...(await this.singleFlight(this.quoteInflight, cacheKey, async () => {
+      const payload = asRecord(await this.request("/quote", { symbol: instrument.providerSymbol ?? instrument.symbol }));
+      if (!payload) throw new MarketDataError("PROVIDER_INVALID_RESPONSE", "Market data provider returned an unexpected quote.", 502);
 
-    const responseSymbol = typeof payload.symbol === "string" ? payload.symbol.trim().toUpperCase() : "";
-    const expectedSymbol = (instrument.providerSymbol ?? instrument.symbol).trim().toUpperCase();
-    const price = parseFiniteNumber(payload.close);
-    const change = parseFiniteNumber(payload.change);
-    const changePercent = parseFiniteNumber(payload.percent_change);
-    const currency = typeof payload.currency === "string" ? payload.currency.toUpperCase() : "";
-    const rawTimestamp = payload.timestamp;
-    let timestamp: string | null = null;
-    if (typeof rawTimestamp === "number" || (typeof rawTimestamp === "string" && /^\d+$/.test(rawTimestamp))) {
-      const parsedTimestamp = new Date(Number(rawTimestamp) * 1000);
-      if (Number.isFinite(parsedTimestamp.getTime())) timestamp = parsedTimestamp.toISOString();
-    } else if (typeof payload.datetime === "string" && Number.isFinite(Date.parse(payload.datetime))) {
-      timestamp = new Date(payload.datetime).toISOString();
-    }
+      const responseSymbol = typeof payload.symbol === "string" ? payload.symbol.trim().toUpperCase() : "";
+      const expectedSymbol = (instrument.providerSymbol ?? instrument.symbol).trim().toUpperCase();
+      const price = parseFiniteNumber(payload.close);
+      const change = parseFiniteNumber(payload.change);
+      const changePercent = parseFiniteNumber(payload.percent_change);
+      const currency = typeof payload.currency === "string" ? payload.currency.toUpperCase() : "";
+      const rawTimestamp = payload.timestamp;
+      let timestamp: string | null = null;
+      if (typeof rawTimestamp === "number" || (typeof rawTimestamp === "string" && /^\d+$/.test(rawTimestamp))) {
+        const parsedTimestamp = new Date(Number(rawTimestamp) * 1000);
+        if (Number.isFinite(parsedTimestamp.getTime())) timestamp = parsedTimestamp.toISOString();
+      } else if (typeof payload.datetime === "string" && Number.isFinite(Date.parse(payload.datetime))) {
+        timestamp = new Date(payload.datetime).toISOString();
+      }
 
-    if (responseSymbol !== expectedSymbol || price === null || price <= 0 || change === null || changePercent === null || !timestamp || currency !== instrument.currency || !/^[A-Z]{3,8}$/.test(currency)) {
-      throw new MarketDataError("PROVIDER_INVALID_RESPONSE", "Market data provider quote was missing required fields.", 502);
-    }
+      if (responseSymbol !== expectedSymbol || price === null || price <= 0 || change === null || changePercent === null || !timestamp || currency !== instrument.currency || !/^[A-Z]{3,8}$/.test(currency)) {
+        throw new MarketDataError("PROVIDER_INVALID_RESPONSE", "Market data provider quote was missing required fields.", 502);
+      }
 
-    const quote: MarketQuote = {
-      symbol: instrument.symbol,
-      price,
-      change,
-      changePercent,
-      currency,
-      observedAt: timestamp,
-      source: "twelve_data",
-      delayed: null
-    };
-    this.storeCache(this.quoteCache, cacheKey, quote, 15_000);
-    return { ...quote };
+      const quote: MarketQuote = {
+        symbol: instrument.symbol,
+        price,
+        change,
+        changePercent,
+        currency,
+        observedAt: timestamp,
+        source: "twelve_data",
+        delayed: null
+      };
+      this.storeCache(this.quoteCache, cacheKey, quote, 15_000);
+      return quote;
+    })) };
   }
 
   async getCandles(instrument: MarketInstrument, interval: CandleInterval, outputSize: number): Promise<MarketCandle[]> {
     if (instrument.kind !== "reference" || !instrument.providerSymbol?.trim()) {
       throw new MarketDataError("PROVIDER_INVALID_RESPONSE", "External market data is restricted to explicitly mapped reference instruments.", 400);
     }
-    const cacheKey = `${instrument.symbol}:${interval}:${outputSize}`;
+    const cacheKey = `${instrument.symbol}:${instrument.providerSymbol.trim().toUpperCase()}:${instrument.currency}:${interval}:${outputSize}`;
     const cached = this.candleCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) return cached.value.map((candle) => ({ ...candle }));
     if (cached) this.candleCache.delete(cacheKey);
 
-    const payload = asRecord(await this.request("/time_series", {
-      symbol: instrument.providerSymbol ?? instrument.symbol,
-      interval,
-      outputsize: String(outputSize),
-      order: "ASC",
-      timezone: "UTC"
-    }));
-    const meta = asRecord(payload?.meta);
-    const responseSymbol = typeof meta?.symbol === "string" ? meta.symbol.trim().toUpperCase() : "";
-    const responseInterval = typeof meta?.interval === "string" ? meta.interval.trim() : "";
-    const responseCurrency = typeof meta?.currency === "string" ? meta.currency.trim().toUpperCase() : "";
-    const expectedSymbol = (instrument.providerSymbol ?? instrument.symbol).trim().toUpperCase();
-    const values = payload?.values;
-    if (
-      responseSymbol !== expectedSymbol ||
-      responseInterval !== interval ||
-      responseCurrency !== instrument.currency ||
-      !Array.isArray(values)
-    ) {
-      throw new MarketDataError("PROVIDER_INVALID_RESPONSE", "Market data provider returned mismatched or incomplete candle metadata.", 502);
-    }
-
-    const candles = values.map((value): MarketCandle => {
-      const item = asRecord(value);
-      const rawDatetime = typeof item?.datetime === "string" ? item.datetime.trim() : "";
-      const datetimeWithZone = !rawDatetime
-        ? ""
-        : /(?:[zZ]|[+-]\d{2}:?\d{2})$/.test(rawDatetime)
-          ? rawDatetime
-          : /^\d{4}-\d{2}-\d{2}$/.test(rawDatetime)
-            ? `${rawDatetime}T00:00:00Z`
-            : `${rawDatetime.replace(" ", "T")}Z`;
-      const parsedTimestamp = datetimeWithZone ? new Date(datetimeWithZone) : null;
-      const timestamp = parsedTimestamp && Number.isFinite(parsedTimestamp.getTime())
-        ? parsedTimestamp.toISOString()
-        : null;
-      const open = parseFiniteNumber(item?.open);
-      const high = parseFiniteNumber(item?.high);
-      const low = parseFiniteNumber(item?.low);
-      const close = parseFiniteNumber(item?.close);
-      const volume = parseFiniteNumber(item?.volume);
-      if (!timestamp || open === null || high === null || low === null || close === null || open <= 0 || high <= 0 || low <= 0 || close <= 0 || high < Math.max(open, close, low) || low > Math.min(open, close, high) || (item?.volume !== undefined && item.volume !== null && (volume === null || volume < 0))) {
-        throw new MarketDataError("PROVIDER_INVALID_RESPONSE", "Market data provider returned a malformed candle.", 502);
+    return (await this.singleFlight(this.candleInflight, cacheKey, async () => {
+      const payload = asRecord(await this.request("/time_series", {
+        symbol: instrument.providerSymbol ?? instrument.symbol,
+        interval,
+        outputsize: String(outputSize),
+        order: "ASC",
+        timezone: "UTC"
+      }));
+      const meta = asRecord(payload?.meta);
+      const responseSymbol = typeof meta?.symbol === "string" ? meta.symbol.trim().toUpperCase() : "";
+      const responseInterval = typeof meta?.interval === "string" ? meta.interval.trim() : "";
+      const responseCurrency = typeof meta?.currency === "string" ? meta.currency.trim().toUpperCase() : "";
+      const expectedSymbol = (instrument.providerSymbol ?? instrument.symbol).trim().toUpperCase();
+      const values = payload?.values;
+      if (
+        responseSymbol !== expectedSymbol ||
+        responseInterval !== interval ||
+        responseCurrency !== instrument.currency ||
+        !Array.isArray(values)
+      ) {
+        throw new MarketDataError("PROVIDER_INVALID_RESPONSE", "Market data provider returned mismatched or incomplete candle metadata.", 502);
       }
-      return { timestamp, open, high, low, close, volume };
-    });
-    this.storeCache(this.candleCache, cacheKey, candles, 60_000);
-    return candles.map((candle) => ({ ...candle }));
+
+      const candles = values.map((value): MarketCandle => {
+        const item = asRecord(value);
+        const rawDatetime = typeof item?.datetime === "string" ? item.datetime.trim() : "";
+        const datetimeWithZone = !rawDatetime
+          ? ""
+          : /(?:[zZ]|[+-]\d{2}:?\d{2})$/.test(rawDatetime)
+            ? rawDatetime
+            : /^\d{4}-\d{2}-\d{2}$/.test(rawDatetime)
+              ? `${rawDatetime}T00:00:00Z`
+              : `${rawDatetime.replace(" ", "T")}Z`;
+        const parsedTimestamp = datetimeWithZone ? new Date(datetimeWithZone) : null;
+        const timestamp = parsedTimestamp && Number.isFinite(parsedTimestamp.getTime())
+          ? parsedTimestamp.toISOString()
+          : null;
+        const open = parseFiniteNumber(item?.open);
+        const high = parseFiniteNumber(item?.high);
+        const low = parseFiniteNumber(item?.low);
+        const close = parseFiniteNumber(item?.close);
+        const volume = parseFiniteNumber(item?.volume);
+        if (!timestamp || open === null || high === null || low === null || close === null || open <= 0 || high <= 0 || low <= 0 || close <= 0 || high < Math.max(open, close, low) || low > Math.min(open, close, high) || (item?.volume !== undefined && item.volume !== null && (volume === null || volume < 0))) {
+          throw new MarketDataError("PROVIDER_INVALID_RESPONSE", "Market data provider returned a malformed candle.", 502);
+        }
+        return { timestamp, open, high, low, close, volume };
+      });
+      this.storeCache(this.candleCache, cacheKey, candles, 60_000);
+      return candles;
+    })).map((candle) => ({ ...candle }));
   }
 }
