@@ -115,3 +115,10 @@ Update `docs/API.md` whenever routes or schemas change, `docs/ARCHITECTURE.md` w
 - Automated CI must pass for the resulting commit before this change is considered verified. This remains reference data only; it does not enable trading or prove on-chain market integration.
 
 - CI follow-up: the first run for the candle identity guard exposed an existing test fixture that omitted the API's required `symbol` and `interval` response fields. Updated the fixture to reflect the documented API contract; no production validation was weakened. Re-run CI before treating this batch as verified.
+
+
+## Engineering audit — API provider enablement consistency
+
+- Quote and candle endpoints now enforce the same two prerequisites advertised by `/api/health` and `/api/capabilities`: a nonblank provider key and explicit market-data display enablement.
+- A missing/blank provider key returns a stable `503 PROVIDER_NOT_CONFIGURED` response before the adapter is called. Display remains blocked with `403 MARKET_DATA_DISPLAY_DISABLED` when licensing has not been confirmed.
+- Regression tests cover both quote and candle paths and assert no provider calls occur without configuration. CI is the verification gate for this revision.

@@ -81,6 +81,7 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
   app.get<{ Params: { symbol: string } }>("/api/markets/:symbol/quote", async (request, reply) => {
     const instrument = findInstrument(request.params.symbol);
     if (!instrument) return reply.code(404).send(apiError("NOT_FOUND", "Market instrument was not found.", request.id));
+    if (!marketDataConfigured) return reply.code(503).send(apiError("PROVIDER_NOT_CONFIGURED", "Market data provider is not configured.", request.id));
     if (!marketDataDisplayEnabled) return reply.code(403).send(apiError("MARKET_DATA_DISPLAY_DISABLED", "Live market-data display is disabled until provider terms are verified.", request.id));
     try {
       return { item: await marketData.getQuote(instrument) };
@@ -113,7 +114,8 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
         return reply.code(400).send(apiError("INVALID_INPUT", "outputsize must be an integer between 1 and 500.", request.id));
       }
 
-      if (!marketDataDisplayEnabled) return reply.code(403).send(apiError("MARKET_DATA_DISPLAY_DISABLED", "Live market-data display is disabled until provider terms are verified.", request.id));
+      if (!marketDataConfigured) return reply.code(503).send(apiError("PROVIDER_NOT_CONFIGURED", "Market data provider is not configured.", request.id));
+    if (!marketDataDisplayEnabled) return reply.code(403).send(apiError("MARKET_DATA_DISPLAY_DISABLED", "Live market-data display is disabled until provider terms are verified.", request.id));
       try {
         return { symbol: instrument.symbol, interval, items: await marketData.getCandles(instrument, interval, outputsize) };
       } catch (error) {

@@ -56,3 +56,5 @@ CI cannot verify wallet UX, a live Portaldot testnet transaction, explorer evide
 ## Reference-only order intent tests
 
 Shared-domain tests cover normalized buy/sell previews for known catalogue symbols, invalid symbols and quantities, invalid/non-positive prices, overflow, and the invariant that every preview is marked `executable: false`. These checks validate calculation only; they do not prove wallet, balance, order submission or settlement behavior.
+
+- API gate consistency: quote and candle routes reject missing/whitespace-only provider keys with `503 PROVIDER_NOT_CONFIGURED`, even if the display flag is set; adapter methods must not be called.

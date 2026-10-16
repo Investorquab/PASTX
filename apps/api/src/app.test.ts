@@ -83,6 +83,25 @@ describe("PASTX API", () => {
     await app.close();
   });
 
+  it("blocks quote and candle requests when the provider key is missing even if display is enabled", async () => {
+    const getQuote = vi.fn();
+    const getCandles = vi.fn();
+    const fakeAdapter = { getQuote, getCandles } as unknown as TwelveDataAdapter;
+    const app = await buildApp({ logger: false, marketDataApiKey: "   ", marketData: fakeAdapter, marketDataDisplayEnabled: true });
+    try {
+      const quote = await app.inject({ method: "GET", url: "/api/markets/AAPL/quote" });
+      const candles = await app.inject({ method: "GET", url: "/api/markets/AAPL/candles" });
+      expect(quote.statusCode).toBe(503);
+      expect(quote.json().error.code).toBe("PROVIDER_NOT_CONFIGURED");
+      expect(candles.statusCode).toBe(503);
+      expect(candles.json().error.code).toBe("PROVIDER_NOT_CONFIGURED");
+      expect(getQuote).not.toHaveBeenCalled();
+      expect(getCandles).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
   it("blocks live quote display by default until licensing is confirmed", async () => {
     const getQuote = vi.fn();
     const fakeAdapter = { getQuote, getCandles: vi.fn() } as unknown as TwelveDataAdapter;
@@ -97,7 +116,7 @@ describe("PASTX API", () => {
   it("validates candle outputsize as decimal digits and enforces the 1–500 range", async () => {
     const getCandles = vi.fn().mockResolvedValue([]);
     const fakeAdapter = { getQuote: vi.fn(), getCandles } as unknown as TwelveDataAdapter;
-    const app = await buildApp({ logger: false, marketData: fakeAdapter, marketDataDisplayEnabled: true });
+    const app = await buildApp({ logger: false, marketDataApiKey: "configured-key", marketData: fakeAdapter, marketDataDisplayEnabled: true });
     try {
       const invalidInterval = await app.inject({ method: "GET", url: "/api/markets/AAPL/candles?interval=2min" });
       const invalidSizes = await Promise.all(["abc", "1.5", "-1", "0", "501", "1d"].map((size) =>
