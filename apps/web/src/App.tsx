@@ -199,7 +199,7 @@ function App() {
         <header className="topbar">
           <div className="breadcrumb">PASTX <span>/</span> Markets</div>
           <div className="top-actions">
-            <span className="preview-pill"><span /> {hasAnyLiveData ? "LIVE REFERENCE DATA" : "PREVIEW · SAMPLE DATA"}</span>
+            <span className="preview-pill"><span /> {hasAnyLiveData ? "PROVIDER DATA · SNAPSHOT" : "PREVIEW · SAMPLE DATA"}</span>
             <button className="icon-button" aria-label="Notifications" type="button" disabled title="Notifications are not implemented in this preview"><Bell size={18} /></button>
             <button className="connect-button" type="button" disabled title="Wallet connection will be added after chain compatibility testing"><Wallet size={16} /> Wallet integration pending</button>
           </div>
