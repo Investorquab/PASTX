@@ -65,7 +65,7 @@ pnpm test
 pnpm build
 ```
 
-The committed `pnpm-lock.yaml` is installed with `pnpm install --frozen-lockfile` in CI, followed by workspace type checks, unit tests and the web production build. The API currently starts from TypeScript source through `tsx`; `apps/api`'s `build` script is typecheck-only and does not emit a standalone API artifact. `tsx` is therefore a runtime dependency, not a development-only tool. A compiled/bundled API deployment artifact and a production deployment smoke test remain future release work. Check [GitHub Actions](https://github.com/Investorquab/PASTX/actions) for the result tied to the exact commit under review. A green CI run does not prove deployment or live external integration.
+The committed `pnpm-lock.yaml` is installed with `pnpm install --frozen-lockfile` in CI, followed by workspace type checks, unit tests and the web production build. The API build bundles `apps/api/src/server.ts` and workspace code into `apps/api/dist/server.js` for Node.js 22. Run `pnpm build` before deployment, then start the API from the repository's `apps/api` directory with `pnpm start` (or run the package start command from the deployment process manager). Fastify, its plugins, dotenv and viem remain runtime dependencies, so deploy the API with its production dependency tree. A production deployment smoke test remains a release gate. Check [GitHub Actions](https://github.com/Investorquab/PASTX/actions) for the result tied to the exact commit under review. A green CI run does not prove deployment or live external integration.
 
 ## Production deployment remains blocked on
 

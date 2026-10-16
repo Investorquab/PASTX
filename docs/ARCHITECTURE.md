@@ -14,7 +14,7 @@
 ## Current workspace
 
 - `apps/web`: React + TypeScript + Vite market-terminal preview.
-- `apps/api`: Fastify API, validation, rate limiting, safe errors, server-only provider key, and a machine-readable capability contract for frontend feature gating.
+- `apps/api`: Fastify API, validation, rate limiting, safe errors, server-only provider key, and a machine-readable capability contract for frontend feature gating. Its build bundles workspace code into a Node.js 22 ESM entry while externalizing runtime packages.
 - `packages/shared`: market catalogue, domain types, candle intervals, API error contract and reusable non-executable order-preview arithmetic.
 - `packages/market-data`: vendor adapter for Twelve Data, normalized quotes/candles and provider error mapping.
 - `packages/chain-adapter`: read-only EVM RPC chain-and-latest-block probe; no transaction signing or submission.

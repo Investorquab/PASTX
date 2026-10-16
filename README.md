@@ -18,7 +18,7 @@ External stock quotes are references only. They do not represent tokenized equit
 ## Architecture
 
 - `apps/web`: React + TypeScript + Vite market terminal.
-- `apps/api`: Fastify HTTP API with security headers, rate limiting and stable error responses. Its current runtime executes TypeScript through `tsx`; the repository does not yet produce a standalone API bundle.
+- `apps/api`: Fastify HTTP API with security headers, rate limiting and stable error responses. The API is bundled to `apps/api/dist/server.js` for Node.js 22; workspace code is bundled while Fastify and selected runtime dependencies remain external.
 - `packages/shared`: domain types and supported instrument catalogue.
 - `packages/market-data`: Twelve Data adapter; provider credentials remain server-side.
 - `packages/chain-adapter`: read-only Portaldot EVM RPC chain-and-latest-block probe; no transaction writes.
