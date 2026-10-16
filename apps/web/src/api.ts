@@ -20,6 +20,28 @@ export type ChainStatus = {
   verificationScope: "chain_id_and_latest_block_read";
 };
 
+
+export type ApiCapabilities = {
+  service: "pastx-api";
+  capabilities: {
+    referenceCatalogue: { implemented: true; enabled: true };
+    marketQuotes: { implemented: true; enabled: boolean };
+    marketCandles: { implemented: true; enabled: boolean };
+    chainIdentityProbe: { implemented: true; enabled: true; verificationScope: "chain_id_and_latest_block_read" };
+    walletConnection: { implemented: false; enabled: false };
+    onchainBalances: { implemented: false; enabled: false };
+    orderPreview: { implemented: true; enabled: true; execution: false };
+    orderSubmission: { implemented: false; enabled: false };
+    transactionHistory: { implemented: false; enabled: false };
+    atomicSettlement: { implemented: false; enabled: false };
+  };
+  safety: {
+    tradingEnabled: false;
+    externalStockQuotesAreReferenceData: true;
+    marketDataDisplayRequiresProviderPermission: true;
+  };
+};
+
 export class ApiClientError extends Error {
   constructor(message: string, public readonly statusCode: number | null = null) {
     super(message);
@@ -91,6 +113,47 @@ export async function getApiHealth(fetchImpl: typeof fetch = fetch): Promise<Api
     health.tradingEnabled !== false
   ) throw new ApiClientError("PASTX API returned invalid health status.");
   return health as unknown as ApiHealth;
+}
+
+
+export async function getApiCapabilities(fetchImpl: typeof fetch = fetch): Promise<ApiCapabilities> {
+  const payload = await fetchJson(fetchImpl, "/api/capabilities");
+  if (typeof payload !== "object" || payload === null) throw new ApiClientError("PASTX API returned invalid capabilities.");
+  const root = payload as Record<string, unknown>;
+  const capabilities = root.capabilities;
+  const safety = root.safety;
+  if (typeof capabilities !== "object" || capabilities === null || typeof safety !== "object" || safety === null) {
+    throw new ApiClientError("PASTX API returned invalid capabilities.");
+  }
+  const caps = capabilities as Record<string, unknown>;
+  const safetyFlags = safety as Record<string, unknown>;
+  const isFeature = (value: unknown, implemented: boolean, enabled?: boolean): boolean => {
+    if (typeof value !== "object" || value === null) return false;
+    const feature = value as Record<string, unknown>;
+    return feature.implemented === implemented && typeof feature.enabled === "boolean" &&
+      (enabled === undefined || feature.enabled === enabled);
+  };
+  if (
+    root.service !== "pastx-api" ||
+    !isFeature(caps.referenceCatalogue, true, true) ||
+    !isFeature(caps.marketQuotes, true) ||
+    !isFeature(caps.marketCandles, true) ||
+    !isFeature(caps.chainIdentityProbe, true, true) ||
+    (caps.chainIdentityProbe as Record<string, unknown>)?.verificationScope !== "chain_id_and_latest_block_read" ||
+    !isFeature(caps.walletConnection, false, false) ||
+    !isFeature(caps.onchainBalances, false, false) ||
+    !isFeature(caps.orderPreview, true, true) ||
+    (caps.orderPreview as Record<string, unknown>)?.execution !== false ||
+    !isFeature(caps.orderSubmission, false, false) ||
+    !isFeature(caps.transactionHistory, false, false) ||
+    !isFeature(caps.atomicSettlement, false, false) ||
+    safetyFlags.tradingEnabled !== false ||
+    safetyFlags.externalStockQuotesAreReferenceData !== true ||
+    safetyFlags.marketDataDisplayRequiresProviderPermission !== true
+  ) {
+    throw new ApiClientError("PASTX API returned invalid capabilities.");
+  }
+  return payload as ApiCapabilities;
 }
 
 export async function getMarketQuote(symbol: string, fetchImpl: typeof fetch = fetch): Promise<MarketQuote> {
