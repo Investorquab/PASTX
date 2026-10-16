@@ -46,16 +46,17 @@ const intervalMs = Number(rawInterval);
 let requestId = 0;
 
 async function rpc(method) {
+  const id = ++requestId;
   const response = await fetch(endpoint, {
     method: "POST",
     headers: { "content-type": "application/json", accept: "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", method, params: [], id: ++requestId }),
+    body: JSON.stringify({ jsonrpc: "2.0", method, params: [], id }),
     signal: AbortSignal.timeout(8000),
     redirect: "error"
   });
   if (!response.ok) throw new Error(`${method}: HTTP ${response.status}`);
   const payload = await response.json();
-  if (payload.error || payload.id !== requestId || typeof payload.result !== "string") {
+  if (payload.error || payload.id !== id || typeof payload.result !== "string") {
     throw new Error(`${method}: invalid JSON-RPC response`);
   }
   return payload.result;
