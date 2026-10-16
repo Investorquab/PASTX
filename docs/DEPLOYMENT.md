@@ -41,7 +41,7 @@ Before public client-facing display, verify the provider account's license and t
 
 ## Optional Portaldot RPC probe
 
-Set `PORTALDOT_EVM_RPC_URL` to the public RPC endpoint for the intended Portaldot V3 EVM environment. The API route `GET /api/chain/status` performs read-only `eth_chainId` and `eth_blockNumber` checks against `PORTALDOT_EVM_CHAIN_ID` (default `420420777`, the documented testnet ID). An unreachable or wrong network is reported explicitly; the endpoint never submits a transaction or exposes the configured URL. A matching chain ID plus a readable latest block is only a basic RPC smoke test, not proof of canonicality, continued block production, asset interoperability or settlement safety. Check both RPC methods directly when needed:
+Set `PORTALDOT_EVM_RPC_URL` to the public RPC endpoint for the intended Portaldot V3 EVM environment. The API route `GET /api/chain/status` performs read-only `eth_chainId` and `eth_blockNumber` checks against `PORTALDOT_EVM_CHAIN_ID` (default `420420777`, the documented testnet ID). An unreachable, malformed, credential-bearing, or wrong-network URL is reported explicitly; only HTTP(S) URLs without embedded credentials are accepted, and the endpoint never submits a transaction or exposes the configured URL. A matching chain ID plus a readable latest block is only a basic RPC smoke test, not proof of canonicality, continued block production, asset interoperability or settlement safety. Check both RPC methods directly when needed:
 
 ```bash
 curl --connect-timeout 3 --max-time 8 -sS \

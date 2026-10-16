@@ -16,6 +16,17 @@ const readChainProbe: ChainProbeReader = async (rpcUrl) => {
   return { chainId, blockNumber };
 };
 
+function isHttpRpcUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return (url.protocol === "http:" || url.protocol === "https:") &&
+      url.hostname.length > 0 && !url.username && !url.password &&
+      !/[\u0000-\u0020\u007f]/.test(value);
+  } catch {
+    return false;
+  }
+}
+
 /** Read-only RPC check; it never signs or submits transactions. */
 export async function probePortaldotEvm(
   rpcUrl: string | undefined,
@@ -25,6 +36,9 @@ export async function probePortaldotEvm(
   if (!Number.isSafeInteger(expectedChainId) || expectedChainId <= 0) throw new Error("Expected EVM chain ID must be a positive safe integer.");
   if (!rpcUrl?.trim()) {
     return { configured: false, reachable: false, networkMatches: false, expectedChainId, chainId: null, blockNumber: null, status: "not_configured", verificationScope: VERIFICATION_SCOPE };
+  }
+  if (!isHttpRpcUrl(rpcUrl)) {
+    return { configured: true, reachable: false, networkMatches: false, expectedChainId, chainId: null, blockNumber: null, status: "unreachable", verificationScope: VERIFICATION_SCOPE };
   }
   try {
     const { chainId, blockNumber } = await readProbe(rpcUrl);

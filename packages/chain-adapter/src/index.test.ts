@@ -40,4 +40,13 @@ describe("probePortaldotEvm", () => {
     await expect(probePortaldotEvm("https://rpc.example", reader(Number.NaN))).resolves.toMatchObject({ status: "unreachable", chainId: null });
     await expect(probePortaldotEvm("https://rpc.example", reader(PORTALDOT_V3_EVM_CHAIN_ID, -1n))).resolves.toMatchObject({ status: "unreachable", chainId: null, blockNumber: null });
   });
+  it("rejects malformed or non-HTTP(S) RPC URLs before network access", async () => {
+    for (const url of ["not a url", "file:///tmp/rpc", "ftp://rpc.example", "https://user@rpc.example", "https://rpc.example/path with spaces"]) {
+      const readProbe = vi.fn();
+      await expect(probePortaldotEvm(url, readProbe)).resolves.toMatchObject({
+        configured: true, reachable: false, status: "unreachable", chainId: null, blockNumber: null
+      });
+      expect(readProbe).not.toHaveBeenCalled();
+    }
+  });
 });
