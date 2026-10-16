@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { getApiCapabilities, getChainStatus, getMarketCandles, getMarketQuote, type ChainStatus } from "./api";
-import type { MarketCandle, MarketQuote } from "@pastx/shared";
+import { getApiCapabilities, getChainStatus, getMarketCatalogue, getMarketCandles, getMarketQuote, type ChainStatus } from "./api";
+import type { MarketCandle, MarketInstrument, MarketQuote } from "@pastx/shared";
 import { calculateReferenceNotional, parsePreviewQuantity } from "./orderPreview";
 import {
   Activity,
@@ -83,6 +83,7 @@ function App() {
   const [searchTerm, setSearchTerm] = useState("");
   const [chainStatus, setChainStatus] = useState<ChainStatus | null>(null);
   const [chainStatusError, setChainStatusError] = useState(false);
+  const [marketCatalogue, setMarketCatalogue] = useState<MarketItem[]>(referenceMarkets);
   const [liveQuotes, setLiveQuotes] = useState<Record<string, MarketQuote>>({});
   const [liveCandles, setLiveCandles] = useState<MarketCandle[] | null>(null);
   const [orderSymbol, setOrderSymbol] = useState("AAPL");
@@ -105,10 +106,24 @@ function App() {
 
   useEffect(() => {
     let active = true;
-    getApiCapabilities()
-      .then(async (contract) => {
+    Promise.all([getApiCapabilities(), getMarketCatalogue()])
+      .then(async ([contract, instruments]) => {
+        if (!active) return;
+        const displayItems = instruments.map((instrument: MarketInstrument) => {
+          const fixture = referenceMarkets.find((market) => market.symbol === instrument.symbol);
+          return {
+            symbol: instrument.symbol,
+            name: instrument.name,
+            category: `${instrument.kind.toUpperCase()} · REFERENCE`,
+            price: fixture?.price ?? "—",
+            change: fixture?.change ?? "—",
+            positive: fixture?.positive ?? true,
+            initials: instrument.symbol.slice(0, 1)
+          };
+        });
+        setMarketCatalogue(displayItems);
         const quotePromise = contract.capabilities.marketQuotes.enabled
-          ? Promise.allSettled(referenceMarkets.map((market) => getMarketQuote(market.symbol)))
+          ? Promise.allSettled(displayItems.map((market) => getMarketQuote(market.symbol)))
           : Promise.resolve([]);
         const candlePromise = contract.capabilities.marketCandles.enabled
           ? getMarketCandles("AAPL", "1day", 30).then(
@@ -123,7 +138,7 @@ function App() {
         setLiveCandles(candleResult.ok ? candleResult.items : null);
       })
       .catch(() => {
-        // If the capability contract is unavailable or invalid, fail closed to labelled fixture data.
+        // If the API contract or catalogue is unavailable, keep the labelled preview fixtures.
       });
     return () => {
       active = false;
@@ -134,7 +149,7 @@ function App() {
   const hasLiveCandles = Boolean(liveCandles && liveCandles.length > 0);
   const hasAnyLiveData = hasLiveQuotes || hasLiveCandles;
 
-  const selectedOrderInstrument = referenceMarkets.find((market) => market.symbol === orderSymbol) ?? referenceMarkets[0];
+  const selectedOrderInstrument = marketCatalogue.find((market) => market.symbol === orderSymbol) ?? marketCatalogue[0] ?? referenceMarkets[0];
   const selectedOrderQuote = liveQuotes[orderSymbol];
   const orderUnitPrice = selectedOrderQuote?.price ?? Number(selectedOrderInstrument.price.replace(/[$,]/g, ""));
   const orderQuantityNumber = parsePreviewQuantity(orderQuantity);
@@ -166,11 +181,11 @@ function App() {
 
   const visibleMarkets = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
-    if (!query) return referenceMarkets;
-    return referenceMarkets.filter((market) =>
+    if (!query) return marketCatalogue;
+    return marketCatalogue.filter((market) =>
       [market.symbol, market.name, market.category].some((field) => field.toLowerCase().includes(query))
     );
-  }, [searchTerm]);
+  }, [marketCatalogue, searchTerm]);
 
   return (
     <div className="app-shell">
@@ -224,7 +239,7 @@ function App() {
         <section className="summary-grid" aria-label="Market overview">
           <article className="summary-card">
             <div className="card-label">TRACKED INSTRUMENTS <span className="tiny-icon"><Layers3 size={15} /></span></div>
-            <div className="summary-value">04 <span className="summary-sub">preview entries</span></div>
+            <div className="summary-value">{String(marketCatalogue.length).padStart(2, "0")} <span className="summary-sub">catalogue entries</span></div>
             <div className="summary-note">Reference catalogue only</div>
           </article>
           <article className="summary-card">
@@ -284,7 +299,7 @@ function App() {
             <label className="order-field">
               <span>Reference instrument</span>
               <select value={orderSymbol} onChange={(event) => setOrderSymbol(event.target.value)}>
-                {referenceMarkets.map((market) => <option key={market.symbol} value={market.symbol}>{market.symbol} · {market.name}</option>)}
+                {marketCatalogue.map((market) => <option key={market.symbol} value={market.symbol}>{market.symbol} · {market.name}</option>)}
               </select>
             </label>
             <div className="order-field">

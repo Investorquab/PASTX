@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { ApiClientError, getApiCapabilities, getApiHealth, getChainStatus, getMarketCandles, getMarketQuote } from "./api";
+import { ApiClientError, getApiCapabilities, getApiHealth, getChainStatus, getMarketCatalogue, getMarketCandles, getMarketQuote } from "./api";
 
 describe("getChainStatus", () => {
   it("returns the read-only status object", async () => {
@@ -98,6 +98,44 @@ describe("getApiCapabilities", () => {
     await expect(getApiCapabilities(fetcher as unknown as typeof fetch)).rejects.toMatchObject({
       name: "ApiClientError", statusCode: 503
     });
+  });
+});
+
+describe("getMarketCatalogue", () => {
+  const validCatalogue = {
+    count: 2,
+    classification: "reference catalogue; not proof of tokenized equity or executable market",
+    items: [
+      { symbol: "AAPL", name: "Apple Inc.", kind: "reference", description: "External stock-price reference only.", currency: "USD", providerSymbol: "AAPL" },
+      { symbol: "NVDA", name: "NVIDIA Corporation", kind: "reference", description: "External stock-price reference only.", currency: "USD", providerSymbol: "NVDA" }
+    ]
+  };
+
+  it("returns validated catalogue entries from the API", async () => {
+    const fetcher = async () => new Response(JSON.stringify(validCatalogue), { status: 200 });
+    await expect(getMarketCatalogue(fetcher as unknown as typeof fetch)).resolves.toMatchObject([
+      { symbol: "AAPL", name: "Apple Inc.", kind: "reference", currency: "USD" },
+      { symbol: "NVDA", name: "NVIDIA Corporation", kind: "reference", currency: "USD" }
+    ]);
+  });
+
+  it("rejects duplicate symbols and inconsistent counts", async () => {
+    const duplicate = { ...validCatalogue, items: [validCatalogue.items[0], validCatalogue.items[0]] };
+    const duplicateFetcher = async () => new Response(JSON.stringify(duplicate), { status: 200 });
+    await expect(getMarketCatalogue(duplicateFetcher as unknown as typeof fetch)).rejects.toBeInstanceOf(ApiClientError);
+
+    const wrongCount = { ...validCatalogue, count: 99 };
+    const countFetcher = async () => new Response(JSON.stringify(wrongCount), { status: 200 });
+    await expect(getMarketCatalogue(countFetcher as unknown as typeof fetch)).rejects.toBeInstanceOf(ApiClientError);
+  });
+
+  it("fails closed for malformed entries or an unavailable API", async () => {
+    const malformed = { ...validCatalogue, items: [{ ...validCatalogue.items[0], currency: "usd" }] , count: 1 };
+    const malformedFetcher = async () => new Response(JSON.stringify(malformed), { status: 200 });
+    await expect(getMarketCatalogue(malformedFetcher as unknown as typeof fetch)).rejects.toBeInstanceOf(ApiClientError);
+
+    const unavailable = async () => new Response("unavailable", { status: 503 });
+    await expect(getMarketCatalogue(unavailable as unknown as typeof fetch)).rejects.toMatchObject({ statusCode: 503 });
   });
 });
 
