@@ -87,6 +87,9 @@ importers:
 
   packages/chain-adapter:
     dependencies:
+      '@pastx/shared':
+        specifier: workspace:*
+        version: link:../shared
       viem:
         specifier: ^2.37.5
         version: 2.57.7(typescript@5.9.3)
