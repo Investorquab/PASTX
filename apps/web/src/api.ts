@@ -156,6 +156,49 @@ export async function getApiCapabilities(fetchImpl: typeof fetch = fetch): Promi
   return payload as ApiCapabilities;
 }
 
+
+export async function getMarketCatalogue(fetchImpl: typeof fetch = fetch): Promise<MarketInstrument[]> {
+  const payload = await fetchJson(fetchImpl, "/api/markets");
+  if (typeof payload !== "object" || payload === null) throw new ApiClientError("PASTX API returned an invalid market catalogue.");
+  const root = payload as Record<string, unknown>;
+  if (
+    !Array.isArray(root.items) ||
+    root.count !== root.items.length ||
+    root.classification !== "reference catalogue; not proof of tokenized equity or executable market"
+  ) {
+    throw new ApiClientError("PASTX API returned an invalid market catalogue.");
+  }
+
+  const seen = new Set<string>();
+  const items = root.items.map((value): MarketInstrument | null => {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+    const item = value as Record<string, unknown>;
+    if (
+      typeof item.symbol !== "string" ||
+      !/^[A-Z][A-Z0-9.]{0,14}$/.test(item.symbol) ||
+      seen.has(item.symbol) ||
+      typeof item.name !== "string" || !item.name.trim() ||
+      (item.kind !== "reference" && item.kind !== "simulated" && item.kind !== "onchain") ||
+      typeof item.description !== "string" || !item.description.trim() ||
+      typeof item.currency !== "string" || !/^[A-Z]{3,8}$/.test(item.currency) ||
+      !(item.providerSymbol === undefined || (typeof item.providerSymbol === "string" && item.providerSymbol.trim().length > 0))
+    ) return null;
+    seen.add(item.symbol);
+    return {
+      symbol: item.symbol,
+      name: item.name,
+      kind: item.kind,
+      description: item.description,
+      currency: item.currency,
+      ...(typeof item.providerSymbol === "string" ? { providerSymbol: item.providerSymbol } : {})
+    };
+  });
+  if (items.some((item) => item === null) || items.length === 0) {
+    throw new ApiClientError("PASTX API returned an invalid market catalogue.");
+  }
+  return items as MarketInstrument[];
+}
+
 export async function getMarketQuote(symbol: string, fetchImpl: typeof fetch = fetch): Promise<MarketQuote> {
   const payload = await fetchJson(fetchImpl, `/api/markets/${encodeURIComponent(symbol)}/quote`);
   if (typeof payload !== "object" || payload === null || !("item" in payload)) {
