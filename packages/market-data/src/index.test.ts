@@ -80,25 +80,50 @@ describe("TwelveDataAdapter", () => {
     await expect(malformedTimestamp.getQuote(instrument)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
   });
 
+  it("rejects candle series with mismatched or missing provider metadata", async () => {
+    const wrongSymbol = new TwelveDataAdapter("test-key", fakeFetch({
+      meta: { symbol: "NVDA", interval: "1min", currency: "USD" },
+      values: [{ datetime: "2026-10-15 10:00:00", open: "10", high: "12", low: "9", close: "11", volume: "50" }]
+    }));
+    await expect(wrongSymbol.getCandles(instrument, "1min", 1)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
+
+    const wrongInterval = new TwelveDataAdapter("test-key", fakeFetch({
+      meta: { symbol: "AAPL", interval: "5min", currency: "USD" },
+      values: [{ datetime: "2026-10-15 10:00:00", open: "10", high: "12", low: "9", close: "11", volume: "50" }]
+    }));
+    await expect(wrongInterval.getCandles(instrument, "1min", 1)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
+
+    const wrongCurrency = new TwelveDataAdapter("test-key", fakeFetch({
+      meta: { symbol: "AAPL", interval: "1min", currency: "EUR" },
+      values: [{ datetime: "2026-10-15 10:00:00", open: "10", high: "12", low: "9", close: "11", volume: "50" }]
+    }));
+    await expect(wrongCurrency.getCandles(instrument, "1min", 1)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
+
+    const missingMetadata = new TwelveDataAdapter("test-key", fakeFetch({
+      values: [{ datetime: "2026-10-15 10:00:00", open: "10", high: "12", low: "9", close: "11", volume: "50" }]
+    }));
+    await expect(missingMetadata.getCandles(instrument, "1min", 1)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
+  });
+
   it("normalizes candle data and rejects invalid OHLC relationships", async () => {
-    const adapter = new TwelveDataAdapter("test-key", fakeFetch({ values: [
+    const adapter = new TwelveDataAdapter("test-key", fakeFetch({ meta: { symbol: "AAPL", interval: "1min", currency: "USD" }, values: [
       { datetime: "2026-10-15 10:00:00", open: "10", high: "12", low: "9", close: "11", volume: "50" }
     ] }));
     await expect(adapter.getCandles(instrument, "1min", 1)).resolves.toMatchObject([
       { open: 10, high: 12, low: 9, close: 11, volume: 50 }
     ]);
 
-    const malformed = new TwelveDataAdapter("test-key", fakeFetch({ values: [
+    const malformed = new TwelveDataAdapter("test-key", fakeFetch({ meta: { symbol: "AAPL", interval: "1min", currency: "USD" }, values: [
       { datetime: "2026-10-15 10:00:00", open: "10", high: "9", low: "8", close: "11" }
     ] }));
     await expect(malformed.getCandles(instrument, "1min", 1)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
 
-    const negativeVolume = new TwelveDataAdapter("test-key", fakeFetch({ values: [
+    const negativeVolume = new TwelveDataAdapter("test-key", fakeFetch({ meta: { symbol: "AAPL", interval: "1min", currency: "USD" }, values: [
       { datetime: "2026-10-15 10:00:00", open: "10", high: "12", low: "9", close: "11", volume: "-1" }
     ] }));
     await expect(negativeVolume.getCandles(instrument, "1min", 1)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
 
-    const malformedVolume = new TwelveDataAdapter("test-key", fakeFetch({ values: [
+    const malformedVolume = new TwelveDataAdapter("test-key", fakeFetch({ meta: { symbol: "AAPL", interval: "1min", currency: "USD" }, values: [
       { datetime: "2026-10-15 10:00:00", open: "10", high: "12", low: "9", close: "11", volume: "not-a-volume" }
     ] }));
     await expect(malformedVolume.getCandles(instrument, "1min", 1)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
@@ -130,7 +155,7 @@ describe("TwelveDataAdapter", () => {
 
 
   it("returns defensive copies of cached candle arrays and entries", async () => {
-    const adapter = new TwelveDataAdapter("test-key", fakeFetch({ values: [
+    const adapter = new TwelveDataAdapter("test-key", fakeFetch({ meta: { symbol: "AAPL", interval: "1min", currency: "USD" }, values: [
       { datetime: "2026-10-15 10:00:00", open: "10", high: "12", low: "9", close: "11", volume: "50" }
     ] }));
     const first = await adapter.getCandles(instrument, "1min", 1);

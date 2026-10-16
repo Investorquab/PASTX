@@ -216,7 +216,7 @@ function App() {
 
         <div className="notice" role="note">
           <ShieldCheck size={18} />
-          <div><strong>{hasAnyLiveData ? "Live reference data · partial availability possible" : "Preview environment"}</strong><span>{hasAnyLiveData ? "Successful quotes and candles are sourced from Twelve Data. Any instrument without a successful provider response retains its explicitly labelled sample value; the chart has its own source label. External reference prices are not on-chain equity or guaranteed execution prices. No trades or wallet transactions are enabled." : "Prices and chart below are illustrative fixtures, not live quotes. No trades or wallet transactions are enabled."}</span></div>
+          <div><strong>{hasAnyLiveData ? "Provider reference data · partial availability possible" : "Preview environment"}</strong><span>{hasAnyLiveData ? "Successful quotes and candles are sourced from Twelve Data. Any instrument without a successful provider response retains its explicitly labelled sample value; the chart has its own source label. External reference prices are not on-chain equity or guaranteed execution prices. No trades or wallet transactions are enabled." : "Prices and chart below are illustrative fixtures, not live quotes. No trades or wallet transactions are enabled."}</span></div>
         </div>
 
         <section className="summary-grid" aria-label="Market overview">

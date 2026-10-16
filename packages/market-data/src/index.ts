@@ -165,9 +165,19 @@ export class TwelveDataAdapter {
       outputsize: String(outputSize),
       order: "ASC"
     }));
+    const meta = asRecord(payload?.meta);
+    const responseSymbol = typeof meta?.symbol === "string" ? meta.symbol.trim().toUpperCase() : "";
+    const responseInterval = typeof meta?.interval === "string" ? meta.interval.trim() : "";
+    const responseCurrency = typeof meta?.currency === "string" ? meta.currency.trim().toUpperCase() : "";
+    const expectedSymbol = (instrument.providerSymbol ?? instrument.symbol).trim().toUpperCase();
     const values = payload?.values;
-    if (!Array.isArray(values)) {
-      throw new MarketDataError("PROVIDER_INVALID_RESPONSE", "Market data provider returned an unexpected candle series.", 502);
+    if (
+      responseSymbol !== expectedSymbol ||
+      responseInterval !== interval ||
+      responseCurrency !== instrument.currency ||
+      !Array.isArray(values)
+    ) {
+      throw new MarketDataError("PROVIDER_INVALID_RESPONSE", "Market data provider returned mismatched or incomplete candle metadata.", 502);
     }
 
     const candles = values.map((value): MarketCandle => {

@@ -13,7 +13,7 @@ PASTX is an early engineering foundation for Portaldot ecosystem market discover
 - React 19 + TypeScript + Vite frontend; Fastify 5 API; shared domain contracts; Twelve Data adapter; read-only EVM chain-and-latest-block adapter.
 - API uses Helmet, a global 60-requests/minute rate limit, request IDs, normalized error responses, and a machine-readable capability contract.
 - Provider keys remain server-side. Quote/candle routes require a nonblank key and explicit `MARKET_DATA_DISPLAY_ENABLED=true`; live display remains disabled until licensing is confirmed.
-- Quote/candle payloads are normalized and validated; candles enforce bounded inputs and OHLC relationships. The frontend checks quote symbol/currency and candle symbol/interval and keeps partial failures isolated.
+- Quote/candle payloads are normalized and validated; candle series must match the requested provider symbol, interval and currency, and each candle must satisfy OHLC relationships and bounded input rules. The frontend checks quote symbol/currency and candle symbol/interval and keeps partial failures isolated.
 - Order preview is deterministic arithmetic only and always `executable: false`. Wallet connection, balances, order submission, transaction history and atomic settlement are not implemented. Trading remains disabled.
 - CI includes frozen-lockfile install, workspace type checks, unit tests and production builds. Check the [GitHub Actions page](https://github.com/Investorquab/PASTX/actions) for the result tied to the exact current `main` commit. A green run proves those automated checks only; it does not establish a production deployment or external integration.
 
