@@ -51,6 +51,7 @@ describe("PASTX API", () => {
         marketQuotes: { implemented: true, enabled: false },
         marketCandles: { implemented: true, enabled: false },
         chainIdentityProbe: { implemented: true, enabled: true, verificationScope: "chain_id_and_latest_block_read" },
+        chainFingerprintVerification: { implemented: true, enabled: false, verificationScope: "chain_id_genesis_checkpoint_latest_block_read" },
         onchainAssetRegistryIntegrity: { implemented: true, configured: false, verified: false, status: "not_configured", assetCount: 0, reason: "registry_not_configured" },
         onchainAssetDiscovery: { implemented: false, enabled: false, reason: "registry_not_configured" },
         walletConnection: { implemented: false, enabled: false },
@@ -91,6 +92,25 @@ describe("PASTX API", () => {
     expect(response.json().item).toMatchObject({ status: "verified", chainId: 420420777, verificationScope: "chain_id_and_latest_block_read" });
     expect(response.body).not.toContain("rpc.example");
     await app.close();
+  });
+
+
+  it("reports that trusted chain fingerprint anchors are not configured by default", async () => {
+    const app = await buildApp({ logger: false });
+    try {
+      const response = await app.inject({ method: "GET", url: "/api/chain/fingerprint" });
+      expect(response.statusCode).toBe(200);
+      expect(response.json().item).toMatchObject({
+        status: "not_configured",
+        configured: false,
+        reachable: false,
+        verified: false,
+        reason: "trusted_fingerprint_not_configured",
+        verificationScope: "chain_id_genesis_checkpoint_latest_block_read"
+      });
+    } finally {
+      await app.close();
+    }
   });
 
   it("uses an explicitly configured expected chain ID for the read-only probe", async () => {
