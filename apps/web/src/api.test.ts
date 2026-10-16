@@ -88,6 +88,17 @@ describe("market data API client", () => {
     });
   });
 
+  it("rejects a provider quote with the wrong catalogue currency", async () => {
+    const fetcher = async () => new Response(JSON.stringify({ item: {
+      symbol: "AAPL", price: 250, change: 2, changePercent: 0.8,
+      currency: "EUR", observedAt: "2026-10-15T03:00:00.000Z",
+      source: "twelve_data", delayed: null
+    } }), { status: 200 });
+    await expect(getMarketQuote("AAPL", fetcher as unknown as typeof fetch)).rejects.toMatchObject({
+      name: "ApiClientError", message: "PASTX API returned an invalid market quote."
+    });
+  });
+
   it("rejects fixture quotes from the live-data API method", async () => {
     const fetcher = async () => new Response(JSON.stringify({ item: {
       symbol: "AAPL", price: 250, change: 2, changePercent: 0.8,
