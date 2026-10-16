@@ -56,7 +56,9 @@ export async function getChainStatus(fetchImpl: typeof fetch = fetch): Promise<C
     typeof status.reachable !== "boolean" ||
     typeof status.networkMatches !== "boolean" ||
     typeof status.expectedChainId !== "number" ||
-    !(status.chainId === null || typeof status.chainId === "number") ||
+    !Number.isSafeInteger(status.expectedChainId) ||
+    status.expectedChainId <= 0 ||
+    !(status.chainId === null || (typeof status.chainId === "number" && Number.isSafeInteger(status.chainId) && status.chainId > 0)) ||
     typeof status.status !== "string" ||
     !allowed.includes(status.status) ||
     status.verificationScope !== "chain_id_only"
@@ -64,6 +66,15 @@ export async function getChainStatus(fetchImpl: typeof fetch = fetch): Promise<C
     throw new ApiClientError("PASTX API returned an invalid chain status.");
   }
 
+  const stateIsConsistent = status.status === "not_configured"
+    ? status.configured === false && status.reachable === false && status.networkMatches === false && status.chainId === null
+    : status.status === "unreachable"
+      ? status.configured === true && status.reachable === false && status.networkMatches === false && status.chainId === null
+      : status.status === "verified"
+        ? status.configured === true && status.reachable === true && status.networkMatches === true && status.chainId === status.expectedChainId
+        : status.configured === true && status.reachable === true && status.networkMatches === false && status.chainId !== null && status.chainId !== status.expectedChainId;
+
+  if (!stateIsConsistent) throw new ApiClientError("PASTX API returned an inconsistent chain status.");
   return status as unknown as ChainStatus;
 }
 
