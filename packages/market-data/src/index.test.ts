@@ -29,6 +29,20 @@ describe("TwelveDataAdapter", () => {
     expect(Number.isFinite(Date.parse(quote.observedAt))).toBe(true);
   });
 
+  it("rejects provider quotes for a different symbol or currency", async () => {
+    const wrongSymbol = new TwelveDataAdapter("test-key", fakeFetch({
+      symbol: "NVDA", close: "247.96", change: "3.04", percent_change: "1.24",
+      currency: "USD", timestamp: 1792033200
+    }));
+    await expect(wrongSymbol.getQuote(instrument)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
+
+    const wrongCurrency = new TwelveDataAdapter("test-key", fakeFetch({
+      symbol: "AAPL", close: "247.96", change: "3.04", percent_change: "1.24",
+      currency: "EUR", timestamp: 1792033200
+    }));
+    await expect(wrongCurrency.getQuote(instrument)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
+  });
+
   it("caches successful quotes briefly and refreshes after expiry", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-10-15T03:00:00.000Z"));
