@@ -1,6 +1,6 @@
 # PASTX Project Status and Handoff
 
-**Last updated:** 15 October 2026  
+**Last updated:** 16 October 2026  
 **Repository:** https://github.com/Investorquab/PASTX  
 **Default branch:** `main`  
 **Project name:** PASTX — Portaldot Asset & Stock Trading Exchange
@@ -42,6 +42,7 @@ Primary hackathon track: **Ecosystem DApps**. Secondary infrastructure contribut
 - Read-only Portaldot EVM chain adapter: probes configured RPC chain ID against expected ID `420420777`; reports not configured/unreachable/wrong network/verified and emits `verificationScope: "chain_id_only"`. The published [Portaldot V3 testnet guide](https://github.com/ItsCogumellum/portaldot-v3-testnet-guide) documents EVM RPC `https://testnetv3-eth-rpc.feso-apps.xyz`, Solidity execution through `revive`, and H160-to-SS58 mapping through `reviveApi.accountId`. PASTX has not yet verified live RPC reachability, block reads, wallet mapping, balances or transactions. Native Assets and Solidity contract assets are distinct until an explicit supported interoperability path is proven.
 - API security headers and global rate limit; rate-limit failures now share the normalized API error envelope and include a request ID when available. Automated API coverage includes capability-contract boundaries and security-header assertions.
 - Unit tests for shared contracts, quote validation, provider behavior and API routes.
+- Latest provider-hardening audit: the Twelve Data adapter now rejects a quote if the response symbol does not exactly match the requested instrument's provider symbol or if the returned currency differs from the catalogue currency. Regression tests cover both mismatches; latest CI status is tracked in the GitHub Actions link below.
 - Docs: README, API, architecture, settlement design, security, testing, deployment and this handoff.
 - No real trades, wallet signing, on-chain balances, order book or Portaldot transaction have been implemented.
 
