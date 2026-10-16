@@ -15,7 +15,7 @@ PASTX is an early engineering foundation for Portaldot ecosystem market discover
 - Provider keys remain server-side. Quote/candle routes require a nonblank key and explicit `MARKET_DATA_DISPLAY_ENABLED=true`; live display remains disabled until licensing is confirmed.
 - Quote/candle payloads are normalized and validated; candle series must match the requested provider symbol, interval and currency, and each candle must satisfy OHLC relationships and bounded input rules. The frontend checks quote symbol/currency and candle symbol/interval and keeps partial failures isolated.
 - Order preview is deterministic arithmetic only and always `executable: false`. Wallet connection, balances, order submission, transaction history and atomic settlement are not implemented. Trading remains disabled.
-- CI includes frozen-lockfile install, workspace type checks, unit tests, and a web production build. The API now bundles to `apps/api/dist/server.js` for Node.js 22; CI validates the bundle build, but a production deployment and runtime smoke test are still unverified. Check the [GitHub Actions page](https://github.com/Investorquab/PASTX/actions) for the result tied to the exact current `main` commit. A green run proves those automated checks only; it does not establish a production deployment or external integration.
+- CI includes frozen-lockfile install, production dependency audit, workspace type checks, unit tests, and builds. The API bundles to `apps/api/dist/server.js` for Node.js 22; CI starts that artifact in production mode and smoke-tests health, capability flags, read-only chain status, disabled market-data routes, and graceful shutdown. This verifies the bundled runtime in CI, not a deployed environment. No production deployment or live external integration is established. Check the [GitHub Actions page](https://github.com/Investorquab/PASTX/actions) for results tied to the exact current `main` commit.
 
 ## Chain configuration warning
 
@@ -37,7 +37,7 @@ The expected EVM chain ID `420420777` is from a published **Portaldot V3 testnet
 3. Configure deployment secrets through the platform secret manager.
 4. Demonstrate wallet connection, account mapping, supported asset representation and read-only balance access on the target network.
 5. Prove receipt/event and resulting-state checks plus all-or-nothing settlement and rollback before enabling real trades.
-6. Run deployment smoke tests and preserve reproducible demo evidence.
+6. Run a smoke test against the actual deployed environment and preserve reproducible demo evidence; the CI bundled-runtime smoke test is not a substitute.
 7. Declare a suitable repository license before inviting contributions or redistributing.
 
 ## Handoff rule
