@@ -26,6 +26,20 @@ pnpm --filter @pastx/api dev
 
 The API listens on `0.0.0.0:4000` by default. The web app uses Vite's local development server and proxies `/api` requests to the Fastify API at `http://127.0.0.1:4000`. The UI reads the API's read-only chain status. It requests provider quotes/candles only if the API health response says the key is configured and `MARKET_DATA_DISPLAY_ENABLED=true`; otherwise it stays on labelled fixture data.
 
+## Verify Portaldot Substrate connectivity and progression
+
+The published Portaldot developer documentation lists the Mainnet Substrate WebSocket endpoint as `wss://mainnet.portaldot.io`. This is a different interface from an EVM JSON-RPC HTTP endpoint. After a read-only manual check confirmed that this endpoint reported `Portaldot Mainnet` and a six-sample observation showed both best and finalized heads advancing by one block, this diagnostic was added so the check can be reproduced from the repository. That observation is point-in-time evidence, not a guarantee of ongoing network health.
+
+Run from Node.js 22 or newer:
+
+```bash
+node scripts/check-substrate-progress.mjs
+```
+
+Optional arguments are WebSocket URL, sample count (2–20), and interval in milliseconds (1,000–300,000). The script defaults to the documented Mainnet WebSocket, six samples, and five seconds between samples. It uses read-only `system_chain`, `system_health`, `system_syncState`, `chain_getHead`, `chain_getFinalizedHead`, and `chain_getHeader` calls. It does not submit extrinsics or transactions. It returns a nonzero exit code if either best or finalized height fails to advance during the observation window; a short no-progress result alone does not prove the network is stalled.
+
+A successful Substrate check does not verify an EVM endpoint, EVM chain ID, wallet integration, asset support, or settlement safety. Keep the EVM adapter unverified until an authoritative EVM RPC endpoint and chain ID are independently established.
+
 ## Configure market data
 
 1. Copy `.env.example` to an untracked local `.env`.
