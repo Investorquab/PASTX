@@ -90,3 +90,10 @@ Update `docs/API.md` whenever routes or schemas change, `docs/ARCHITECTURE.md` w
 - Preview output is marked `executable: false`; no order is submitted and no balance or token ownership is implied.
 - The web app uses the shared implementation; API, architecture and testing docs were updated.
 - RPC remains parked. Check CI before calling the current revision green.
+
+
+## Engineering audit — candle query validation
+
+- A source audit found that the candle `outputsize` digit-check regex was over-escaped, so ordinary numeric strings could be rejected before range validation.
+- Corrected the regex and expanded API regression coverage for non-numeric, fractional, negative, zero, out-of-range and valid numeric values. Invalid requests must be rejected before the provider adapter is called.
+- Updated API/testing documentation to match the contract. This correction is not considered verified until the CI run for the resulting `main` revision succeeds.
