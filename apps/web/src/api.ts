@@ -1,4 +1,4 @@
-import { isCandleInterval, type MarketCandle, type MarketQuote, type CandleInterval } from "@pastx/shared";
+import { isCandleInterval, MARKET_INSTRUMENTS, type MarketCandle, type MarketQuote, type CandleInterval } from "@pastx/shared";
 import { isMarketQuote } from "./marketQuote";
 
 const EXPECTED_PORTALDOT_V3_EVM_CHAIN_ID = 420420777;
@@ -100,7 +100,15 @@ export async function getMarketQuote(symbol: string, fetchImpl: typeof fetch = f
     throw new ApiClientError("PASTX API returned an invalid market quote.");
   }
   const item = (payload as { item?: unknown }).item;
-  if (!isMarketQuote(item) || item.source !== "twelve_data" || item.symbol !== symbol.trim().toUpperCase()) {
+  const requestedSymbol = symbol.trim().toUpperCase();
+  const expectedInstrument = MARKET_INSTRUMENTS.find((instrument) => instrument.symbol === requestedSymbol);
+  if (
+    !expectedInstrument ||
+    !isMarketQuote(item) ||
+    item.source !== "twelve_data" ||
+    item.symbol !== requestedSymbol ||
+    item.currency !== expectedInstrument.currency
+  ) {
     throw new ApiClientError("PASTX API returned an invalid market quote.");
   }
   return item;
