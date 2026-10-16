@@ -65,6 +65,17 @@ describe("market data API client", () => {
     });
   });
 
+  it("rejects a valid quote for a different requested symbol", async () => {
+    const fetcher = async () => new Response(JSON.stringify({ item: {
+      symbol: "NVDA", price: 250, change: 2, changePercent: 0.8,
+      currency: "USD", observedAt: "2026-10-15T03:00:00.000Z",
+      source: "twelve_data", delayed: null
+    } }), { status: 200 });
+    await expect(getMarketQuote("AAPL", fetcher as unknown as typeof fetch)).rejects.toMatchObject({
+      name: "ApiClientError", message: "PASTX API returned an invalid market quote."
+    });
+  });
+
   it("rejects fixture quotes from the live-data API method", async () => {
     const fetcher = async () => new Response(JSON.stringify({ item: {
       symbol: "AAPL", price: 250, change: 2, changePercent: 0.8,
@@ -77,6 +88,14 @@ describe("market data API client", () => {
   it("rejects invalid candle limits before issuing a request", async () => {
     const fetcher = vi.fn();
     await expect(getMarketCandles("AAPL", "1day", 501, fetcher as unknown as typeof fetch)).rejects.toBeInstanceOf(ApiClientError);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("rejects unsupported candle intervals before issuing a request", async () => {
+    const fetcher = vi.fn();
+    await expect(getMarketCandles("AAPL", "2min" as never, 30, fetcher as unknown as typeof fetch)).rejects.toMatchObject({
+      name: "ApiClientError", message: "Unsupported candle interval."
+    });
     expect(fetcher).not.toHaveBeenCalled();
   });
 
