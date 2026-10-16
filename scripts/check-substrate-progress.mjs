@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { createHash } from "node:crypto";
+import { writeFile } from "node:fs/promises";
 /**
  * Read-only Substrate WebSocket health and block-progression probe.
  * Usage: node scripts/check-substrate-progress.mjs [ws-url] [samples] [interval-ms]
@@ -117,6 +118,22 @@ async function main() {
     throw new Error("Malformed state_getMetadata response.");
   }
   const metadataBytes = Buffer.from(metadata.slice(2), "hex");
+  // Optional evidence capture: preserve the exact metadata bytes as hex so a
+  // later decoder can inspect pallet names and runtime interfaces. Never log
+  // metadata wholesale or treat capture as proof of asset/EVM compatibility.
+  const metadataOutputPath = process.env.PASTX_METADATA_OUTPUT;
+  if (metadataOutputPath) {
+    if (!metadataOutputPath.trim() || metadataOutputPath.includes("\\0")) {
+      throw new Error("PASTX_METADATA_OUTPUT must be a valid non-empty file path.");
+    }
+    await writeFile(metadataOutputPath, metadata + "\\n", { flag: "wx", mode: 0o600 });
+    console.log("METADATA_CAPTURE " + JSON.stringify({
+      file: metadataOutputPath,
+      encoding: "0x-prefixed-hex",
+      byteLength: metadataBytes.byteLength,
+      sha256: createHash("sha256").update(metadataBytes).digest("hex")
+    }));
+  }
   const runtimeFingerprint = {
     specName: runtimeVersion.specName,
     specVersion: runtimeVersion.specVersion,
