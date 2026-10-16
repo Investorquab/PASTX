@@ -85,7 +85,6 @@ function App() {
   const [chainStatusError, setChainStatusError] = useState(false);
   const [liveQuotes, setLiveQuotes] = useState<Record<string, MarketQuote>>({});
   const [liveCandles, setLiveCandles] = useState<MarketCandle[] | null>(null);
-  const [liveDataAvailable, setLiveDataAvailable] = useState(false);
   const [orderSymbol, setOrderSymbol] = useState("AAPL");
   const [orderSide, setOrderSide] = useState<"buy" | "sell">("buy");
   const [orderQuantity, setOrderQuantity] = useState("1");
@@ -109,22 +108,29 @@ function App() {
     getApiHealth()
       .then(async (health) => {
         if (!health.marketDataConfigured || !health.marketDataDisplayEnabled) return;
-        const [quotes, candles] = await Promise.all([
-          Promise.all(referenceMarkets.map((market) => getMarketQuote(market.symbol))),
-          getMarketCandles("AAPL", "1day", 30)
-        ]);
+        const quoteResults = await Promise.allSettled(
+          referenceMarkets.map((market) => getMarketQuote(market.symbol))
+        );
+        const quotes = quoteResults.flatMap((result) => result.status === "fulfilled" ? [result.value] : []);
+        const candleResult = await getMarketCandles("AAPL", "1day", 30).then(
+          (items) => ({ ok: true as const, items }),
+          () => ({ ok: false as const, items: [] as MarketCandle[] })
+        );
         if (!active) return;
         setLiveQuotes(Object.fromEntries(quotes.map((quote) => [quote.symbol, quote])));
-        setLiveCandles(candles);
-        setLiveDataAvailable(true);
+        setLiveCandles(candleResult.ok ? candleResult.items : null);
       })
       .catch(() => {
-        // Keep the labelled fixture preview if provider data is unavailable.
+        // Keep clearly labelled fixture values when the API health check fails.
       });
     return () => {
       active = false;
     };
   }, []);
+
+  const hasLiveQuotes = Object.keys(liveQuotes).length > 0;
+  const hasLiveCandles = Boolean(liveCandles && liveCandles.length > 0);
+  const hasAnyLiveData = hasLiveQuotes || hasLiveCandles;
 
   const selectedOrderInstrument = referenceMarkets.find((market) => market.symbol === orderSymbol) ?? referenceMarkets[0];
   const selectedOrderQuote = liveQuotes[orderSymbol];
@@ -132,7 +138,7 @@ function App() {
   const orderQuantityNumber = parsePreviewQuantity(orderQuantity);
   const orderNotional = calculateReferenceNotional(orderQuantity, orderUnitPrice);
   const orderCurrency = selectedOrderQuote?.currency ?? "USD";
-  const chartAxisLabels = liveDataAvailable && liveCandles && liveCandles.length > 0
+  const chartAxisLabels = hasLiveCandles && liveCandles && liveCandles.length > 0
     ? [0, Math.floor((liveCandles.length - 1) / 3), Math.floor(((liveCandles.length - 1) * 2) / 3), liveCandles.length - 1].map((index) => formatAxisDate(liveCandles[index].timestamp))
     : ["09:00", "12:00", "15:00", "18:00"];
 
@@ -193,7 +199,7 @@ function App() {
         <header className="topbar">
           <div className="breadcrumb">PASTX <span>/</span> Markets</div>
           <div className="top-actions">
-            <span className="preview-pill"><span /> {liveDataAvailable ? "LIVE DATA · TWELVE DATA" : "PREVIEW · SAMPLE DATA"}</span>
+            <span className="preview-pill"><span /> {hasAnyLiveData ? "LIVE REFERENCE DATA" : "PREVIEW · SAMPLE DATA"}</span>
             <button className="icon-button" aria-label="Notifications" type="button" disabled title="Notifications are not implemented in this preview"><Bell size={18} /></button>
             <button className="connect-button" type="button" disabled title="Wallet connection will be added after chain compatibility testing"><Wallet size={16} /> Wallet integration pending</button>
           </div>
@@ -210,7 +216,7 @@ function App() {
 
         <div className="notice" role="note">
           <ShieldCheck size={18} />
-          <div><strong>{liveDataAvailable ? "Live reference data" : "Preview environment"}</strong><span>{liveDataAvailable ? "Quotes and candles are sourced from Twelve Data. They are external reference prices, not on-chain equity or guaranteed execution prices. No trades or wallet transactions are enabled." : "Prices and chart below are illustrative fixtures, not live quotes. No trades or wallet transactions are enabled."}</span></div>
+          <div><strong>{hasAnyLiveData ? "Live reference data · partial availability possible" : "Preview environment"}</strong><span>{hasAnyLiveData ? "Successful quotes and candles are sourced from Twelve Data. Any instrument without a successful provider response retains its explicitly labelled sample value; the chart has its own source label. External reference prices are not on-chain equity or guaranteed execution prices. No trades or wallet transactions are enabled." : "Prices and chart below are illustrative fixtures, not live quotes. No trades or wallet transactions are enabled."}</span></div>
         </div>
 
         <section className="summary-grid" aria-label="Market overview">
@@ -234,7 +240,7 @@ function App() {
         <section className="market-layout">
           <div className="panel market-panel">
             <div className="panel-heading">
-              <div><h2>Watchlist</h2><p>{liveDataAvailable ? "External reference prices · Twelve Data" : "Reference instruments · sample values"}</p></div>
+              <div><h2>Watchlist</h2><p>{hasLiveQuotes ? "External reference prices where available · Twelve Data" : "Reference instruments · sample values"}</p></div>
               <button className="subtle-button" type="button" disabled title="This preview contains a curated reference watchlist">Reference list <ChevronDown size={14} /></button>
             </div>
             <div className="market-table">
@@ -245,25 +251,25 @@ function App() {
                     <span className={`instrument-icon icon-${market.symbol.toLowerCase()}`}>{market.initials}</span>
                     <span><strong>{market.symbol}</strong><small>{market.name}</small><em>{market.category}</em></span>
                   </div>
-                  <div className="price-cell"><strong className="market-price">{formatQuotePrice(liveQuotes[market.symbol], market.price)}</strong>{liveQuotes[market.symbol] && <small className="quote-time">as of {formatTimestamp(liveQuotes[market.symbol].observedAt)}</small>}</div>
+                  <div className="price-cell"><strong className="market-price">{formatQuotePrice(liveQuotes[market.symbol], market.price)}</strong>{liveQuotes[market.symbol] && <small className="quote-time">Twelve Data · as of {formatTimestamp(liveQuotes[market.symbol].observedAt)}</small>}{!liveQuotes[market.symbol] && <small className="quote-time">Sample value · no live quote</small>}</div>
                   <span className={`market-change ${(liveQuotes[market.symbol]?.changePercent ?? (market.positive ? 1 : -1)) >= 0 ? "positive" : "negative"}`}>{(liveQuotes[market.symbol]?.changePercent ?? (market.positive ? 1 : -1)) >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}{formatQuoteChange(liveQuotes[market.symbol], market.change)}</span>
                 </div>
               ))}
               {visibleMarkets.length === 0 && <div className="empty-state">No reference instruments match “{searchTerm}”.</div>}
             </div>
-            <div className="panel-foot">{liveDataAvailable ? "Source: Twelve Data · reference prices only; these instruments are not verified on-chain equities." : "* Sample values for layout preview only. No external market-data provider is connected."}</div>
+            <div className="panel-foot">{hasLiveQuotes ? "Source: Twelve Data for individually timestamped successful quotes; rows labelled Sample value are fixtures. No instrument is verified as an on-chain equity." : "* Sample values for layout preview only. No successful external market-data quotes are available."}</div>
           </div>
 
           <div className="panel chart-panel">
             <div className="panel-heading">
-              <div><h2>Market overview</h2><p>{liveDataAvailable ? "AAPL historical closes · Twelve Data" : "Illustrative trend · no live feed"}</p></div>
+              <div><h2>Market overview</h2><p>{hasLiveCandles ? "AAPL historical closes · Twelve Data" : "Illustrative trend · no live feed"}</p></div>
               <button className="subtle-button" type="button" disabled title="Chart intervals are not connected to historical data yet">Preview <ChevronDown size={14} /></button>
             </div>
-            <div className="chart-metric"><strong>{liveDataAvailable ? "AAPL close history" : "Market trend preview"}</strong><span className="positive"><ArrowUpRight size={15} /> {liveDataAvailable ? "Historical reference" : "Illustrative"}</span></div>
+            <div className="chart-metric"><strong>{hasLiveCandles ? "AAPL close history" : "Market trend preview"}</strong><span className="positive"><ArrowUpRight size={15} /> {hasLiveCandles ? "Historical reference" : "Illustrative"}</span></div>
             <div className="chart-wrap"><div className="chart-grid"><i /><i /><i /><i /></div><MiniChart values={liveCandles?.map((candle) => candle.close)} /></div>
             <div className="chart-axis">{chartAxisLabels.map((label, index) => <span key={`${label}-${index}`}>{label}</span>)}</div>
-            <div className="chart-legend"><span /><span>{liveDataAvailable ? "AAPL close · Twelve Data" : "Illustrative index"}</span></div>
-            <div className="chart-disclaimer">{liveDataAvailable ? "Historical external reference data; not an executable on-chain price." : "This graphic is a UI fixture, not a real index or a trading signal."}</div>
+            <div className="chart-legend"><span /><span>{hasLiveCandles ? "AAPL close · Twelve Data" : "Illustrative index"}</span></div>
+            <div className="chart-disclaimer">{hasLiveCandles ? "Historical external reference data; not an executable on-chain price." : "This graphic is a UI fixture, not a real index or a trading signal."}</div>
           </div>
         </section>
 
