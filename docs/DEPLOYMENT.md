@@ -81,3 +81,16 @@ The committed `pnpm-lock.yaml` is installed with `pnpm install --frozen-lockfile
 - A real testnet deployment and recorded contract/transaction evidence.
 
 Never deploy a UI that suggests live trading while the wallet, chain and settlement path are disabled.
+
+
+## Read-only smoke test for an actual deployment
+
+After deploying the API, run the repository's deployment smoke test against the **API base URL** (not the frontend URL unless the frontend host also proxies all API routes):
+
+```bash
+node scripts/smoke-test-deployment.mjs https://your-api.example.com
+```
+
+The script uses bounded, read-only GET requests and rejects remote plain-HTTP URLs, redirects, unexpected response shapes, and any capability response that enables wallet connection, order submission, atomic settlement, or trading. It checks the reference catalogue, the chain-probe response contract, and the quote/candle display gate. It accepts the chain probe's explicit non-verified statuses so an unreachable or unconfigured RPC is reported rather than mistaken for a deployment failure; a passed smoke test is **not** evidence that the chain is verified or that trading works. It never sends a transaction and does not print provider credentials.
+
+Run it from a trusted machine and use the exact deployment URL. A successful result establishes only that these public read-only API checks passed at that time. It does not replace TLS/configuration review, provider licensing checks, monitoring, or real chain/asset/settlement verification.
