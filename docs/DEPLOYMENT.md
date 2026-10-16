@@ -57,6 +57,18 @@ curl --connect-timeout 3 --max-time 8 -sS \
 
 For chain ID `420420777`, the `eth_chainId` result should be `0x190f1ca9`; `eth_blockNumber` should return a valid hexadecimal block number. This smoke test does not establish block progression or chain canonicality. If either RPC method fails or the chain ID differs, do not connect a wallet or submit transactions.
 
+## Verify live RPC block progression
+
+After obtaining the RPC URL from the intended network's authoritative documentation, run this read-only probe from a trusted machine:
+
+```bash
+node scripts/check-chain-progress.mjs "https://your-verified-rpc.example" 420420777 5 15000
+```
+
+Arguments are RPC URL, expected chain ID, number of samples (2–20), and milliseconds between samples (1,000–300,000). The defaults are chain ID `420420777`, five samples, and 15 seconds between samples. The script calls only `eth_chainId` and `eth_blockNumber`, rejects remote HTTP, credentials, redirects, malformed responses and unexpected chain IDs, and passes only when the observed block height increases. If the network's normal block interval is longer, increase the sampling interval. Do not treat one endpoint's advancing height as proof of canonicality; corroborate it with the network's official explorer or a second trusted endpoint. Never point it at a network unless its identity is independently confirmed.
+
+This script is deliberately not run against a public endpoint in CI: CI must remain deterministic and must not mistake an unverified endpoint for the intended Portaldot network.
+
 ## Process lifecycle
 
 The API handles `SIGTERM` and `SIGINT` by closing Fastify cleanly, allowing active requests and server resources to finish closing before the process exits. Deployment process managers should send `SIGTERM` first and allow a reasonable grace period before force-killing the process. The production CI smoke test verifies this shutdown path.
