@@ -17,7 +17,7 @@
 - `apps/api`: Fastify API, validation, rate limiting, safe errors, server-only provider key, and a machine-readable capability contract for frontend feature gating.
 - `packages/shared`: market catalogue, domain types, candle intervals, API error contract and reusable non-executable order-preview arithmetic.
 - `packages/market-data`: vendor adapter for Twelve Data, normalized quotes/candles and provider error mapping.
-- `packages/chain-adapter`: read-only EVM RPC identity probe; no transaction signing or submission.
+- `packages/chain-adapter`: read-only EVM RPC chain-and-latest-block probe; no transaction signing or submission.
 - `packages/sdk`: planned until public interfaces are proven.
 - `docs/`: architecture, API contract, settlement decisions, security, testing and deployment.
 
@@ -39,7 +39,7 @@ flowchart TD
   API --> CATALOG
   API --> DATA
   API --> CHAIN
-  CHAIN -->|eth_chainId only| RPC
+  CHAIN -->|eth_chainId + eth_blockNumber| RPC
   FUTURE -. not implemented .-> VERIFY
   VERIFY -. only after runtime verification .-> RPC
 ```
@@ -54,7 +54,7 @@ The adapter uses bounded timeouts, normalized timestamps/numbers, response-shape
 
 ## Chain-adapter boundary
 
-The published [Portaldot V3 testnet guide](https://github.com/ItsCogumellum/portaldot-v3-testnet-guide) documents the EVM JSON-RPC endpoint `https://testnetv3-eth-rpc.feso-apps.xyz`, chain ID `420420777`, Solidity execution through `revive`, and an H160-to-native-SS58 mapping through `reviveApi.accountId`. The current PASTX adapter has **not** yet demonstrated live endpoint reachability or wallet/account mapping. A matching chain ID is not a substitute for a block read, account mapping, balance read, transaction simulation, or transaction receipt.
+The published [Portaldot V3 testnet guide](https://github.com/ItsCogumellum/portaldot-v3-testnet-guide) documents the EVM JSON-RPC endpoint `https://testnetv3-eth-rpc.feso-apps.xyz`, chain ID `420420777`, Solidity execution through `revive`, and an H160-to-native-SS58 mapping through `reviveApi.accountId`. The current PASTX adapter performs a read-only `eth_chainId` and latest-block read and has automated tests for those responses. Live endpoint reachability and wallet/account mapping have not yet been demonstrated. Passing this probe does not establish that the endpoint is canonical, nor does it prove account mapping, balance reads, transaction simulation, receipt verification, asset interoperability, or safe settlement.
 
 Native `assets` tokens and Solidity contracts under `revive` are separate asset/execution models in the guide; interoperability and direct cross-module atomicity are not established. Keep PASTX trading disabled until the selected asset/payment route is tested end-to-end.
 

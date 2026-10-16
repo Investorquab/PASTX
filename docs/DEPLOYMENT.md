@@ -41,16 +41,21 @@ Before public client-facing display, verify the provider account's license and t
 
 ## Optional Portaldot RPC probe
 
-Set `PORTALDOT_EVM_RPC_URL` to the public RPC endpoint for the intended Portaldot V3 EVM environment. The API route `GET /api/chain/status` performs a read-only chain-ID check against `PORTALDOT_EVM_CHAIN_ID` (default `420420777`, the documented testnet ID). An unreachable or wrong network is reported explicitly; the endpoint never submits a transaction or exposes the configured URL. A matching chain ID is not proof of asset interoperability or settlement safety. Check the endpoint directly when needed:
+Set `PORTALDOT_EVM_RPC_URL` to the public RPC endpoint for the intended Portaldot V3 EVM environment. The API route `GET /api/chain/status` performs read-only `eth_chainId` and `eth_blockNumber` checks against `PORTALDOT_EVM_CHAIN_ID` (default `420420777`, the documented testnet ID). An unreachable or wrong network is reported explicitly; the endpoint never submits a transaction or exposes the configured URL. A matching chain ID plus a readable latest block is only a basic RPC smoke test, not proof of canonicality, continued block production, asset interoperability or settlement safety. Check both RPC methods directly when needed:
 
 ```bash
 curl --connect-timeout 3 --max-time 8 -sS \
   -H 'content-type: application/json' \
   --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
   "$PORTALDOT_EVM_RPC_URL"
+
+curl --connect-timeout 3 --max-time 8 -sS \
+  -H 'content-type: application/json' \
+  --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":2}' \
+  "$PORTALDOT_EVM_RPC_URL"
 ```
 
-For chain ID `420420777`, the JSON-RPC result should be `0x190f1ca9`. If the RPC is unreachable or reports a different chain ID, do not connect a wallet or submit transactions.
+For chain ID `420420777`, the `eth_chainId` result should be `0x190f1ca9`; `eth_blockNumber` should return a valid hexadecimal block number. This smoke test does not establish block progression or chain canonicality. If either RPC method fails or the chain ID differs, do not connect a wallet or submit transactions.
 
 ## Quality gate
 

@@ -12,7 +12,7 @@ Local development defaults to `http://localhost:4000`. All routes are prefixed w
 |---|---|---|
 | GET | `/api/health` | Liveness, provider configuration/display flags, and explicit `tradingEnabled: false` |
 | GET | `/api/capabilities` | Authoritative machine-readable map of implemented, enabled and non-executable features |
-| GET | `/api/chain/status` | Read-only EVM chain-ID probe with a narrowly scoped verification label |
+| GET | `/api/chain/status` | Read-only EVM chain-ID and latest-block probe with a narrowly scoped verification label |
 | GET | `/api/markets` | Supported reference instrument catalogue |
 | GET | `/api/markets/:symbol` | Instrument metadata |
 | GET | `/api/markets/:symbol/quote` | Normalized quote from Twelve Data |
@@ -27,7 +27,7 @@ Symbols are case-insensitive and limited to the explicit allow-listed catalogue 
 Current capability boundaries:
 - Reference catalogue: implemented and enabled.
 - Quotes and candles: implemented, enabled only when a provider key is configured and `MARKET_DATA_DISPLAY_ENABLED=true`.
-- Chain identity probe: enabled, but verification scope is `chain_id_only`.
+- Chain probe: enabled, with verification scope `chain_id_and_latest_block_read`.
 - Order preview: non-executable preview only.
 - Wallet connection, on-chain balances, order submission, transaction history and atomic settlement: not implemented and disabled.
 - Trading remains disabled regardless of capability response.
@@ -72,7 +72,7 @@ Live quote and candle endpoints return `MARKET_DATA_DISPLAY_DISABLED` unless `MA
 
 ## Chain status semantics
 
-`GET /api/chain/status` reports `not_configured`, `unreachable`, `wrong_network`, or `verified` and includes `verificationScope: "chain_id_only"` in every result. The expected EVM chain ID is `420420777`, based on the [Portaldot V3 testnet guide](https://github.com/ItsCogumellum/portaldot-v3-testnet-guide). The `verified` label means only that the configured RPC reported the expected chain ID at probe time. It does **not** prove the endpoint is the intended canonical network, wallet compatibility, runtime pallet behavior, asset interoperability, transaction execution, or safe settlement. The explicit scope field is intended to prevent consumers from interpreting chain-ID matching as full integration verification.
+`GET /api/chain/status` reports `not_configured`, `unreachable`, `wrong_network`, or `verified` and includes `verificationScope: "chain_id_and_latest_block_read"` in every result. The response includes the observed `chainId` and `blockNumber` when the RPC responds. The expected EVM chain ID is `420420777`, based on the [Portaldot V3 testnet guide](https://github.com/ItsCogumellum/portaldot-v3-testnet-guide). The `verified` label means only that the configured RPC returned the expected chain ID and a readable latest block at probe time. It does **not** prove the endpoint is the intended canonical network, that the block is advancing, wallet compatibility, runtime pallet behavior, asset interoperability, transaction execution, or safe settlement. The explicit scope field prevents consumers from interpreting this probe as full integration verification.
 
 ## Planned, not implemented
 
