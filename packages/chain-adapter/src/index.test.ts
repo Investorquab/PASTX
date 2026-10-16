@@ -32,7 +32,7 @@ describe("probePortaldotEvm", () => {
     });
   });
   it("reports RPC failures without exposing provider error details", async () => {
-    await expect(probePortaldotEvm("https://rpc.example", vi.fn(async () => { throw new Error("secret RPC details"); })).resolves.toMatchObject({
+    await expect(probePortaldotEvm("https://rpc.example", vi.fn(async () => { throw new Error("secret RPC details"); }))).resolves.toMatchObject({
       configured: true, reachable: false, status: "unreachable", chainId: null, blockNumber: null
     });
   });
