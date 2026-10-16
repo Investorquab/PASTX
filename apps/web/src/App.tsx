@@ -185,7 +185,7 @@ function App() {
     return marketCatalogue.filter((market) =>
       [market.symbol, market.name, market.category].some((field) => field.toLowerCase().includes(query))
     );
-  }, [searchTerm]);
+  }, [marketCatalogue, searchTerm]);
 
   return (
     <div className="app-shell">
