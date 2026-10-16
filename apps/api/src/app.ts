@@ -125,7 +125,7 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
       }
 
       if (!marketDataConfigured) return reply.code(503).send(apiError("PROVIDER_NOT_CONFIGURED", "Market data provider is not configured.", request.id));
-    if (!marketDataDisplayEnabled) return reply.code(403).send(apiError("MARKET_DATA_DISPLAY_DISABLED", "Live market-data display is disabled until provider terms are verified.", request.id));
+      if (!marketDataDisplayEnabled) return reply.code(403).send(apiError("MARKET_DATA_DISPLAY_DISABLED", "Live market-data display is disabled until provider terms are verified.", request.id));
       try {
         return { symbol: instrument.symbol, interval, items: await marketData.getCandles(instrument, interval, outputsize) };
       } catch (error) {

@@ -15,11 +15,11 @@ PASTX is an early engineering foundation for Portaldot ecosystem market discover
 - Provider keys remain server-side. Quote/candle routes require a nonblank key and explicit `MARKET_DATA_DISPLAY_ENABLED=true`; live display remains disabled until licensing is confirmed.
 - Quote/candle payloads are normalized and validated; candles enforce bounded inputs and OHLC relationships. The frontend checks quote symbol/currency and candle symbol/interval and keeps partial failures isolated.
 - Order preview is deterministic arithmetic only and always `executable: false`. Wallet connection, balances, order submission, transaction history and atomic settlement are not implemented. Trading remains disabled.
-- CI includes frozen-lockfile install, workspace type checks, unit tests and production builds. CI #205 passed on 16 October 2026 for current `main` commit `a9b1071cff610aaf6e24e89d71b66babe0408771` (typecheck, unit tests and production build). This does not establish a production deployment or external integration.
+- CI includes frozen-lockfile install, workspace type checks, unit tests and production builds. Check the [GitHub Actions page](https://github.com/Investorquab/PASTX/actions) for the result tied to the exact current `main` commit. A green run proves those automated checks only; it does not establish a production deployment or external integration.
 
 ## Chain configuration warning
 
-The expected EVM chain ID `420420777` is from a published **Portaldot V3 testnet** guide. It must not be assumed to be the mainnet ID. The read-only probe is being made configurable through `PORTALDOT_EVM_CHAIN_ID`; the default remains the documented testnet value. Configure another value only after independently verifying the official chain ID for the intended network. A matching chain ID does not prove the RPC is canonical, block reads work, wallet address mapping works, assets interoperate, or settlement is safe. No live Portaldot transaction or settlement evidence is established.
+The expected EVM chain ID `420420777` is from a published **Portaldot V3 testnet** guide. It must not be assumed to be the mainnet ID. The read-only probe is configurable through `PORTALDOT_EVM_CHAIN_ID`; the default remains the documented testnet value. Configure another value only after independently verifying the official chain ID for the intended network. A matching chain ID does not prove the RPC is canonical, block reads work, wallet address mapping works, assets interoperate, or settlement is safe. No live Portaldot transaction or settlement evidence is established.
 
 ## Secrets and safe configuration
 

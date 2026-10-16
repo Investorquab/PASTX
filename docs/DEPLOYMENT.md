@@ -60,13 +60,12 @@ pnpm test
 pnpm build
 ```
 
-Use [GitHub Actions](https://github.com/Investorquab/PASTX/actions) to verify the pushed commit.
+The committed `pnpm-lock.yaml` is installed with `pnpm install --frozen-lockfile` in CI, followed by workspace type checks, unit tests and production builds. Check [GitHub Actions](https://github.com/Investorquab/PASTX/actions) for the result tied to the exact commit under review. A green CI run does not prove deployment or live external integration.
 
 ## Production deployment remains blocked on
 
 - A deployment target and secure server-side secret configuration.
-- A generated and committed lockfile for reproducible dependency installation.
-- Green workspace CI and local Windows smoke tests.
+- A green CI run for the release commit and successful local Windows smoke tests.
 - A permitted market-data display license/configuration if live prices are publicly shown.
 - A working Portaldot V3 runtime/wallet integration.
 - Atomic settlement and failure rollback tests before any trade action is enabled.
