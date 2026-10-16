@@ -44,7 +44,7 @@ A successful quote includes:
 - `source`: `twelve_data`;
 - `delayed`: currently `null` because the adapter does not claim delay status it cannot establish.
 
-The provider's API key is sent only by the server. It must never be added to the browser bundle or returned in API payloads.
+The provider's API key is sent only by the server. It must never be added to the browser bundle or returned in API payloads. The adapter also rejects provider responses whose symbol does not match the requested catalogue instrument or whose currency differs from the instrument's configured currency.
 
 ## Candles
 
