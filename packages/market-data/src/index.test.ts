@@ -105,6 +105,21 @@ describe("TwelveDataAdapter", () => {
     await expect(missingMetadata.getCandles(instrument, "1min", 1)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
   });
 
+  it("normalizes provider candle timestamps as UTC independent of server timezone", async () => {
+    let requestedUrl: URL | null = null;
+    const fetcher = vi.fn(async (input: URL | RequestInfo) => {
+      requestedUrl = new URL(String(input));
+      return new Response(JSON.stringify({
+        meta: { symbol: "AAPL", interval: "1min", currency: "USD" },
+        values: [{ datetime: "2026-10-15 10:00:00", open: "10", high: "12", low: "9", close: "11", volume: "50" }]
+      }), { status: 200, headers: { "content-type": "application/json" } });
+    }) as unknown as typeof fetch;
+    const adapter = new TwelveDataAdapter("test-key", fetcher);
+    const candles = await adapter.getCandles(instrument, "1min", 1);
+    expect(requestedUrl?.searchParams.get("timezone")).toBe("UTC");
+    expect(candles[0].timestamp).toBe("2026-10-15T10:00:00.000Z");
+  });
+
   it("normalizes candle data and rejects invalid OHLC relationships", async () => {
     const adapter = new TwelveDataAdapter("test-key", fakeFetch({ meta: { symbol: "AAPL", interval: "1min", currency: "USD" }, values: [
       { datetime: "2026-10-15 10:00:00", open: "10", high: "12", low: "9", close: "11", volume: "50" }

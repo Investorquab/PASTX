@@ -163,7 +163,8 @@ export class TwelveDataAdapter {
       symbol: instrument.providerSymbol ?? instrument.symbol,
       interval,
       outputsize: String(outputSize),
-      order: "ASC"
+      order: "ASC",
+      timezone: "UTC"
     }));
     const meta = asRecord(payload?.meta);
     const responseSymbol = typeof meta?.symbol === "string" ? meta.symbol.trim().toUpperCase() : "";
@@ -182,8 +183,17 @@ export class TwelveDataAdapter {
 
     const candles = values.map((value): MarketCandle => {
       const item = asRecord(value);
-      const timestamp = typeof item?.datetime === "string" && Number.isFinite(Date.parse(item.datetime))
-        ? new Date(item.datetime).toISOString()
+      const rawDatetime = typeof item?.datetime === "string" ? item.datetime.trim() : "";
+      const datetimeWithZone = !rawDatetime
+        ? ""
+        : /(?:[zZ]|[+-]\\d{2}:?\\d{2})$/.test(rawDatetime)
+          ? rawDatetime
+          : /^\\d{4}-\\d{2}-\\d{2}$/.test(rawDatetime)
+            ? `${rawDatetime}T00:00:00Z`
+            : `${rawDatetime.replace(" ", "T")}Z`;
+      const parsedTimestamp = datetimeWithZone ? new Date(datetimeWithZone) : null;
+      const timestamp = parsedTimestamp && Number.isFinite(parsedTimestamp.getTime())
+        ? parsedTimestamp.toISOString()
         : null;
       const open = parseFiniteNumber(item?.open);
       const high = parseFiniteNumber(item?.high);
