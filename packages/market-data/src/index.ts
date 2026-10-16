@@ -186,9 +186,9 @@ export class TwelveDataAdapter {
       const rawDatetime = typeof item?.datetime === "string" ? item.datetime.trim() : "";
       const datetimeWithZone = !rawDatetime
         ? ""
-        : /(?:[zZ]|[+-]\\d{2}:?\\d{2})$/.test(rawDatetime)
+        : /(?:[zZ]|[+-]\d{2}:?\d{2})$/.test(rawDatetime)
           ? rawDatetime
-          : /^\\d{4}-\\d{2}-\\d{2}$/.test(rawDatetime)
+          : /^\d{4}-\d{2}-\d{2}$/.test(rawDatetime)
             ? `${rawDatetime}T00:00:00Z`
             : `${rawDatetime.replace(" ", "T")}Z`;
       const parsedTimestamp = datetimeWithZone ? new Date(datetimeWithZone) : null;

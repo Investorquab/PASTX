@@ -120,6 +120,24 @@ describe("TwelveDataAdapter", () => {
     expect(candles[0].timestamp).toBe("2026-10-15T10:00:00.000Z");
   });
 
+  it("preserves explicit offsets and normalizes date-only candles to UTC midnight", async () => {
+    const withOffset = new TwelveDataAdapter("test-key", fakeFetch({
+      meta: { symbol: "AAPL", interval: "1min", currency: "USD" },
+      values: [{ datetime: "2026-10-15T10:00:00-04:00", open: "10", high: "12", low: "9", close: "11", volume: "50" }]
+    }));
+    await expect(withOffset.getCandles(instrument, "1min", 1)).resolves.toMatchObject([
+      { timestamp: "2026-10-15T14:00:00.000Z" }
+    ]);
+
+    const dateOnly = new TwelveDataAdapter("test-key", fakeFetch({
+      meta: { symbol: "AAPL", interval: "1day", currency: "USD" },
+      values: [{ datetime: "2026-10-15", open: "10", high: "12", low: "9", close: "11", volume: "50" }]
+    }));
+    await expect(dateOnly.getCandles(instrument, "1day", 1)).resolves.toMatchObject([
+      { timestamp: "2026-10-15T00:00:00.000Z" }
+    ]);
+  });
+
   it("normalizes candle data and rejects invalid OHLC relationships", async () => {
     const adapter = new TwelveDataAdapter("test-key", fakeFetch({ meta: { symbol: "AAPL", interval: "1min", currency: "USD" }, values: [
       { datetime: "2026-10-15 10:00:00", open: "10", high: "12", low: "9", close: "11", volume: "50" }
