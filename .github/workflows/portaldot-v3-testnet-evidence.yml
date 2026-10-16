@@ -1,0 +1,43 @@
+name: Portaldot V3 Testnet EVM Evidence
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pastx-portaldot-v3-testnet-evm-evidence
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Read-only testnet chain identity and block progression
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Probe official Portaldot V3 testnet EVM RPC
+        shell: bash
+        run: |
+          mkdir -p evidence
+          set +e
+          node scripts/check-portaldot-v3-testnet.mjs > evidence/portaldot-v3-testnet-evm-check.txt 2>&1
+          result=$?
+          set -e
+          cat evidence/portaldot-v3-testnet-evm-check.txt
+          printf '\nexit_code=%s\n' "$result" >> evidence/portaldot-v3-testnet-evm-check.txt
+          exit "$result"
+      - name: Preserve testnet evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: portaldot-v3-testnet-evm-evidence-${{ github.run_id }}
+          path: evidence/portaldot-v3-testnet-evm-check.txt
+          if-no-files-found: error
+          retention-days: 14
