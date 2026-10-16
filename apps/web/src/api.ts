@@ -124,8 +124,16 @@ export async function getMarketCandles(
   if (!Number.isInteger(outputsize) || outputsize < 1 || outputsize > 500) {
     throw new ApiClientError("Candle output size must be an integer between 1 and 500.");
   }
-  const payload = await fetchJson(fetchImpl, `/api/markets/${encodeURIComponent(symbol)}/candles?interval=${encodeURIComponent(interval)}&outputsize=${outputsize}`);
-  if (typeof payload !== "object" || payload === null || !("items" in payload) || !Array.isArray((payload as { items?: unknown }).items)) {
+  const requestedSymbol = symbol.trim().toUpperCase();
+  const expectedInstrument = MARKET_INSTRUMENTS.find((instrument) => instrument.symbol === requestedSymbol);
+  if (!expectedInstrument) throw new ApiClientError("Unsupported market instrument.");
+  const payload = await fetchJson(fetchImpl, `/api/markets/${encodeURIComponent(requestedSymbol)}/candles?interval=${encodeURIComponent(interval)}&outputsize=${outputsize}`);
+  if (
+    typeof payload !== "object" || payload === null ||
+    !("items" in payload) || !Array.isArray((payload as { items?: unknown }).items) ||
+    !("symbol" in payload) || (payload as { symbol?: unknown }).symbol !== requestedSymbol ||
+    !("interval" in payload) || (payload as { interval?: unknown }).interval !== interval
+  ) {
     throw new ApiClientError("PASTX API returned invalid candle data.");
   }
   const items = (payload as { items: unknown[] }).items;

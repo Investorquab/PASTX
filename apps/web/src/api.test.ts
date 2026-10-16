@@ -122,6 +122,22 @@ describe("market data API client", () => {
     expect(fetcher).not.toHaveBeenCalled();
   });
 
+  it("rejects candle payloads for a different symbol or interval", async () => {
+    const wrongSymbol = async () => new Response(JSON.stringify({
+      symbol: "NVDA", interval: "1day", items: []
+    }), { status: 200 });
+    await expect(getMarketCandles("AAPL", "1day", 30, wrongSymbol as unknown as typeof fetch)).rejects.toMatchObject({
+      name: "ApiClientError", message: "PASTX API returned invalid candle data."
+    });
+
+    const wrongInterval = async () => new Response(JSON.stringify({
+      symbol: "AAPL", interval: "5min", items: []
+    }), { status: 200 });
+    await expect(getMarketCandles("AAPL", "1day", 30, wrongInterval as unknown as typeof fetch)).rejects.toMatchObject({
+      name: "ApiClientError", message: "PASTX API returned invalid candle data."
+    });
+  });
+
   it("validates OHLC candle relationships", async () => {
     const fetcher = async () => new Response(JSON.stringify({ items: [{
       timestamp: "2026-10-15T03:00:00.000Z", open: 10, high: 12, low: 9, close: 11, volume: 50

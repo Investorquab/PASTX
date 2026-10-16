@@ -106,3 +106,10 @@ Update `docs/API.md` whenever routes or schemas change, `docs/ARCHITECTURE.md` w
 - Browser market API audit: the client now rejects a quote response whose symbol differs from the requested instrument and validates candle intervals at runtime before sending a request. Regression tests cover both cases. This reduces the risk of displaying a structurally valid but mismatched provider response.
 
 - Chain identity client hardening: the browser client now pins the expected Portaldot V3 EVM chain ID to `420420777` instead of trusting a server-supplied expected ID. A regression test rejects a self-consistent response that attempts to redefine the expected network. A matching ID still verifies identity only, not runtime, wallet, asset or settlement compatibility.
+
+
+## Engineering audit — frontend candle response identity
+
+- The browser API client now verifies that a candle response identifies the exact normalized symbol and requested interval before accepting the series. Previously, a structurally valid series returned for a different instrument or interval could be displayed under the selected instrument.
+- Unsupported symbols are rejected before the request is sent. Regression tests cover mismatched response symbols and intervals.
+- Automated CI must pass for the resulting commit before this change is considered verified. This remains reference data only; it does not enable trading or prove on-chain market integration.
