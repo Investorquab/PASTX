@@ -1,4 +1,4 @@
-import { isCandleInterval, MARKET_INSTRUMENTS, type MarketCandle, type MarketQuote, type CandleInterval } from "@pastx/shared";
+import { isCandleInterval, MARKET_INSTRUMENTS, type MarketCandle, type MarketInstrument, type MarketQuote, type CandleInterval } from "@pastx/shared";
 import { isMarketQuote } from "./marketQuote";
 
 export type ApiHealth = {
