@@ -113,3 +113,5 @@ Update `docs/API.md` whenever routes or schemas change, `docs/ARCHITECTURE.md` w
 - The browser API client now verifies that a candle response identifies the exact normalized symbol and requested interval before accepting the series. Previously, a structurally valid series returned for a different instrument or interval could be displayed under the selected instrument.
 - Unsupported symbols are rejected before the request is sent. Regression tests cover mismatched response symbols and intervals.
 - Automated CI must pass for the resulting commit before this change is considered verified. This remains reference data only; it does not enable trading or prove on-chain market integration.
+
+- CI follow-up: the first run for the candle identity guard exposed an existing test fixture that omitted the API's required `symbol` and `interval` response fields. Updated the fixture to reflect the documented API contract; no production validation was weakened. Re-run CI before treating this batch as verified.

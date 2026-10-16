@@ -139,14 +139,14 @@ describe("market data API client", () => {
   });
 
   it("validates OHLC candle relationships", async () => {
-    const fetcher = async () => new Response(JSON.stringify({ items: [{
+    const fetcher = async () => new Response(JSON.stringify({ symbol: "AAPL", interval: "1day", items: [{
       timestamp: "2026-10-15T03:00:00.000Z", open: 10, high: 12, low: 9, close: 11, volume: 50
     }] }), { status: 200 });
     await expect(getMarketCandles("AAPL", "1day", 1, fetcher as unknown as typeof fetch)).resolves.toMatchObject([
       { open: 10, high: 12, low: 9, close: 11, volume: 50 }
     ]);
 
-    const malformed = async () => new Response(JSON.stringify({ items: [{
+    const malformed = async () => new Response(JSON.stringify({ symbol: "AAPL", interval: "1day", items: [{
       timestamp: "2026-10-15T03:00:00.000Z", open: 10, high: 9, low: 8, close: 11, volume: 50
     }] }), { status: 200 });
     await expect(getMarketCandles("AAPL", "1day", 1, malformed as unknown as typeof fetch)).rejects.toBeInstanceOf(ApiClientError);
