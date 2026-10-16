@@ -99,3 +99,5 @@ Update `docs/API.md` whenever routes or schemas change, `docs/ARCHITECTURE.md` w
 - Updated API/testing documentation to match the contract. This correction is not considered verified until the CI run for the resulting `main` revision succeeds.
 
 - Provider payload audit: candle rows now reject a present but non-numeric volume field instead of silently normalizing malformed provider data to `null`; missing or explicitly null volume remains supported. A regression test covers malformed volume values.
+
+- Browser API client audit: chain-status payloads now require positive safe-integer chain IDs and internally consistent state fields (for example, `verified` must match the expected chain ID). Added regression coverage for a contradictory `verified` payload. This is input-contract validation, not proof of a live chain connection.
