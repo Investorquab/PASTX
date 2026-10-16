@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { createHash } from "node:crypto";
 /**
  * Read-only Substrate WebSocket health and block-progression probe.
  * Usage: node scripts/check-substrate-progress.mjs [ws-url] [samples] [interval-ms]
@@ -94,6 +95,38 @@ async function main() {
     throw new Error("Expected Portaldot Mainnet, received " + JSON.stringify(chain));
   }
 
+  // Record the actual Substrate runtime identity and metadata fingerprint.
+  // This is diagnostic evidence only; it does not prove EVM compatibility or
+  // asset-pallet semantics.
+  const [runtimeVersion, metadata] = await Promise.all([
+    rpc("state_getRuntimeVersion"),
+    rpc("state_getMetadata")
+  ]);
+  if (
+    !runtimeVersion ||
+    typeof runtimeVersion.specName !== "string" ||
+    runtimeVersion.specName.length === 0 ||
+    !Number.isSafeInteger(runtimeVersion.specVersion) ||
+    runtimeVersion.specVersion < 0 ||
+    !Number.isSafeInteger(runtimeVersion.transactionVersion) ||
+    runtimeVersion.transactionVersion < 0
+  ) {
+    throw new Error("Malformed state_getRuntimeVersion response.");
+  }
+  if (typeof metadata !== "string" || !/^0x(?:[0-9a-f]{2})+$/i.test(metadata)) {
+    throw new Error("Malformed state_getMetadata response.");
+  }
+  const metadataBytes = Buffer.from(metadata.slice(2), "hex");
+  const runtimeFingerprint = {
+    specName: runtimeVersion.specName,
+    specVersion: runtimeVersion.specVersion,
+    transactionVersion: runtimeVersion.transactionVersion,
+    metadataByteLength: metadataBytes.byteLength,
+    metadataSha256: createHash("sha256").update(metadataBytes).digest("hex"),
+    note: "Substrate runtime fingerprint only; does not prove EVM RPC support, asset enumeration semantics, wallet mapping, or settlement compatibility."
+  };
+  console.log("RUNTIME_FINGERPRINT " + JSON.stringify(runtimeFingerprint, null, 2));
+
   const observations = [];
   for (let i = 0; i < samplesCount; i++) {
     const [health, syncState, bestHash, finalizedHash] = await Promise.all([
@@ -140,6 +173,7 @@ async function main() {
   const finalizedAdvanced = BigInt(last.finalizedBlock) > BigInt(first.finalizedBlock);
   const summary = {
     chain,
+    runtimeFingerprint,
     samples: samplesCount,
     intervalMs,
     bestHeadAdvanced: bestAdvanced,
