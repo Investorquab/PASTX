@@ -57,6 +57,10 @@ curl --connect-timeout 3 --max-time 8 -sS \
 
 For chain ID `420420777`, the `eth_chainId` result should be `0x190f1ca9`; `eth_blockNumber` should return a valid hexadecimal block number. This smoke test does not establish block progression or chain canonicality. If either RPC method fails or the chain ID differs, do not connect a wallet or submit transactions.
 
+## Process lifecycle
+
+The API handles `SIGTERM` and `SIGINT` by closing Fastify cleanly, allowing active requests and server resources to finish closing before the process exits. Deployment process managers should send `SIGTERM` first and allow a reasonable grace period before force-killing the process. The production CI smoke test verifies this shutdown path.
+
 ## Quality gate
 
 ```bash
