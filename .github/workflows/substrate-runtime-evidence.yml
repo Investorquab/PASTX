@@ -39,6 +39,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: portaldot-substrate-runtime-evidence-${{ github.run_id }}
-          path: |\n            evidence/substrate-runtime-check.txt\n            evidence/substrate-runtime-metadata.hex
+          path: |
+            evidence/substrate-runtime-check.txt
+            evidence/substrate-runtime-metadata.hex
           if-no-files-found: error
           retention-days: 14
