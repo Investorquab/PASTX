@@ -17,3 +17,9 @@ The API accepts raw registry JSON through the server-side environment variable `
 In addition to the JSON and SHA-256 digest, the API requires `PASTX_ONCHAIN_ASSET_REGISTRY_SIGNATURE` (128 hex characters) and `PASTX_ONCHAIN_ASSET_REGISTRY_PUBLIC_KEY` (64 hex characters). The Ed25519 signature must be calculated over the exact UTF-8 bytes of the registry JSON. The API verifies the signature before accepting the digest and metadata checks.
 
 Provision the public key through an independently trusted release/configuration channel. Do not place the private signing key in this repository, the API environment, or client code. A public key downloaded together with the registry is not a trusted key. The private key is needed only in a separate registry-signing workflow. Rotating the trusted key requires an explicit, authenticated configuration change. Registry authenticity still does not prove canonical RPC identity or runtime support, so discovery remains disabled.
+
+## Trusted chain fingerprint
+
+`GET /api/chain/fingerprint` provides a stronger, read-only comparison than chain ID alone. It requires independently sourced `PORTALDOT_EVM_GENESIS_HASH`, `PORTALDOT_EVM_CHECKPOINT_BLOCK`, and `PORTALDOT_EVM_CHECKPOINT_HASH`, in addition to the expected chain ID and RPC URL. The API reads the genesis hash, latest block number, and pinned checkpoint block hash. Missing anchors return `not_configured`; malformed configuration, RPC failure, or any mismatch fails closed.
+
+The verification scope is limited to the chain ID and the observed history through the configured checkpoint plus a readable latest block. It does not prove that the RPC's latest head is finalized, canonical beyond the pinned checkpoint, or advancing. Do not populate anchor values from the same untrusted RPC you are attempting to verify. This status alone does not enable asset discovery.

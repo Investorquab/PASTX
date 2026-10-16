@@ -3,7 +3,7 @@ import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import { MARKET_INSTRUMENTS, isCandleInterval, type ApiError, type MarketInstrument } from "@pastx/shared";
 import { MarketDataError, TwelveDataAdapter } from "@pastx/market-data";
-import { probePortaldotEvm, verifySignedOnchainAssetRegistry, type ChainProbeResult } from "@pastx/chain-adapter";
+import { probePortaldotEvm, verifyEvmChainFingerprint, verifySignedOnchainAssetRegistry, type ChainFingerprintResult, type ChainProbeResult } from "@pastx/chain-adapter";
 
 export type AppOptions = {
   marketDataApiKey?: string;
@@ -13,6 +13,10 @@ export type AppOptions = {
   chainRpcUrl?: string;
   chainExpectedChainId?: number;
   chainProbe?: () => Promise<ChainProbeResult>;
+  chainFingerprintProbe?: () => Promise<ChainFingerprintResult>;
+  chainExpectedGenesisHash?: string;
+  chainCheckpointBlock?: string;
+  chainExpectedCheckpointHash?: string;
   onchainAssetRegistryJson?: string;
   onchainAssetRegistrySha256?: string;
   onchainAssetRegistrySignature?: string;
@@ -81,7 +85,24 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
   const marketData = options.marketData ?? new TwelveDataAdapter(options.marketDataApiKey ?? process.env.MARKET_DATA_API_KEY);
   const chainExpectedChainId = options.chainExpectedChainId ?? configuredChainId(process.env.PORTALDOT_EVM_CHAIN_ID);
   if (!Number.isSafeInteger(chainExpectedChainId) || chainExpectedChainId <= 0) throw new Error("PORTALDOT_EVM_CHAIN_ID must be a positive safe integer.");
-  const chainProbe = options.chainProbe ?? (() => probePortaldotEvm(options.chainRpcUrl ?? process.env.PORTALDOT_EVM_RPC_URL, undefined, chainExpectedChainId));
+  const chainRpcUrl = options.chainRpcUrl ?? process.env.PORTALDOT_EVM_RPC_URL;
+  const chainProbe = options.chainProbe ?? (() => probePortaldotEvm(chainRpcUrl, undefined, chainExpectedChainId));
+  const chainExpectedGenesisHash = options.chainExpectedGenesisHash ?? process.env.PORTALDOT_EVM_GENESIS_HASH;
+  const chainCheckpointBlock = options.chainCheckpointBlock ?? process.env.PORTALDOT_EVM_CHECKPOINT_BLOCK;
+  const chainExpectedCheckpointHash = options.chainExpectedCheckpointHash ?? process.env.PORTALDOT_EVM_CHECKPOINT_HASH;
+  const chainFingerprintConfigured = Boolean(
+    chainRpcUrl?.trim() &&
+    chainExpectedGenesisHash?.trim() &&
+    chainCheckpointBlock?.trim() &&
+    chainExpectedCheckpointHash?.trim()
+  );
+  const chainFingerprintProbe = options.chainFingerprintProbe ?? (() => verifyEvmChainFingerprint({
+    rpcUrl: chainRpcUrl,
+    expectedChainId: chainExpectedChainId,
+    expectedGenesisHash: chainExpectedGenesisHash,
+    checkpointBlock: chainCheckpointBlock,
+    expectedCheckpointHash: chainExpectedCheckpointHash
+  }));
   const registryIntegrity = await inspectRegistryIntegrity(
     options.onchainAssetRegistryJson ?? process.env.PASTX_ONCHAIN_ASSET_REGISTRY_JSON,
     options.onchainAssetRegistrySha256 ?? process.env.PASTX_ONCHAIN_ASSET_REGISTRY_SHA256,
@@ -117,6 +138,7 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
       marketQuotes: { implemented: true, enabled: marketDataDisplayEnabled && marketDataConfigured },
       marketCandles: { implemented: true, enabled: marketDataDisplayEnabled && marketDataConfigured },
       chainIdentityProbe: { implemented: true, enabled: true, verificationScope: "chain_id_and_latest_block_read" },
+      chainFingerprintVerification: { implemented: true, enabled: chainFingerprintConfigured, verificationScope: "chain_id_genesis_checkpoint_latest_block_read" },
       onchainAssetRegistryIntegrity: {
         implemented: true,
         configured: registryIntegrity.configured,
@@ -141,6 +163,8 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
   }));
 
   app.get("/api/chain/status", async () => ({ item: await chainProbe() }));
+
+  app.get("/api/chain/fingerprint", async () => ({ item: await chainFingerprintProbe() }));
 
   // Registry integrity is observable separately; discovery stays unavailable until
   // supported runtime and canonical chain identity are independently verified.
