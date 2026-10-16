@@ -36,3 +36,19 @@ jobs:
         run: pnpm test
       - name: Build all packages
         run: pnpm build
+
+      - name: Smoke-test bundled API
+        run: |
+          set -euo pipefail
+          NODE_ENV=production HOST=127.0.0.1 PORT=4179 node apps/api/dist/server.js > /tmp/pastx-api-smoke.log 2>&1 &
+          api_pid=$!
+          trap 'kill "$api_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 20); do
+            if response="$(curl --fail --silent http://127.0.0.1:4179/api/health)"; then
+              printf '%s' "$response" | node -e 'let data = ""; process.stdin.on("data", chunk => data += chunk); process.stdin.on("end", () => { const health = JSON.parse(data); if (health.status !== "ok" || health.service !== "pastx-api" || health.tradingEnabled !== false) process.exit(1); });'
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/pastx-api-smoke.log
+          exit 1

@@ -17,7 +17,8 @@
     "@pastx/shared": "workspace:*",
     "fastify": "^5.6.1",
     "@pastx/chain-adapter": "workspace:*",
-    "dotenv": "^17.2.3"
+    "dotenv": "^17.2.3",
+    "viem": "^2.37.5"
   },
   "devDependencies": {
     "@types/node": "^22.18.6",
