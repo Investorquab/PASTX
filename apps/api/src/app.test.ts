@@ -109,6 +109,27 @@ describe("PASTX API", () => {
   });
 
 
+
+  it("treats blank optional registry environment placeholders as unconfigured", async () => {
+    const app = await buildApp({
+      logger: false,
+      onchainAssetRegistryJson: "",
+      onchainAssetRegistrySha256: ""
+    });
+    try {
+      const status = await app.inject({ method: "GET", url: "/api/assets/onchain/registry-status" });
+      expect(status.json()).toEqual({
+        status: "not_configured",
+        configured: false,
+        verified: false,
+        assetCount: 0,
+        reason: "registry_not_configured"
+      });
+    } finally {
+      await app.close();
+    }
+  });
+
   it("reports pinned registry integrity without enabling discovery", async () => {
     const rawJson = JSON.stringify([{
       chainId: PORTALDOT_V3_EVM_CHAIN_ID,

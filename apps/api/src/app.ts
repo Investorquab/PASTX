@@ -39,15 +39,17 @@ async function inspectRegistryIntegrity(
   expectedSha256: string | undefined,
   expectedChainId: number
 ): Promise<RegistryIntegrityResponse> {
-  if (rawJson === undefined && expectedSha256 === undefined) {
+  const registryMissing = rawJson === undefined || rawJson.trim() === "";
+  const digestMissing = expectedSha256 === undefined || expectedSha256.trim() === "";
+  if (registryMissing && digestMissing) {
     return { status: "not_configured", configured: false, verified: false, assetCount: 0, reason: "registry_not_configured" };
   }
-  if (rawJson === undefined || expectedSha256 === undefined) {
+  if (registryMissing || digestMissing) {
     return { status: "invalid", configured: true, verified: false, assetCount: 0, reason: "incomplete_configuration" };
   }
 
   try {
-    const result = await verifyPinnedOnchainAssetRegistry(rawJson, expectedChainId, expectedSha256);
+    const result = await verifyPinnedOnchainAssetRegistry(rawJson as string, expectedChainId, (expectedSha256 as string).trim());
     if (!result.valid) {
       return { status: "invalid", configured: true, verified: false, assetCount: 0, reason: result.reason };
     }
