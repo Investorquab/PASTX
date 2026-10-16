@@ -30,9 +30,9 @@ type MarketItem = {
 
 const referenceMarkets: MarketItem[] = [
   { symbol: "AAPL", name: "Apple Inc.", category: "US EQUITY · REFERENCE", currency: "USD", price: "$247.96", change: "+1.24%", positive: true, initials: "A" },
-  { symbol: "NVDA", name: "NVIDIA Corporation", category: "US EQUITY · REFERENCE", price: "$181.42", change: "+2.86%", positive: true, initials: "N" },
-  { symbol: "TSLA", name: "Tesla, Inc.", category: "US EQUITY · REFERENCE", price: "$438.07", change: "−0.72%", positive: false, initials: "T" },
-  { symbol: "MSFT", name: "Microsoft Corporation", category: "US EQUITY · REFERENCE", price: "$514.21", change: "+0.38%", positive: true, initials: "M" },
+  { symbol: "NVDA", name: "NVIDIA Corporation", category: "US EQUITY · REFERENCE", currency: "USD", price: "$181.42", change: "+2.86%", positive: true, initials: "N" },
+  { symbol: "TSLA", name: "Tesla, Inc.", category: "US EQUITY · REFERENCE", currency: "USD", price: "$438.07", change: "−0.72%", positive: false, initials: "T" },
+  { symbol: "MSFT", name: "Microsoft Corporation", category: "US EQUITY · REFERENCE", currency: "USD", price: "$514.21", change: "+0.38%", positive: true, initials: "M" },
 ];
 
 const candles = [34, 42, 37, 51, 47, 43, 59, 55, 65, 60, 73, 67, 77, 70, 84, 79, 90, 82, 96, 88, 103, 95, 108, 101, 116, 110, 122, 113, 128, 121, 136, 130, 143, 135, 151, 145, 158, 149, 166, 158, 174, 166, 183, 175, 191, 182, 199, 191, 208, 200, 217, 210];
