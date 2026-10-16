@@ -1,6 +1,6 @@
 # PASTX Project Status and Handoff
 
-**Last updated:** 16 October 2026  
+**Last updated:** 17 October 2026  
 **Repository:** https://github.com/Investorquab/PASTX  
 **Default branch:** `main`
 
@@ -16,6 +16,12 @@ PASTX is an early engineering foundation for Portaldot ecosystem market discover
 - Quote/candle payloads are normalized and validated; candle series must match the requested provider symbol, interval and currency, and each candle must satisfy OHLC relationships and bounded input rules. The frontend checks quote symbol/currency and candle symbol/interval and keeps partial failures isolated.
 - Order preview is deterministic arithmetic only and always `executable: false`. Wallet connection, balances, order submission, transaction history and atomic settlement are not implemented. Trading remains disabled.
 - The official Portaldot Mainnet Substrate WebSocket endpoint was manually checked from a developer machine: it reported `Portaldot Mainnet`, 13 peers, `isSyncing: false`, and both best and finalized block heights advanced by one during a roughly 32-second sample window. This is point-in-time endpoint evidence only. A reproducible read-only checker lives at `scripts/check-substrate-progress.mjs`; it records the Substrate runtime spec name/version, transaction version, and SHA-256 fingerprint of the returned runtime metadata alongside block progression. The manual GitHub Actions workflow `Portaldot Substrate Runtime Evidence` preserves console output and the exact returned metadata bytes (hex-encoded) as a 14-day artifact. The metadata artifact is for offline decoding and review; it is not itself evidence of EVM support or safe asset semantics. Run it manually from Actions when fresh evidence is needed; it does not perform writes. This fingerprint helps detect runtime changes but does not prove EVM RPC support, asset enumeration semantics, wallet mapping, or settlement compatibility. The separate EVM RPC endpoint and chain ID remain unverified. CI includes frozen-lockfile install, production dependency audit, workspace type checks, unit tests, and builds. The API bundles to `apps/api/dist/server.js` for Node.js 22; CI starts that artifact in production mode and smoke-tests health, capability flags, read-only chain status, disabled market-data routes, and graceful shutdown. This verifies the bundled runtime in CI, not a deployed environment. No production deployment or live external integration is established. Check the [GitHub Actions page](https://github.com/Investorquab/PASTX/actions) for results tied to the exact current `main` commit.
+
+## Portaldot V3 testnet evidence
+
+The Portaldot team announced the following V3 testnet endpoints: Substrate WebSocket `wss://test-node-v3.portaldot.dev`, EVM JSON-RPC `https://test-evm-rpc-v3.portaldot.dev`, and EVM chain ID `420420777`. The standalone `scripts/check-portaldot-v3-testnet.mjs` probe verifies the EVM chain ID and block-height progression using read-only JSON-RPC calls. The manual `Portaldot V3 Testnet EVM Evidence` workflow preserves its output as a 14-day artifact. Run the workflow manually to collect fresh evidence.
+
+This is explicitly testnet-scoped. It must not be used to infer or configure mainnet chain identity. Substrate runtime version and metadata should be captured separately from the official testnet WebSocket before making claims about runtime pallets, asset representation, or supported operations. A successful endpoint probe alone does not prove asset interoperability, wallet mapping, trading, or settlement.
 
 ## Chain configuration warning
 
