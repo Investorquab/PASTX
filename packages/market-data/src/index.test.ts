@@ -106,9 +106,9 @@ describe("TwelveDataAdapter", () => {
   });
 
   it("normalizes provider candle timestamps as UTC independent of server timezone", async () => {
-    let requestedUrl: URL | null = null;
+    const requestedUrls: URL[] = [];
     const fetcher = vi.fn(async (input: URL | RequestInfo) => {
-      requestedUrl = new URL(String(input));
+      requestedUrls.push(new URL(String(input)));
       return new Response(JSON.stringify({
         meta: { symbol: "AAPL", interval: "1min", currency: "USD" },
         values: [{ datetime: "2026-10-15 10:00:00", open: "10", high: "12", low: "9", close: "11", volume: "50" }]
@@ -116,7 +116,7 @@ describe("TwelveDataAdapter", () => {
     }) as unknown as typeof fetch;
     const adapter = new TwelveDataAdapter("test-key", fetcher);
     const candles = await adapter.getCandles(instrument, "1min", 1);
-    expect(requestedUrl?.searchParams.get("timezone")).toBe("UTC");
+    expect(requestedUrls[0]?.searchParams.get("timezone")).toBe("UTC");
     expect(candles[0].timestamp).toBe("2026-10-15T10:00:00.000Z");
   });
 
