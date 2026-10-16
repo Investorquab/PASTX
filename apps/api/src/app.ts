@@ -148,6 +148,7 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
         ...("reason" in registryIntegrity ? { reason: registryIntegrity.reason } : {})
       },
       onchainAssetDiscovery: { implemented: false, enabled: false, reason: discoveryUnavailableReason },
+      onchainAssetReadiness: { implemented: true, enabled: true, readOnly: true },
       walletConnection: { implemented: false, enabled: false },
       onchainBalances: { implemented: false, enabled: false },
       orderPreview: { implemented: true, enabled: true, execution: false },
@@ -169,6 +170,49 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
   // Registry integrity is observable separately; discovery stays unavailable until
   // supported runtime and canonical chain identity are independently verified.
   app.get("/api/assets/onchain/registry-status", async () => registryIntegrity);
+
+  // Unified diagnostics keep the registry, trusted chain fingerprint, and runtime
+  // adapter gates visible in one read-only response. This endpoint never enables discovery.
+  app.get("/api/assets/onchain/readiness", async () => {
+    const fingerprint = await chainFingerprintProbe().catch(() => null);
+    const blockers: string[] = [];
+
+    if (!registryIntegrity.verified) {
+      blockers.push(registryIntegrity.status === "not_configured"
+        ? "registry_not_configured"
+        : "registry_integrity_failed");
+    }
+
+    if (!fingerprint?.verified) {
+      const fingerprintStatus = fingerprint?.status ?? "unavailable";
+      blockers.push(`chain_fingerprint_${fingerprintStatus}`);
+    }
+
+    // A signed registry and matching chain fingerprint are not proof that PASTX
+    // can enumerate assets through the actual target runtime.
+    blockers.push("runtime_adapter_unverified");
+
+    return {
+      status: "blocked" as const,
+      discoveryEnabled: false as const,
+      checks: {
+        registryIntegrity: {
+          status: registryIntegrity.status,
+          verified: registryIntegrity.verified,
+          assetCount: registryIntegrity.assetCount,
+          ...("reason" in registryIntegrity ? { reason: registryIntegrity.reason } : {})
+        },
+        chainFingerprint: {
+          status: fingerprint?.status ?? "unavailable",
+          verified: fingerprint?.verified ?? false,
+          verificationScope: fingerprint?.verificationScope ?? "chain_id_genesis_checkpoint_latest_block_read",
+          ...(fingerprint && "reason" in fingerprint ? { reason: fingerprint.reason } : !fingerprint ? { reason: "fingerprint_probe_failed" } : {})
+        },
+        runtimeAdapter: { status: "unverified" as const, verified: false as const }
+      },
+      blockers
+    };
+  });
 
   // An empty list must never masquerade as an absence of chain assets or a zero balance.
   app.get("/api/assets/onchain", async () => ({

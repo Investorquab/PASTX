@@ -16,6 +16,7 @@ Local development defaults to `http://localhost:4000`. All routes are prefixed w
 | GET | `/api/chain/fingerprint` | Compares observed chain ID, genesis hash and a configured trusted checkpoint; remains unconfigured until all anchors are supplied |
 | GET | `/api/assets/onchain` | Explicit discovery status; remains unavailable until canonical chain/runtime verification is complete |
 | GET | `/api/assets/onchain/registry-status` | Reports whether registry signature, digest pin and metadata checks pass; does not enable discovery |
+| GET | `/api/assets/onchain/readiness` | Combines registry integrity, the live trusted-chain fingerprint result, and runtime-adapter readiness into a read-only blocker report |
 | GET | `/api/markets` | Supported reference instrument catalogue |
 | GET | `/api/markets/:symbol` | Instrument metadata |
 | GET | `/api/markets/:symbol/quote` | Normalized quote from Twelve Data |
@@ -33,6 +34,7 @@ Current capability boundaries:
 - Chain probe: enabled, with verification scope `chain_id_and_latest_block_read`; this is not canonical network verification.
 - Trusted chain fingerprint: implemented but disabled until the RPC URL, expected chain ID, genesis hash, checkpoint block number and checkpoint block hash are configured. The verification scope is `chain_id_genesis_checkpoint_latest_block_read`; this anchors history through the chosen checkpoint but does not prove head finality or ongoing block progression.
 - On-chain registry integrity: `onchainAssetRegistryIntegrity` reports `not_configured`, `invalid`, or `verified` after verifying the Ed25519 signature against a trusted public key, checking exact JSON bytes against a configured SHA-256 pin, and validating metadata.
+- On-chain readiness diagnostics: `GET /api/assets/onchain/readiness` combines the configured registry-integrity result with a fresh trusted-chain fingerprint probe and reports stable blocker identifiers. It always reports `status: "blocked"` and `discoveryEnabled: false` until the supported runtime adapter is verified; a valid signature and matching fingerprint are not sufficient to enable discovery.
 - On-chain asset discovery: remains disabled even when registry integrity is verified. `/api/assets/onchain` returns `status: "unavailable"` and an empty `items` list until canonical chain/runtime verification is independently complete. Missing and invalid registry configuration returns `registry_not_configured` or `registry_integrity_failed`. An empty list is not evidence that the chain has no assets or a wallet has zero balances.
 - Order preview: non-executable preview only.
 - Wallet connection, on-chain balances, order submission, transaction history and atomic settlement: not implemented and disabled.

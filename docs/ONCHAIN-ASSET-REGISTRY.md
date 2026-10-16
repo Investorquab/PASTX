@@ -23,3 +23,9 @@ Provision the public key through an independently trusted release/configuration 
 `GET /api/chain/fingerprint` provides a stronger, read-only comparison than chain ID alone. It requires independently sourced `PORTALDOT_EVM_GENESIS_HASH`, `PORTALDOT_EVM_CHECKPOINT_BLOCK`, and `PORTALDOT_EVM_CHECKPOINT_HASH`, in addition to the expected chain ID and RPC URL. The API reads the genesis hash, latest block number, and pinned checkpoint block hash. Missing anchors return `not_configured`; malformed configuration, RPC failure, or any mismatch fails closed.
 
 The verification scope is limited to the chain ID and the observed history through the configured checkpoint plus a readable latest block. It does not prove that the RPC's latest head is finalized, canonical beyond the pinned checkpoint, or advancing. Do not populate anchor values from the same untrusted RPC you are attempting to verify. This status alone does not enable asset discovery.
+
+## Unified readiness diagnostics
+
+`GET /api/assets/onchain/readiness` gives operators one read-only view of the registry-integrity status, a fresh trusted chain fingerprint probe, and the remaining runtime-adapter gate. It returns stable blocker identifiers for missing/invalid registry configuration, unconfigured/invalid/unreachable/mismatched chain fingerprints, and the unverified runtime adapter. If the fingerprint probe itself fails unexpectedly, the endpoint reports `chain_fingerprint_unavailable` rather than treating it as verified.
+
+The endpoint always reports `status: "blocked"` and `discoveryEnabled: false` while the runtime adapter is unverified. Even when a signed registry and trusted fingerprint both verify, PASTX does not yet have evidence that the supported chain runtime can enumerate assets correctly. This diagnostic endpoint is not a deployment approval, does not enable discovery, and does not enable wallets, balances, transactions, or trading.
