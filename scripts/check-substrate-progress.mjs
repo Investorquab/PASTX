@@ -123,10 +123,10 @@ async function main() {
   // metadata wholesale or treat capture as proof of asset/EVM compatibility.
   const metadataOutputPath = process.env.PASTX_METADATA_OUTPUT;
   if (metadataOutputPath) {
-    if (!metadataOutputPath.trim() || metadataOutputPath.includes("\\0")) {
+    if (!metadataOutputPath.trim() || metadataOutputPath.includes("\0")) {
       throw new Error("PASTX_METADATA_OUTPUT must be a valid non-empty file path.");
     }
-    await writeFile(metadataOutputPath, metadata + "\\n", { flag: "wx", mode: 0o600 });
+    await writeFile(metadataOutputPath, metadata + "\n", { flag: "wx", mode: 0o600 });
     console.log("METADATA_CAPTURE " + JSON.stringify({
       file: metadataOutputPath,
       encoding: "0x-prefixed-hex",
