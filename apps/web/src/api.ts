@@ -1,4 +1,4 @@
-import type { MarketCandle, MarketQuote, CandleInterval } from "@pastx/shared";
+import { isCandleInterval, type MarketCandle, type MarketQuote, type CandleInterval } from "@pastx/shared";
 import { isMarketQuote } from "./marketQuote";
 
 export type ApiHealth = {
@@ -98,7 +98,7 @@ export async function getMarketQuote(symbol: string, fetchImpl: typeof fetch = f
     throw new ApiClientError("PASTX API returned an invalid market quote.");
   }
   const item = (payload as { item?: unknown }).item;
-  if (!isMarketQuote(item) || item.source !== "twelve_data") {
+  if (!isMarketQuote(item) || item.source !== "twelve_data" || item.symbol !== symbol.trim().toUpperCase()) {
     throw new ApiClientError("PASTX API returned an invalid market quote.");
   }
   return item;
@@ -110,6 +110,7 @@ export async function getMarketCandles(
   outputsize = 30,
   fetchImpl: typeof fetch = fetch
 ): Promise<MarketCandle[]> {
+  if (!isCandleInterval(interval)) throw new ApiClientError("Unsupported candle interval.");
   if (!Number.isInteger(outputsize) || outputsize < 1 || outputsize > 500) {
     throw new ApiClientError("Candle output size must be an integer between 1 and 500.");
   }
