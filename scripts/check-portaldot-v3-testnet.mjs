@@ -19,10 +19,10 @@ if (endpoint.protocol !== "https:" || !endpoint.hostname || endpoint.username ||
     /[\u0000-\u0020\u007f]/.test(rpcUrl)) {
   fail("Testnet RPC URL must use HTTPS and contain no credentials, whitespace, or control characters.");
 }
-if (!/^\\d+$/.test(rawSamples) || Number(rawSamples) < 2 || Number(rawSamples) > 10) {
+if (!/^\d+$/.test(rawSamples) || Number(rawSamples) < 2 || Number(rawSamples) > 10) {
   fail("Samples must be an integer between 2 and 10.");
 }
-if (!/^\\d+$/.test(rawInterval) || Number(rawInterval) < 1000 || Number(rawInterval) > 60000) {
+if (!/^\d+$/.test(rawInterval) || Number(rawInterval) < 1000 || Number(rawInterval) > 60000) {
   fail("Interval must be between 1000 and 60000 milliseconds.");
 }
 const samples = Number(rawSamples);
