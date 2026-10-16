@@ -120,10 +120,12 @@ export class TwelveDataAdapter {
     const payload = asRecord(await this.request("/quote", { symbol: instrument.providerSymbol ?? instrument.symbol }));
     if (!payload) throw new MarketDataError("PROVIDER_INVALID_RESPONSE", "Market data provider returned an unexpected quote.", 502);
 
+    const responseSymbol = typeof payload.symbol === "string" ? payload.symbol.trim().toUpperCase() : "";
+    const expectedSymbol = (instrument.providerSymbol ?? instrument.symbol).trim().toUpperCase();
     const price = parseFiniteNumber(payload.close);
     const change = parseFiniteNumber(payload.change);
     const changePercent = parseFiniteNumber(payload.percent_change);
-    const currency = typeof payload.currency === "string" ? payload.currency.toUpperCase() : instrument.currency;
+    const currency = typeof payload.currency === "string" ? payload.currency.toUpperCase() : "";
     const rawTimestamp = payload.timestamp;
     let timestamp: string | null = null;
     if (typeof rawTimestamp === "number" || (typeof rawTimestamp === "string" && /^\d+$/.test(rawTimestamp))) {
@@ -133,7 +135,7 @@ export class TwelveDataAdapter {
       timestamp = new Date(payload.datetime).toISOString();
     }
 
-    if (price === null || price <= 0 || change === null || changePercent === null || !timestamp || !/^[A-Z]{3,8}$/.test(currency)) {
+    if (responseSymbol !== expectedSymbol || price === null || price <= 0 || change === null || changePercent === null || !timestamp || currency !== instrument.currency || !/^[A-Z]{3,8}$/.test(currency)) {
       throw new MarketDataError("PROVIDER_INVALID_RESPONSE", "Market data provider quote was missing required fields.", 502);
     }
 
