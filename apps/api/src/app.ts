@@ -3,7 +3,7 @@ import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import { MARKET_INSTRUMENTS, isCandleInterval, type ApiError, type MarketInstrument } from "@pastx/shared";
 import { MarketDataError, TwelveDataAdapter } from "@pastx/market-data";
-import { probePortaldotEvm, type ChainProbeResult } from "@pastx/chain-adapter";
+import { probePortaldotEvm, verifyPinnedOnchainAssetRegistry, type ChainProbeResult } from "@pastx/chain-adapter";
 
 export type AppOptions = {
   marketDataApiKey?: string;
@@ -13,6 +13,8 @@ export type AppOptions = {
   chainRpcUrl?: string;
   chainExpectedChainId?: number;
   chainProbe?: () => Promise<ChainProbeResult>;
+  onchainAssetRegistryJson?: string;
+  onchainAssetRegistrySha256?: string;
 };
 
 function apiError(code: ApiError["error"]["code"], message: string, requestId?: string): ApiError {
@@ -26,6 +28,35 @@ function configuredChainId(value: string | undefined): number {
   return parsed;
 }
 
+
+type RegistryIntegrityResponse =
+  | { status: "not_configured"; configured: false; verified: false; assetCount: 0; reason: "registry_not_configured" }
+  | { status: "invalid"; configured: true; verified: false; assetCount: 0; reason: string }
+  | { status: "verified"; configured: true; verified: true; assetCount: number };
+
+async function inspectRegistryIntegrity(
+  rawJson: string | undefined,
+  expectedSha256: string | undefined,
+  expectedChainId: number
+): Promise<RegistryIntegrityResponse> {
+  if (rawJson === undefined && expectedSha256 === undefined) {
+    return { status: "not_configured", configured: false, verified: false, assetCount: 0, reason: "registry_not_configured" };
+  }
+  if (rawJson === undefined || expectedSha256 === undefined) {
+    return { status: "invalid", configured: true, verified: false, assetCount: 0, reason: "incomplete_configuration" };
+  }
+
+  try {
+    const result = await verifyPinnedOnchainAssetRegistry(rawJson, expectedChainId, expectedSha256);
+    if (!result.valid) {
+      return { status: "invalid", configured: true, verified: false, assetCount: 0, reason: result.reason };
+    }
+    return { status: "verified", configured: true, verified: true, assetCount: result.items.length };
+  } catch {
+    return { status: "invalid", configured: true, verified: false, assetCount: 0, reason: "verification_unavailable" };
+  }
+}
+
 function findInstrument(symbol: string): MarketInstrument | undefined {
   const normalized = symbol.trim().toUpperCase();
   return MARKET_INSTRUMENTS.find((instrument) => instrument.symbol === normalized);
@@ -37,6 +68,16 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
   const chainExpectedChainId = options.chainExpectedChainId ?? configuredChainId(process.env.PORTALDOT_EVM_CHAIN_ID);
   if (!Number.isSafeInteger(chainExpectedChainId) || chainExpectedChainId <= 0) throw new Error("PORTALDOT_EVM_CHAIN_ID must be a positive safe integer.");
   const chainProbe = options.chainProbe ?? (() => probePortaldotEvm(options.chainRpcUrl ?? process.env.PORTALDOT_EVM_RPC_URL, undefined, chainExpectedChainId));
+  const registryIntegrity = await inspectRegistryIntegrity(
+    options.onchainAssetRegistryJson ?? process.env.PASTX_ONCHAIN_ASSET_REGISTRY_JSON,
+    options.onchainAssetRegistrySha256 ?? process.env.PASTX_ONCHAIN_ASSET_REGISTRY_SHA256,
+    chainExpectedChainId
+  );
+  const discoveryUnavailableReason = registryIntegrity.status === "verified"
+    ? "runtime_adapter_unverified" as const
+    : registryIntegrity.status === "not_configured"
+      ? "registry_not_configured" as const
+      : "registry_integrity_failed" as const;
   const marketDataDisplayEnabled = options.marketDataDisplayEnabled ?? process.env.MARKET_DATA_DISPLAY_ENABLED === "true";
   const marketDataConfigured = Boolean((options.marketDataApiKey ?? process.env.MARKET_DATA_API_KEY)?.trim());
 
@@ -60,7 +101,15 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
       marketQuotes: { implemented: true, enabled: marketDataDisplayEnabled && marketDataConfigured },
       marketCandles: { implemented: true, enabled: marketDataDisplayEnabled && marketDataConfigured },
       chainIdentityProbe: { implemented: true, enabled: true, verificationScope: "chain_id_and_latest_block_read" },
-      onchainAssetDiscovery: { implemented: false, enabled: false, reason: "runtime_adapter_unverified" },
+      onchainAssetRegistryIntegrity: {
+        implemented: true,
+        configured: registryIntegrity.configured,
+        verified: registryIntegrity.verified,
+        status: registryIntegrity.status,
+        assetCount: registryIntegrity.assetCount,
+        ...("reason" in registryIntegrity ? { reason: registryIntegrity.reason } : {})
+      },
+      onchainAssetDiscovery: { implemented: false, enabled: false, reason: discoveryUnavailableReason },
       walletConnection: { implemented: false, enabled: false },
       onchainBalances: { implemented: false, enabled: false },
       orderPreview: { implemented: true, enabled: true, execution: false },
@@ -77,12 +126,15 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
 
   app.get("/api/chain/status", async () => ({ item: await chainProbe() }));
 
-  // Explicitly unavailable until a supported runtime adapter and trusted asset
-  // registry are configured. An empty list must never masquerade as a zero balance.
+  // Registry integrity is observable separately; discovery stays unavailable until
+  // supported runtime and canonical chain identity are independently verified.
+  app.get("/api/assets/onchain/registry-status", async () => registryIntegrity);
+
+  // An empty list must never masquerade as an absence of chain assets or a zero balance.
   app.get("/api/assets/onchain", async () => ({
     status: "unavailable" as const,
     items: [] as const,
-    reason: "runtime_adapter_unverified" as const
+    reason: discoveryUnavailableReason
   }));
 
   app.get("/api/markets", async () => ({

@@ -4,8 +4,10 @@ export type PinnedRegistryResult =
   | { valid: true; sha256: string; items: Extract<AssetRegistryValidation, { valid: true }>["items"] }
   | {
       valid: false;
-      reason: "invalid_digest_pin" | "digest_mismatch" | "invalid_json" | Extract<AssetRegistryValidation, { valid: false }>["reason"];
+      reason: "invalid_digest_pin" | "digest_mismatch" | "invalid_json" | "registry_too_large" | Extract<AssetRegistryValidation, { valid: false }>["reason"];
     };
+
+const MAX_REGISTRY_JSON_BYTES = 1_048_576;
 
 function toHex(bytes: Uint8Array): string {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
@@ -24,6 +26,10 @@ export async function verifyPinnedOnchainAssetRegistry(
 ): Promise<PinnedRegistryResult> {
   if (!/^[a-fA-F0-9]{64}$/.test(expectedSha256)) {
     return { valid: false, reason: "invalid_digest_pin" };
+  }
+
+  if (new TextEncoder().encode(rawJson).byteLength > MAX_REGISTRY_JSON_BYTES) {
+    return { valid: false, reason: "registry_too_large" };
   }
 
   const digestBytes = await globalThis.crypto.subtle.digest(
