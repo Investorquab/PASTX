@@ -103,3 +103,5 @@ Update `docs/API.md` whenever routes or schemas change, `docs/ARCHITECTURE.md` w
 - Browser API client audit: chain-status payloads now require positive safe-integer chain IDs and internally consistent state fields (for example, `verified` must match the expected chain ID). Added regression coverage for a contradictory `verified` payload. This is input-contract validation, not proof of a live chain connection.
 
 - Browser market API audit: the client now rejects a quote response whose symbol differs from the requested instrument and validates candle intervals at runtime before sending a request. Regression tests cover both cases. This reduces the risk of displaying a structurally valid but mismatched provider response.
+
+- Chain identity client hardening: the browser client now pins the expected Portaldot V3 EVM chain ID to `420420777` instead of trusting a server-supplied expected ID. A regression test rejects a self-consistent response that attempts to redefine the expected network. A matching ID still verifies identity only, not runtime, wallet, asset or settlement compatibility.
