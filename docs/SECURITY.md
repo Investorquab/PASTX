@@ -37,9 +37,9 @@ The Secret Scan workflow runs Gitleaks on pushes, pull requests, and weekly, wit
 - Require an atomic settlement guarantee before enabling trades.
 - Test replay/duplicate submission and failure rollback.
 
-## Public repository
+## Repository visibility
 
-The repository is public. Only publish documentation, source and evidence intended for public review. Do not publish private messages from ecosystem contacts without consent. Public project status must accurately distinguish planned, implemented, locally tested, and deployed features.
+The repository is currently private. Keep source, documentation, screenshots, test evidence, and project discussions limited to material intended for the repository's authorized collaborators. Before changing visibility or sharing a public mirror, review the complete Git history and current files for credentials, personal information, confidential ecosystem correspondence, and claims that are not supported by implementation evidence. Making a repository private does not revoke credentials that may have been exposed previously.
 
 ## Automated checks
 
