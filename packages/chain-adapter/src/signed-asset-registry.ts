@@ -13,6 +13,12 @@ function hexBytes(value: string): Uint8Array {
   return output;
 }
 
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const buffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(buffer).set(bytes);
+  return buffer;
+}
+
 /**
  * Verify the Ed25519 signature over the exact registry UTF-8 bytes before
  * checking the digest pin and metadata. The public key must be pinned through
@@ -45,7 +51,7 @@ export async function verifySignedOnchainAssetRegistry(
   try {
     importedKey = await globalThis.crypto.subtle.importKey(
       "raw",
-      hexBytes(publicKey),
+      toArrayBuffer(hexBytes(publicKey)),
       { name: "Ed25519" },
       false,
       ["verify"]
@@ -59,8 +65,8 @@ export async function verifySignedOnchainAssetRegistry(
     signatureValid = await globalThis.crypto.subtle.verify(
       { name: "Ed25519" },
       importedKey,
-      hexBytes(signature),
-      message
+      toArrayBuffer(hexBytes(signature)),
+      toArrayBuffer(message)
     );
   } catch {
     return { valid: false, reason: "signature_verification_unavailable" };
