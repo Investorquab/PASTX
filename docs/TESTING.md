@@ -5,7 +5,7 @@
 Vitest suites are included for:
 - shared instrument classifications and candle interval allow-list;
 - read-only chain identity probe for missing RPC configuration, expected chain ID, wrong network, invalid ID and RPC failure;
-- browser API client for valid and internally consistent chain status, malformed payloads, HTTP errors and transport failure;
+- browser API client for valid and internally consistent chain status, canonical expected-chain ID enforcement, malformed payloads, HTTP errors and transport failure;
 - quote/candle client validation, requested-symbol matching, runtime candle-interval validation, and the rule that fixture quotes cannot be accepted as provider data;
 - shared order-preview quantity and reference-notional arithmetic consumed by the web app, including invalid input and overflow;
 - quote shape validation;
