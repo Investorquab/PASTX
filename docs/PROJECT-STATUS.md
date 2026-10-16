@@ -101,3 +101,5 @@ Update `docs/API.md` whenever routes or schemas change, `docs/ARCHITECTURE.md` w
 - Provider payload audit: candle rows now reject a present but non-numeric volume field instead of silently normalizing malformed provider data to `null`; missing or explicitly null volume remains supported. A regression test covers malformed volume values.
 
 - Browser API client audit: chain-status payloads now require positive safe-integer chain IDs and internally consistent state fields (for example, `verified` must match the expected chain ID). Added regression coverage for a contradictory `verified` payload. This is input-contract validation, not proof of a live chain connection.
+
+- Browser market API audit: the client now rejects a quote response whose symbol differs from the requested instrument and validates candle intervals at runtime before sending a request. Regression tests cover both cases. This reduces the risk of displaying a structurally valid but mismatched provider response.
