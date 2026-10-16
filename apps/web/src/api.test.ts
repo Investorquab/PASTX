@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { ApiClientError, getApiHealth, getChainStatus, getMarketCandles, getMarketQuote } from "./api";
+import { ApiClientError, getApiCapabilities, getApiHealth, getChainStatus, getMarketCandles, getMarketQuote } from "./api";
 
 describe("getChainStatus", () => {
   it("returns the read-only status object", async () => {
@@ -52,6 +52,52 @@ describe("getChainStatus", () => {
   it("maps non-2xx responses to safe client errors", async () => {
     const fetcher = async () => new Response("private upstream details", { status: 503 });
     await expect(getChainStatus(fetcher as unknown as typeof fetch)).rejects.toMatchObject({ statusCode: 503 });
+  });
+});
+
+describe("getApiCapabilities", () => {
+  const validCapabilities = {
+    service: "pastx-api",
+    capabilities: {
+      referenceCatalogue: { implemented: true, enabled: true },
+      marketQuotes: { implemented: true, enabled: false },
+      marketCandles: { implemented: true, enabled: false },
+      chainIdentityProbe: { implemented: true, enabled: true, verificationScope: "chain_id_and_latest_block_read" },
+      walletConnection: { implemented: false, enabled: false },
+      onchainBalances: { implemented: false, enabled: false },
+      orderPreview: { implemented: true, enabled: true, execution: false },
+      orderSubmission: { implemented: false, enabled: false },
+      transactionHistory: { implemented: false, enabled: false },
+      atomicSettlement: { implemented: false, enabled: false }
+    },
+    safety: {
+      tradingEnabled: false,
+      externalStockQuotesAreReferenceData: true,
+      marketDataDisplayRequiresProviderPermission: true
+    }
+  };
+
+  it("accepts the API capability contract and respects disabled data features", async () => {
+    const fetcher = async () => new Response(JSON.stringify(validCapabilities), { status: 200 });
+    await expect(getApiCapabilities(fetcher as unknown as typeof fetch)).resolves.toMatchObject({
+      capabilities: { marketQuotes: { enabled: false }, marketCandles: { enabled: false }, orderSubmission: { enabled: false } },
+      safety: { tradingEnabled: false }
+    });
+  });
+
+  it("fails closed when the capability contract is malformed or enables trading", async () => {
+    const malformed = { ...validCapabilities, safety: { ...validCapabilities.safety, tradingEnabled: true } };
+    const fetcher = async () => new Response(JSON.stringify(malformed), { status: 200 });
+    await expect(getApiCapabilities(fetcher as unknown as typeof fetch)).rejects.toMatchObject({
+      name: "ApiClientError", message: "PASTX API returned invalid capabilities."
+    });
+  });
+
+  it("fails closed on an unavailable capability endpoint", async () => {
+    const fetcher = async () => new Response("unavailable", { status: 503 });
+    await expect(getApiCapabilities(fetcher as unknown as typeof fetch)).rejects.toMatchObject({
+      name: "ApiClientError", statusCode: 503
+    });
   });
 });
 

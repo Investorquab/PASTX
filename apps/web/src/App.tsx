@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { getApiHealth, getChainStatus, getMarketCandles, getMarketQuote, type ChainStatus } from "./api";
+import { getApiCapabilities, getChainStatus, getMarketCandles, getMarketQuote, type ChainStatus } from "./api";
 import type { MarketCandle, MarketQuote } from "@pastx/shared";
 import { calculateReferenceNotional, parsePreviewQuantity } from "./orderPreview";
 import {
@@ -105,23 +105,25 @@ function App() {
 
   useEffect(() => {
     let active = true;
-    getApiHealth()
-      .then(async (health) => {
-        if (!health.marketDataConfigured || !health.marketDataDisplayEnabled) return;
-        const quoteResults = await Promise.allSettled(
-          referenceMarkets.map((market) => getMarketQuote(market.symbol))
-        );
-        const quotes = quoteResults.flatMap((result) => result.status === "fulfilled" ? [result.value] : []);
-        const candleResult = await getMarketCandles("AAPL", "1day", 30).then(
-          (items) => ({ ok: true as const, items }),
-          () => ({ ok: false as const, items: [] as MarketCandle[] })
-        );
+    getApiCapabilities()
+      .then(async (contract) => {
+        const quotePromise = contract.capabilities.marketQuotes.enabled
+          ? Promise.allSettled(referenceMarkets.map((market) => getMarketQuote(market.symbol)))
+          : Promise.resolve([]);
+        const candlePromise = contract.capabilities.marketCandles.enabled
+          ? getMarketCandles("AAPL", "1day", 30).then(
+              (items) => ({ ok: true as const, items }),
+              () => ({ ok: false as const, items: [] as MarketCandle[] })
+            )
+          : Promise.resolve({ ok: false as const, items: [] as MarketCandle[] });
+        const [quoteResults, candleResult] = await Promise.all([quotePromise, candlePromise]);
         if (!active) return;
+        const quotes = quoteResults.flatMap((result) => result.status === "fulfilled" ? [result.value] : []);
         setLiveQuotes(Object.fromEntries(quotes.map((quote) => [quote.symbol, quote])));
         setLiveCandles(candleResult.ok ? candleResult.items : null);
       })
       .catch(() => {
-        // Keep clearly labelled fixture values when the API health check fails.
+        // If the capability contract is unavailable or invalid, fail closed to labelled fixture data.
       });
     return () => {
       active = false;
