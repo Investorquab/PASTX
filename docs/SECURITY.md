@@ -11,6 +11,8 @@ Never commit:
 
 Use `.env.example` with safe placeholder values. Keep actual values in an untracked local `.env` or a deployment secret manager. If a credential is committed, revoke/rotate it; deleting the file later is not sufficient.
 
+The Secret Scan workflow runs Gitleaks on pushes, pull requests, and weekly, with full Git history available to the scanner. A clean scan is evidence only for the scanned repository history and detection rules; it is not proof that credentials were never exposed elsewhere. Rotate any credential suspected of exposure.
+
 ## Wallet security
 
 - The user's wallet controls signing and private-key custody.
@@ -41,11 +43,11 @@ The repository is public. Only publish documentation, source and evidence intend
 
 ## Automated checks
 
-The CI workflow runs `pnpm audit --prod --audit-level high` to fail on known high/critical production dependency advisories. The separate CodeQL workflow performs JavaScript/TypeScript static analysis on pushes, pull requests and weekly. These checks complement, but do not replace, secret scanning, manual review, provider licensing verification, or live deployment validation.
+The CI workflow runs `pnpm audit --prod --audit-level high` to fail on known high/critical production dependency advisories. The CodeQL workflow performs JavaScript/TypeScript static analysis on pushes, pull requests and weekly. The Secret Scan workflow runs Gitleaks over repository history. These checks complement, but do not replace, manual review, provider licensing verification, or live deployment validation.
 
 ## Before a public release
 
-- scan tracked files for secrets;
+- review secret-scan findings and rotate any exposed credential;
 - run dependency and static checks;
 - review authorization and error paths;
 - confirm no real keys are present in fixtures or screenshots;
