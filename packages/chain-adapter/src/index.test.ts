@@ -16,6 +16,16 @@ describe("probePortaldotEvm", () => {
     });
   });
 
+  it("supports an explicitly configured chain ID", async () => {
+    await expect(probePortaldotEvm("https://rpc.example", async () => 5042, 5042)).resolves.toMatchObject({
+      networkMatches: true, expectedChainId: 5042, chainId: 5042, status: "verified"
+    });
+  });
+
+  it("rejects invalid configured expected chain IDs", async () => {
+    await expect(probePortaldotEvm("https://rpc.example", async () => 1, 0)).rejects.toThrow("Expected EVM chain ID must be a positive safe integer.");
+  });
+
   it("rejects a reachable but incorrect network", async () => {
     await expect(probePortaldotEvm("https://rpc.example", async () => 1)).resolves.toMatchObject({
       configured: true, reachable: true, networkMatches: false, status: "wrong_network", chainId: 1, verificationScope: "chain_id_only"

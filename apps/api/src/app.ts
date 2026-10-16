@@ -11,11 +11,19 @@ export type AppOptions = {
   logger?: boolean;
   marketData?: TwelveDataAdapter;
   chainRpcUrl?: string;
+  chainExpectedChainId?: number;
   chainProbe?: () => Promise<ChainProbeResult>;
 };
 
 function apiError(code: ApiError["error"]["code"], message: string, requestId?: string): ApiError {
   return { error: { code, message, ...(requestId ? { requestId } : {}) } };
+}
+
+function configuredChainId(value: string | undefined): number {
+  if (value === undefined || value.trim() === "") return 420420777;
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) throw new Error("PORTALDOT_EVM_CHAIN_ID must be a positive safe integer.");
+  return parsed;
 }
 
 function findInstrument(symbol: string): MarketInstrument | undefined {
@@ -26,7 +34,9 @@ function findInstrument(symbol: string): MarketInstrument | undefined {
 export async function buildApp(options: AppOptions = {}): Promise<FastifyInstance> {
   const app = Fastify({ logger: options.logger ?? true, requestIdHeader: "x-request-id" });
   const marketData = options.marketData ?? new TwelveDataAdapter(options.marketDataApiKey ?? process.env.MARKET_DATA_API_KEY);
-  const chainProbe = options.chainProbe ?? (() => probePortaldotEvm(options.chainRpcUrl ?? process.env.PORTALDOT_EVM_RPC_URL));
+  const chainExpectedChainId = options.chainExpectedChainId ?? configuredChainId(process.env.PORTALDOT_EVM_CHAIN_ID);
+  if (!Number.isSafeInteger(chainExpectedChainId) || chainExpectedChainId <= 0) throw new Error("PORTALDOT_EVM_CHAIN_ID must be a positive safe integer.");
+  const chainProbe = options.chainProbe ?? (() => probePortaldotEvm(options.chainRpcUrl ?? process.env.PORTALDOT_EVM_RPC_URL, undefined, chainExpectedChainId));
   const marketDataDisplayEnabled = options.marketDataDisplayEnabled ?? process.env.MARKET_DATA_DISPLAY_ENABLED === "true";
   const marketDataConfigured = Boolean((options.marketDataApiKey ?? process.env.MARKET_DATA_API_KEY)?.trim());
 
@@ -82,7 +92,7 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
     const instrument = findInstrument(request.params.symbol);
     if (!instrument) return reply.code(404).send(apiError("NOT_FOUND", "Market instrument was not found.", request.id));
     if (!marketDataConfigured) return reply.code(503).send(apiError("PROVIDER_NOT_CONFIGURED", "Market data provider is not configured.", request.id));
-    if (!marketDataDisplayEnabled) return reply.code(403).send(apiError("MARKET_DATA_DISPLAY_DISABLED", "Live market-data display is disabled until provider terms are verified.", request.id));
+      if (!marketDataDisplayEnabled) return reply.code(403).send(apiError("MARKET_DATA_DISPLAY_DISABLED", "Live market-data display is disabled until provider terms are verified.", request.id));
     try {
       return { item: await marketData.getQuote(instrument) };
     } catch (error) {

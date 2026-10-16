@@ -20,14 +20,16 @@ const readChainId: ChainIdReader = async (rpcUrl) => {
  */
 export async function probePortaldotEvm(
   rpcUrl: string | undefined,
-  getChainId: ChainIdReader = readChainId
+  getChainId: ChainIdReader = readChainId,
+  expectedChainId = PORTALDOT_V3_EVM_CHAIN_ID
 ): Promise<ChainProbeResult> {
+  if (!Number.isSafeInteger(expectedChainId) || expectedChainId <= 0) throw new Error("Expected EVM chain ID must be a positive safe integer.");
   if (!rpcUrl?.trim()) {
     return {
       configured: false,
       reachable: false,
       networkMatches: false,
-      expectedChainId: PORTALDOT_V3_EVM_CHAIN_ID,
+      expectedChainId,
       chainId: null,
       status: "not_configured",
       verificationScope: "chain_id_only"
@@ -37,12 +39,12 @@ export async function probePortaldotEvm(
   try {
     const chainId = await getChainId(rpcUrl);
     if (!Number.isSafeInteger(chainId) || chainId <= 0) throw new Error("Invalid chain ID");
-    const networkMatches = chainId === PORTALDOT_V3_EVM_CHAIN_ID;
+    const networkMatches = chainId === expectedChainId;
     return {
       configured: true,
       reachable: true,
       networkMatches,
-      expectedChainId: PORTALDOT_V3_EVM_CHAIN_ID,
+      expectedChainId,
       chainId,
       status: networkMatches ? "verified" : "wrong_network",
       verificationScope: "chain_id_only"
@@ -52,7 +54,7 @@ export async function probePortaldotEvm(
       configured: true,
       reachable: false,
       networkMatches: false,
-      expectedChainId: PORTALDOT_V3_EVM_CHAIN_ID,
+      expectedChainId,
       chainId: null,
       status: "unreachable",
       verificationScope: "chain_id_only"

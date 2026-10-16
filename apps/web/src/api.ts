@@ -1,8 +1,6 @@
 import { isCandleInterval, MARKET_INSTRUMENTS, type MarketCandle, type MarketQuote, type CandleInterval } from "@pastx/shared";
 import { isMarketQuote } from "./marketQuote";
 
-const EXPECTED_PORTALDOT_V3_EVM_CHAIN_ID = 420420777;
-
 export type ApiHealth = {
   status: "ok";
   service: string;
@@ -59,7 +57,6 @@ export async function getChainStatus(fetchImpl: typeof fetch = fetch): Promise<C
     typeof status.networkMatches !== "boolean" ||
     typeof status.expectedChainId !== "number" ||
     !Number.isSafeInteger(status.expectedChainId) ||
-    status.expectedChainId !== EXPECTED_PORTALDOT_V3_EVM_CHAIN_ID ||
     !(status.chainId === null || (typeof status.chainId === "number" && Number.isSafeInteger(status.chainId) && status.chainId > 0)) ||
     typeof status.status !== "string" ||
     !allowed.includes(status.status) ||
