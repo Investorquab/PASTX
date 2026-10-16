@@ -178,7 +178,7 @@ export class TwelveDataAdapter {
       const low = parseFiniteNumber(item?.low);
       const close = parseFiniteNumber(item?.close);
       const volume = parseFiniteNumber(item?.volume);
-      if (!timestamp || open === null || high === null || low === null || close === null || open <= 0 || high <= 0 || low <= 0 || close <= 0 || high < Math.max(open, close, low) || low > Math.min(open, close, high) || (volume !== null && volume < 0)) {
+      if (!timestamp || open === null || high === null || low === null || close === null || open <= 0 || high <= 0 || low <= 0 || close <= 0 || high < Math.max(open, close, low) || low > Math.min(open, close, high) || (item?.volume !== undefined && item.volume !== null && (volume === null || volume < 0))) {
         throw new MarketDataError("PROVIDER_INVALID_RESPONSE", "Market data provider returned a malformed candle.", 502);
       }
       return { timestamp, open, high, low, close, volume };
