@@ -17,11 +17,11 @@
     "@pastx/shared": "workspace:*",
     "fastify": "^5.6.1",
     "@pastx/chain-adapter": "workspace:*",
-    "dotenv": "^17.2.3"
+    "dotenv": "^17.2.3",
+    "tsx": "^4.20.5"
   },
   "devDependencies": {
     "@types/node": "^22.18.6",
-    "tsx": "^4.20.5",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   }
