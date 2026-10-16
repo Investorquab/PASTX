@@ -52,3 +52,9 @@ The CI workflow runs `pnpm audit --prod --audit-level high` to fail on known hig
 - review authorization and error paths;
 - confirm no real keys are present in fixtures or screenshots;
 - verify every deployment and transaction claim.
+
+## CodeQL analysis
+
+The CodeQL workflow runs the JavaScript/TypeScript security query suite and archives its SARIF output as a private GitHub Actions artifact named `codeql-sarif-<run-id>` for 14 days. This repository is private and Code Scanning upload is not currently enabled, so CI must not present an unavailable upload as a successful GitHub Security-tab publication. Review the artifact from the relevant Actions run when examining CodeQL findings.
+
+When GitHub Code Security is enabled for this private repository, update the workflow's `upload: never` setting to `upload: always` to publish analysis results to GitHub Code Scanning. The artifact fallback preserves analysis output; it does not create GitHub Code Scanning alerts by itself.
