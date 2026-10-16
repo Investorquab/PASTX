@@ -1,4 +1,4 @@
-import { isCandleInterval, MARKET_INSTRUMENTS, type MarketCandle, type MarketQuote, type CandleInterval } from "@pastx/shared";
+import { isCandleInterval, MARKET_INSTRUMENTS, type MarketCandle, type MarketInstrument, type MarketQuote, type CandleInterval } from "@pastx/shared";
 import { isMarketQuote } from "./marketQuote";
 
 export type ApiHealth = {
@@ -18,6 +18,28 @@ export type ChainStatus = {
   blockNumber: string | null;
   status: "not_configured" | "unreachable" | "verified" | "wrong_network";
   verificationScope: "chain_id_and_latest_block_read";
+};
+
+
+export type ApiCapabilities = {
+  service: "pastx-api";
+  capabilities: {
+    referenceCatalogue: { implemented: true; enabled: true };
+    marketQuotes: { implemented: true; enabled: boolean };
+    marketCandles: { implemented: true; enabled: boolean };
+    chainIdentityProbe: { implemented: true; enabled: true; verificationScope: "chain_id_and_latest_block_read" };
+    walletConnection: { implemented: false; enabled: false };
+    onchainBalances: { implemented: false; enabled: false };
+    orderPreview: { implemented: true; enabled: true; execution: false };
+    orderSubmission: { implemented: false; enabled: false };
+    transactionHistory: { implemented: false; enabled: false };
+    atomicSettlement: { implemented: false; enabled: false };
+  };
+  safety: {
+    tradingEnabled: false;
+    externalStockQuotesAreReferenceData: true;
+    marketDataDisplayRequiresProviderPermission: true;
+  };
 };
 
 export class ApiClientError extends Error {
@@ -91,6 +113,90 @@ export async function getApiHealth(fetchImpl: typeof fetch = fetch): Promise<Api
     health.tradingEnabled !== false
   ) throw new ApiClientError("PASTX API returned invalid health status.");
   return health as unknown as ApiHealth;
+}
+
+
+export async function getApiCapabilities(fetchImpl: typeof fetch = fetch): Promise<ApiCapabilities> {
+  const payload = await fetchJson(fetchImpl, "/api/capabilities");
+  if (typeof payload !== "object" || payload === null) throw new ApiClientError("PASTX API returned invalid capabilities.");
+  const root = payload as Record<string, unknown>;
+  const capabilities = root.capabilities;
+  const safety = root.safety;
+  if (typeof capabilities !== "object" || capabilities === null || typeof safety !== "object" || safety === null) {
+    throw new ApiClientError("PASTX API returned invalid capabilities.");
+  }
+  const caps = capabilities as Record<string, unknown>;
+  const safetyFlags = safety as Record<string, unknown>;
+  const isFeature = (value: unknown, implemented: boolean, enabled?: boolean): boolean => {
+    if (typeof value !== "object" || value === null) return false;
+    const feature = value as Record<string, unknown>;
+    return feature.implemented === implemented && typeof feature.enabled === "boolean" &&
+      (enabled === undefined || feature.enabled === enabled);
+  };
+  if (
+    root.service !== "pastx-api" ||
+    !isFeature(caps.referenceCatalogue, true, true) ||
+    !isFeature(caps.marketQuotes, true) ||
+    !isFeature(caps.marketCandles, true) ||
+    !isFeature(caps.chainIdentityProbe, true, true) ||
+    (caps.chainIdentityProbe as Record<string, unknown>)?.verificationScope !== "chain_id_and_latest_block_read" ||
+    !isFeature(caps.walletConnection, false, false) ||
+    !isFeature(caps.onchainBalances, false, false) ||
+    !isFeature(caps.orderPreview, true, true) ||
+    (caps.orderPreview as Record<string, unknown>)?.execution !== false ||
+    !isFeature(caps.orderSubmission, false, false) ||
+    !isFeature(caps.transactionHistory, false, false) ||
+    !isFeature(caps.atomicSettlement, false, false) ||
+    safetyFlags.tradingEnabled !== false ||
+    safetyFlags.externalStockQuotesAreReferenceData !== true ||
+    safetyFlags.marketDataDisplayRequiresProviderPermission !== true
+  ) {
+    throw new ApiClientError("PASTX API returned invalid capabilities.");
+  }
+  return payload as ApiCapabilities;
+}
+
+
+export async function getMarketCatalogue(fetchImpl: typeof fetch = fetch): Promise<MarketInstrument[]> {
+  const payload = await fetchJson(fetchImpl, "/api/markets");
+  if (typeof payload !== "object" || payload === null) throw new ApiClientError("PASTX API returned an invalid market catalogue.");
+  const root = payload as Record<string, unknown>;
+  if (
+    !Array.isArray(root.items) ||
+    root.count !== root.items.length ||
+    root.classification !== "reference catalogue; not proof of tokenized equity or executable market"
+  ) {
+    throw new ApiClientError("PASTX API returned an invalid market catalogue.");
+  }
+
+  const seen = new Set<string>();
+  const items = root.items.map((value): MarketInstrument | null => {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+    const item = value as Record<string, unknown>;
+    if (
+      typeof item.symbol !== "string" ||
+      !/^[A-Z][A-Z0-9.]{0,14}$/.test(item.symbol) ||
+      seen.has(item.symbol) ||
+      typeof item.name !== "string" || !item.name.trim() ||
+      (item.kind !== "reference" && item.kind !== "simulated" && item.kind !== "onchain") ||
+      typeof item.description !== "string" || !item.description.trim() ||
+      typeof item.currency !== "string" || !/^[A-Z]{3,8}$/.test(item.currency) ||
+      !(item.providerSymbol === undefined || (typeof item.providerSymbol === "string" && item.providerSymbol.trim().length > 0))
+    ) return null;
+    seen.add(item.symbol);
+    return {
+      symbol: item.symbol,
+      name: item.name,
+      kind: item.kind,
+      description: item.description,
+      currency: item.currency,
+      ...(typeof item.providerSymbol === "string" ? { providerSymbol: item.providerSymbol } : {})
+    };
+  });
+  if (items.some((item) => item === null) || items.length === 0) {
+    throw new ApiClientError("PASTX API returned an invalid market catalogue.");
+  }
+  return items as MarketInstrument[];
 }
 
 export async function getMarketQuote(symbol: string, fetchImpl: typeof fetch = fetch): Promise<MarketQuote> {
