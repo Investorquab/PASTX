@@ -94,16 +94,25 @@ describe("PASTX API", () => {
     await app.close();
   });
 
-  it("bounds candle query parameters before contacting the provider", async () => {
-    const getCandles = vi.fn();
+  it("validates candle outputsize as decimal digits and enforces the 1–500 range", async () => {
+    const getCandles = vi.fn().mockResolvedValue([]);
     const fakeAdapter = { getQuote: vi.fn(), getCandles } as unknown as TwelveDataAdapter;
     const app = await buildApp({ logger: false, marketData: fakeAdapter, marketDataDisplayEnabled: true });
-    const invalidInterval = await app.inject({ method: "GET", url: "/api/markets/AAPL/candles?interval=2min" });
-    const invalidSize = await app.inject({ method: "GET", url: "/api/markets/AAPL/candles?outputsize=501" });
-    expect(invalidInterval.statusCode).toBe(400);
-    expect(invalidSize.statusCode).toBe(400);
-    expect(getCandles).not.toHaveBeenCalled();
-    await app.close();
+    try {
+      const invalidInterval = await app.inject({ method: "GET", url: "/api/markets/AAPL/candles?interval=2min" });
+      const invalidSizes = await Promise.all(["abc", "1.5", "-1", "0", "501", "1\\\\d"].map((size) =>
+        app.inject({ method: "GET", url: `/api/markets/AAPL/candles?outputsize=${encodeURIComponent(size)}` })
+      ));
+      expect(invalidInterval.statusCode).toBe(400);
+      expect(invalidSizes.every((response) => response.statusCode === 400)).toBe(true);
+      expect(getCandles).not.toHaveBeenCalled();
+
+      const validSize = await app.inject({ method: "GET", url: "/api/markets/AAPL/candles?outputsize=30" });
+      expect(validSize.statusCode).toBe(200);
+      expect(getCandles).toHaveBeenCalledWith(MARKET_INSTRUMENTS[0], "1day", 30);
+    } finally {
+      await app.close();
+    }
   });
 
   it("returns a normalized error when the API rate limit is exceeded", async () => {
