@@ -28,7 +28,7 @@ jobs:
         run: |
           mkdir -p evidence
           set +e
-          node scripts/check-substrate-progress.mjs wss://mainnet.portaldot.io 6 5000 > evidence/substrate-runtime-check.txt 2>&1
+          PASTX_METADATA_OUTPUT=evidence/substrate-runtime-metadata.hex node scripts/check-substrate-progress.mjs wss://mainnet.portaldot.io 6 5000 > evidence/substrate-runtime-check.txt 2>&1
           result=$?
           set -e
           cat evidence/substrate-runtime-check.txt
@@ -39,6 +39,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: portaldot-substrate-runtime-evidence-${{ github.run_id }}
-          path: evidence/substrate-runtime-check.txt
+          path: evidence/substrate-runtime-check.txt\n            evidence/substrate-runtime-metadata.hex
           if-no-files-found: error
           retention-days: 14
