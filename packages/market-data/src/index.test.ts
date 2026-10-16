@@ -12,6 +12,21 @@ function fakeFetch(payload: unknown, status = 200): typeof fetch {
 }
 
 describe("TwelveDataAdapter", () => {
+  it("refuses to fetch quotes or candles for non-reference instruments", async () => {
+    const fetcher = vi.fn();
+    const adapter = new TwelveDataAdapter("test-key", fetcher as unknown as typeof fetch);
+    const simulated = { ...instrument, kind: "simulated" as const };
+    const onchain = { ...instrument, kind: "onchain" as const };
+    const missingMapping = { ...instrument, providerSymbol: undefined };
+
+    await expect(adapter.getQuote(simulated)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE", statusCode: 400 });
+    await expect(adapter.getCandles(simulated, "1day", 30)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE", statusCode: 400 });
+    await expect(adapter.getQuote(onchain)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE", statusCode: 400 });
+    await expect(adapter.getCandles(onchain, "1day", 30)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE", statusCode: 400 });
+    await expect(adapter.getQuote(missingMapping)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE", statusCode: 400 });
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
   it("does not make requests without a server-side API key", async () => {
     const fetcher = vi.fn();
     const adapter = new TwelveDataAdapter(undefined, fetcher as unknown as typeof fetch);

@@ -112,6 +112,9 @@ export class TwelveDataAdapter {
   }
 
   async getQuote(instrument: MarketInstrument): Promise<MarketQuote> {
+    if (instrument.kind !== "reference" || !instrument.providerSymbol?.trim()) {
+      throw new MarketDataError("PROVIDER_INVALID_RESPONSE", "External market data is restricted to explicitly mapped reference instruments.", 400);
+    }
     const cacheKey = instrument.symbol;
     const cached = this.quoteCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) return { ...cached.value };
@@ -154,6 +157,9 @@ export class TwelveDataAdapter {
   }
 
   async getCandles(instrument: MarketInstrument, interval: CandleInterval, outputSize: number): Promise<MarketCandle[]> {
+    if (instrument.kind !== "reference" || !instrument.providerSymbol?.trim()) {
+      throw new MarketDataError("PROVIDER_INVALID_RESPONSE", "External market data is restricted to explicitly mapped reference instruments.", 400);
+    }
     const cacheKey = `${instrument.symbol}:${interval}:${outputSize}`;
     const cached = this.candleCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) return cached.value.map((candle) => ({ ...candle }));
