@@ -100,7 +100,7 @@ describe("PASTX API", () => {
     const app = await buildApp({ logger: false, marketData: fakeAdapter, marketDataDisplayEnabled: true });
     try {
       const invalidInterval = await app.inject({ method: "GET", url: "/api/markets/AAPL/candles?interval=2min" });
-      const invalidSizes = await Promise.all(["abc", "1.5", "-1", "0", "501", "1\\\\d"].map((size) =>
+      const invalidSizes = await Promise.all(["abc", "1.5", "-1", "0", "501", "1d"].map((size) =>
         app.inject({ method: "GET", url: `/api/markets/AAPL/candles?outputsize=${encodeURIComponent(size)}` })
       ));
       expect(invalidInterval.statusCode).toBe(400);
