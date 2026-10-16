@@ -39,6 +39,10 @@ Use `.env.example` with safe placeholder values. Keep actual values in an untrac
 
 The repository is public. Only publish documentation, source and evidence intended for public review. Do not publish private messages from ecosystem contacts without consent. Public project status must accurately distinguish planned, implemented, locally tested, and deployed features.
 
+## Automated checks
+
+The CI workflow runs `pnpm audit --prod --audit-level high` to fail on known high/critical production dependency advisories. The separate CodeQL workflow performs JavaScript/TypeScript static analysis on pushes, pull requests and weekly. These checks complement, but do not replace, secret scanning, manual review, provider licensing verification, or live deployment validation.
+
 ## Before a public release
 
 - scan tracked files for secrets;

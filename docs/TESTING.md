@@ -13,7 +13,7 @@ Vitest suites are included for:
 - Twelve Data quote/candle normalization, missing API key, provider rate-limit errors, mismatched quote symbols/currencies and candle-series metadata, UTC-stable candle timestamps, malformed timestamps/OHLC and provided-volume payloads, quote-cache expiry, defensive cache copies, transport failures and timeout mapping;
 - API health flags, machine-readable capability contract, security headers, catalogue output, unknown symbols, bounded candle query parameters (including decimal-digit parsing, range limits and valid values), safe provider errors, and normalized rate-limit responses.
 
-The CI workflow runs frozen-lockfile dependency installation, workspace type checks, unit tests, the web production build, the bundled API build, and a production-mode API health smoke test. Refer to the [GitHub Actions page](https://github.com/Investorquab/PASTX/actions) and verify the run is attached to the exact commit under review. A test is not considered passed until that commit’s corresponding run is green.
+The CI workflow runs frozen-lockfile dependency installation, a high-severity production dependency audit, workspace type checks, unit tests, the web production build, the bundled API build, and a production-mode API smoke test covering health, capability safety flags, unconfigured chain status, and disabled market-data routes. A separate CodeQL workflow analyzes JavaScript/TypeScript on pushes, pull requests and a weekly schedule. Refer to the [GitHub Actions page](https://github.com/Investorquab/PASTX/actions) and verify the run is attached to the exact commit under review. A test is not considered passed until that commit’s corresponding run is green.
 
 ## Remaining test levels
 

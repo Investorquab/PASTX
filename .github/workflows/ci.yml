@@ -30,6 +30,9 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level high
       - name: Typecheck all packages
         run: pnpm check
       - name: Unit tests
@@ -45,7 +48,15 @@ jobs:
           trap 'kill "$api_pid" 2>/dev/null || true' EXIT
           for attempt in $(seq 1 20); do
             if response="$(curl --fail --silent http://127.0.0.1:4179/api/health)"; then
-              printf '%s' "$response" | node -e 'let data = ""; process.stdin.on("data", chunk => data += chunk); process.stdin.on("end", () => { const health = JSON.parse(data); if (health.status !== "ok" || health.service !== "pastx-api" || health.tradingEnabled !== false) process.exit(1); });'
+              printf '%s' "$response" | node -e 'let data = ""; process.stdin.on("data", chunk => data += chunk); process.stdin.on("end", () => { const health = JSON.parse(data); if (health.status !== "ok" || health.service !== "pastx-api" || health.tradingEnabled !== false || health.marketDataConfigured !== false || health.marketDataDisplayEnabled !== false) process.exit(1); });'
+              capabilities="$(curl --fail --silent http://127.0.0.1:4179/api/capabilities)"
+              printf '%s' "$capabilities" | node -e 'let data = ""; process.stdin.on("data", chunk => data += chunk); process.stdin.on("end", () => { const body = JSON.parse(data); const c = body.capabilities; if (body.safety?.tradingEnabled !== false || c?.walletConnection?.enabled !== false || c?.orderSubmission?.enabled !== false || c?.atomicSettlement?.enabled !== false || c?.marketQuotes?.enabled !== false || c?.marketCandles?.enabled !== false) process.exit(1); });'
+              chain="$(curl --fail --silent http://127.0.0.1:4179/api/chain/status)"
+              printf '%s' "$chain" | node -e 'let data = ""; process.stdin.on("data", chunk => data += chunk); process.stdin.on("end", () => { const item = JSON.parse(data).item; if (item?.configured !== false || item?.status !== "not_configured" || item?.blockNumber !== null) process.exit(1); });'
+              quote_status="$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:4179/api/markets/AAPL/quote)"
+              candle_status="$(curl --silent --output /dev/null --write-out '%{http_code}' 'http://127.0.0.1:4179/api/markets/AAPL/candles?interval=1day&outputsize=30')"
+              test "$quote_status" = "503"
+              test "$candle_status" = "503"
               exit 0
             fi
             sleep 1
