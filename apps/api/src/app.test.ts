@@ -9,6 +9,29 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function signRegistry(rawJson: string): Promise<{ signature: string; publicKey: string }> {
+  const pair = await globalThis.crypto.subtle.generateKey(
+    { name: "Ed25519" },
+    true,
+    ["sign", "verify"]
+  ) as CryptoKeyPair;
+  const signature = await globalThis.crypto.subtle.sign(
+    { name: "Ed25519" },
+    pair.privateKey,
+    new TextEncoder().encode(rawJson)
+  );
+  const publicKey = await globalThis.crypto.subtle.exportKey("raw", pair.publicKey);
+  return {
+    signature: bytesToHex(new Uint8Array(signature)),
+    publicKey: bytesToHex(new Uint8Array(publicKey))
+  };
+}
+
+
 describe("PASTX API", () => {
   it("reports health without claiming trading is enabled", async () => {
     const app = await buildApp({ logger: false, marketDataApiKey: undefined });
@@ -140,10 +163,13 @@ describe("PASTX API", () => {
       provenance: "verified_registry"
     }]);
     const sha256 = createHash("sha256").update(rawJson).digest("hex");
+    const signed = await signRegistry(rawJson);
     const app = await buildApp({
       logger: false,
       onchainAssetRegistryJson: rawJson,
-      onchainAssetRegistrySha256: sha256
+      onchainAssetRegistrySha256: sha256,
+      onchainAssetRegistrySignature: signed.signature,
+      onchainAssetRegistryPublicKey: signed.publicKey
     });
     try {
       const status = await app.inject({ method: "GET", url: "/api/assets/onchain/registry-status" });
@@ -172,10 +198,13 @@ describe("PASTX API", () => {
       decimals: 6,
       provenance: "verified_registry"
     }]);
+    const signed = await signRegistry(rawJson);
     const app = await buildApp({
       logger: false,
       onchainAssetRegistryJson: rawJson,
-      onchainAssetRegistrySha256: "0".repeat(64)
+      onchainAssetRegistrySha256: "0".repeat(64),
+      onchainAssetRegistrySignature: signed.signature,
+      onchainAssetRegistryPublicKey: signed.publicKey
     });
     try {
       const status = await app.inject({ method: "GET", url: "/api/assets/onchain/registry-status" });

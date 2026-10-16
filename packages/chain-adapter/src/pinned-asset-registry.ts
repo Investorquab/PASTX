@@ -7,7 +7,7 @@ export type PinnedRegistryResult =
       reason: "invalid_digest_pin" | "digest_mismatch" | "invalid_json" | "registry_too_large" | Extract<AssetRegistryValidation, { valid: false }>["reason"];
     };
 
-const MAX_REGISTRY_JSON_BYTES = 1_048_576;
+export const MAX_REGISTRY_JSON_BYTES = 1_048_576;
 
 function toHex(bytes: Uint8Array): string {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
