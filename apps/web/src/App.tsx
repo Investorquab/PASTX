@@ -147,13 +147,13 @@ function App() {
         not_configured: "RPC not configured",
         unreachable: "RPC unreachable",
         wrong_network: "Wrong network",
-        verified: "Chain ID matches"
+        verified: "Chain + block verified"
       } as const)[chainStatus.status]
     : chainStatusError
       ? "API unavailable"
       : "Checking RPC…";
   const chainStatusDetail = chainStatus?.status === "verified"
-    ? "Read-only identity check; settlement unverified"
+    ? `Read-only chain and latest-block check (block ${chainStatus.blockNumber}); settlement unverified`
     : chainStatus?.status === "wrong_network"
       ? `Expected chain ID ${chainStatus.expectedChainId}; received ${chainStatus.chainId}`
       : chainStatus?.status === "unreachable"
@@ -228,7 +228,7 @@ function App() {
           <article className="summary-card">
             <div className="card-label">NETWORK <span className="tiny-icon"><Activity size={15} /></span></div>
             <div className="summary-value network-value"><span className="status-ring" /> {chainStatusLabel}</div>
-            <div className="summary-note">Read-only RPC identity check; no wallet or trades</div>
+            <div className="summary-note">Read-only chain and block check; no wallet or trades</div>
           </article>
           <article className="summary-card">
             <div className="card-label">TRADE EXECUTION <span className="tiny-icon"><ShieldCheck size={15} /></span></div>

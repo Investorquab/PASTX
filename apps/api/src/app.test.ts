@@ -26,7 +26,7 @@ describe("PASTX API", () => {
         referenceCatalogue: { implemented: true, enabled: true },
         marketQuotes: { implemented: true, enabled: false },
         marketCandles: { implemented: true, enabled: false },
-        chainIdentityProbe: { implemented: true, enabled: true, verificationScope: "chain_id_only" },
+        chainIdentityProbe: { implemented: true, enabled: true, verificationScope: "chain_id_and_latest_block_read" },
         walletConnection: { implemented: false, enabled: false },
         orderPreview: { implemented: true, enabled: true, execution: false },
         orderSubmission: { implemented: false, enabled: false },
@@ -57,12 +57,12 @@ describe("PASTX API", () => {
       logger: false,
       chainProbe: async () => ({
         configured: true, reachable: true, networkMatches: true,
-        expectedChainId: PORTALDOT_V3_EVM_CHAIN_ID, chainId: PORTALDOT_V3_EVM_CHAIN_ID, status: "verified", verificationScope: "chain_id_only"
+        expectedChainId: PORTALDOT_V3_EVM_CHAIN_ID, chainId: PORTALDOT_V3_EVM_CHAIN_ID, blockNumber: "12345", status: "verified", verificationScope: "chain_id_and_latest_block_read"
       })
     });
     const response = await app.inject({ method: "GET", url: "/api/chain/status" });
     expect(response.statusCode).toBe(200);
-    expect(response.json().item).toMatchObject({ status: "verified", chainId: 420420777, verificationScope: "chain_id_only" });
+    expect(response.json().item).toMatchObject({ status: "verified", chainId: 420420777, verificationScope: "chain_id_and_latest_block_read" });
     expect(response.body).not.toContain("rpc.example");
     await app.close();
   });
@@ -76,8 +76,9 @@ describe("PASTX API", () => {
         configured: false,
         expectedChainId: 5042,
         chainId: null,
+        blockNumber: null,
         status: "not_configured",
-        verificationScope: "chain_id_only"
+        verificationScope: "chain_id_and_latest_block_read"
       });
     } finally {
       await app.close();

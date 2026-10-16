@@ -59,7 +59,7 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
       referenceCatalogue: { implemented: true, enabled: true },
       marketQuotes: { implemented: true, enabled: marketDataDisplayEnabled && marketDataConfigured },
       marketCandles: { implemented: true, enabled: marketDataDisplayEnabled && marketDataConfigured },
-      chainIdentityProbe: { implemented: true, enabled: true, verificationScope: "chain_id_only" },
+      chainIdentityProbe: { implemented: true, enabled: true, verificationScope: "chain_id_and_latest_block_read" },
       walletConnection: { implemented: false, enabled: false },
       onchainBalances: { implemented: false, enabled: false },
       orderPreview: { implemented: true, enabled: true, execution: false },

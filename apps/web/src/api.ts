@@ -15,8 +15,9 @@ export type ChainStatus = {
   networkMatches: boolean;
   expectedChainId: number;
   chainId: number | null;
+  blockNumber: string | null;
   status: "not_configured" | "unreachable" | "verified" | "wrong_network";
-  verificationScope: "chain_id_only";
+  verificationScope: "chain_id_and_latest_block_read";
 };
 
 export class ApiClientError extends Error {
@@ -58,20 +59,21 @@ export async function getChainStatus(fetchImpl: typeof fetch = fetch): Promise<C
     typeof status.expectedChainId !== "number" ||
     !Number.isSafeInteger(status.expectedChainId) ||
     !(status.chainId === null || (typeof status.chainId === "number" && Number.isSafeInteger(status.chainId) && status.chainId > 0)) ||
+    !(status.blockNumber === null || (typeof status.blockNumber === "string" && /^\d+$/.test(status.blockNumber))) ||
     typeof status.status !== "string" ||
     !allowed.includes(status.status) ||
-    status.verificationScope !== "chain_id_only"
+    status.verificationScope !== "chain_id_and_latest_block_read"
   ) {
     throw new ApiClientError("PASTX API returned an invalid chain status.");
   }
 
   const stateIsConsistent = status.status === "not_configured"
-    ? status.configured === false && status.reachable === false && status.networkMatches === false && status.chainId === null
+    ? status.configured === false && status.reachable === false && status.networkMatches === false && status.chainId === null && status.blockNumber === null
     : status.status === "unreachable"
-      ? status.configured === true && status.reachable === false && status.networkMatches === false && status.chainId === null
+      ? status.configured === true && status.reachable === false && status.networkMatches === false && status.chainId === null && status.blockNumber === null
       : status.status === "verified"
-        ? status.configured === true && status.reachable === true && status.networkMatches === true && status.chainId === status.expectedChainId
-        : status.configured === true && status.reachable === true && status.networkMatches === false && status.chainId !== null && status.chainId !== status.expectedChainId;
+        ? status.configured === true && status.reachable === true && status.networkMatches === true && status.chainId === status.expectedChainId && typeof status.blockNumber === "string"
+        : status.configured === true && status.reachable === true && status.networkMatches === false && status.chainId !== null && status.chainId !== status.expectedChainId && typeof status.blockNumber === "string";
 
   if (!stateIsConsistent) throw new ApiClientError("PASTX API returned an inconsistent chain status.");
   return status as unknown as ChainStatus;

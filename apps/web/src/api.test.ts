@@ -6,11 +6,11 @@ describe("getChainStatus", () => {
     const fetcher = vi.fn(async () => new Response(JSON.stringify({
       item: {
         configured: true, reachable: true, networkMatches: true,
-        expectedChainId: 420420777, chainId: 420420777, status: "verified", verificationScope: "chain_id_only"
+        expectedChainId: 420420777, chainId: 420420777, blockNumber: "12345", status: "verified", verificationScope: "chain_id_and_latest_block_read"
       }
     }), { status: 200 }));
     await expect(getChainStatus(fetcher as unknown as typeof fetch)).resolves.toMatchObject({
-      status: "verified", chainId: 420420777, networkMatches: true, verificationScope: "chain_id_only"
+      status: "verified", chainId: 420420777, networkMatches: true, verificationScope: "chain_id_and_latest_block_read"
     });
   });
 
@@ -21,7 +21,7 @@ describe("getChainStatus", () => {
   });
 
   it("rejects malformed API payloads", async () => {
-    const fetcher = async () => new Response(JSON.stringify({ item: { status: "unknown", verificationScope: "chain_id_only" } }), { status: 200 });
+    const fetcher = async () => new Response(JSON.stringify({ item: { status: "unknown", verificationScope: "chain_id_and_latest_block_read" } }), { status: 200 });
     await expect(getChainStatus(fetcher as unknown as typeof fetch)).rejects.toBeInstanceOf(ApiClientError);
   });
 
@@ -29,11 +29,11 @@ describe("getChainStatus", () => {
     const fetcher = async () => new Response(JSON.stringify({
       item: {
         configured: true, reachable: true, networkMatches: true,
-        expectedChainId: 1, chainId: 1, status: "verified", verificationScope: "chain_id_only"
+        expectedChainId: 1, chainId: 1, blockNumber: "1", status: "verified", verificationScope: "chain_id_and_latest_block_read"
       }
     }), { status: 200 });
     await expect(getChainStatus(fetcher as unknown as typeof fetch)).resolves.toMatchObject({
-      expectedChainId: 1, chainId: 1, status: "verified", networkMatches: true
+      expectedChainId: 1, chainId: 1, blockNumber: "1", status: "verified", networkMatches: true
     });
   });
 
@@ -41,7 +41,7 @@ describe("getChainStatus", () => {
     const fetcher = async () => new Response(JSON.stringify({
       item: {
         configured: true, reachable: true, networkMatches: true,
-        expectedChainId: 5042, chainId: 1, status: "verified", verificationScope: "chain_id_only"
+        expectedChainId: 5042, chainId: 1, blockNumber: "1", status: "verified", verificationScope: "chain_id_and_latest_block_read"
       }
     }), { status: 200 });
     await expect(getChainStatus(fetcher as unknown as typeof fetch)).rejects.toMatchObject({
