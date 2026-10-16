@@ -105,7 +105,7 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
       }
 
       const rawSize = request.query.outputsize ?? "30";
-      if (!/^\\d+$/.test(rawSize)) {
+      if (!/^\d+$/.test(rawSize)) {
         return reply.code(400).send(apiError("INVALID_INPUT", "outputsize must be an integer between 1 and 500.", request.id));
       }
       const outputsize = Number(rawSize);
