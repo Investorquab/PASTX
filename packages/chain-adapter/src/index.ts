@@ -51,3 +51,5 @@ export async function probePortaldotEvm(
 }
 
 export { verifyPinnedOnchainAssetRegistry } from "./pinned-asset-registry";
+
+export { verifySignedOnchainAssetRegistry } from "./signed-asset-registry";

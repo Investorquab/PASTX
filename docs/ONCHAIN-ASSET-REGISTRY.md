@@ -11,3 +11,9 @@ This is an integrity check, not a signature system or chain identity proof. It d
 The API accepts raw registry JSON through the server-side environment variable `PASTX_ONCHAIN_ASSET_REGISTRY_JSON` and its expected SHA-256 digest through `PASTX_ONCHAIN_ASSET_REGISTRY_SHA256`. The JSON payload is capped at 1 MiB and the metadata validator limits the catalogue to 500 entries. Supply the expected digest through a trusted release/configuration process; configuring the digest beside an attacker-controlled registry does not establish authenticity.
 
 `GET /api/assets/onchain/registry-status` reports whether the configured bytes pass digest and metadata checks. The capability document publishes the same integrity state without exposing registry contents or the digest. `GET /api/assets/onchain` remains unavailable even after successful integrity verification: canonical chain identity and runtime integration are still unverified. Missing and invalid registry configuration fails closed.
+
+## Signed registry authentication
+
+In addition to the JSON and SHA-256 digest, the API requires `PASTX_ONCHAIN_ASSET_REGISTRY_SIGNATURE` (128 hex characters) and `PASTX_ONCHAIN_ASSET_REGISTRY_PUBLIC_KEY` (64 hex characters). The Ed25519 signature must be calculated over the exact UTF-8 bytes of the registry JSON. The API verifies the signature before accepting the digest and metadata checks.
+
+Provision the public key through an independently trusted release/configuration channel. Do not place the private signing key in this repository, the API environment, or client code. A public key downloaded together with the registry is not a trusted key. The private key is needed only in a separate registry-signing workflow. Rotating the trusted key requires an explicit, authenticated configuration change. Registry authenticity still does not prove canonical RPC identity or runtime support, so discovery remains disabled.

@@ -3,7 +3,7 @@ import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import { MARKET_INSTRUMENTS, isCandleInterval, type ApiError, type MarketInstrument } from "@pastx/shared";
 import { MarketDataError, TwelveDataAdapter } from "@pastx/market-data";
-import { probePortaldotEvm, verifyPinnedOnchainAssetRegistry, type ChainProbeResult } from "@pastx/chain-adapter";
+import { probePortaldotEvm, verifySignedOnchainAssetRegistry, type ChainProbeResult } from "@pastx/chain-adapter";
 
 export type AppOptions = {
   marketDataApiKey?: string;
@@ -15,6 +15,8 @@ export type AppOptions = {
   chainProbe?: () => Promise<ChainProbeResult>;
   onchainAssetRegistryJson?: string;
   onchainAssetRegistrySha256?: string;
+  onchainAssetRegistrySignature?: string;
+  onchainAssetRegistryPublicKey?: string;
 };
 
 function apiError(code: ApiError["error"]["code"], message: string, requestId?: string): ApiError {
@@ -37,19 +39,29 @@ type RegistryIntegrityResponse =
 async function inspectRegistryIntegrity(
   rawJson: string | undefined,
   expectedSha256: string | undefined,
+  signatureHex: string | undefined,
+  trustedPublicKeyHex: string | undefined,
   expectedChainId: number
 ): Promise<RegistryIntegrityResponse> {
   const registryMissing = rawJson === undefined || rawJson.trim() === "";
   const digestMissing = expectedSha256 === undefined || expectedSha256.trim() === "";
-  if (registryMissing && digestMissing) {
+  const signatureMissing = signatureHex === undefined || signatureHex.trim() === "";
+  const publicKeyMissing = trustedPublicKeyHex === undefined || trustedPublicKeyHex.trim() === "";
+  if (registryMissing && digestMissing && signatureMissing && publicKeyMissing) {
     return { status: "not_configured", configured: false, verified: false, assetCount: 0, reason: "registry_not_configured" };
   }
-  if (registryMissing || digestMissing) {
+  if (registryMissing || digestMissing || signatureMissing || publicKeyMissing) {
     return { status: "invalid", configured: true, verified: false, assetCount: 0, reason: "incomplete_configuration" };
   }
 
   try {
-    const result = await verifyPinnedOnchainAssetRegistry(rawJson as string, expectedChainId, (expectedSha256 as string).trim());
+    const result = await verifySignedOnchainAssetRegistry(
+      rawJson as string,
+      expectedChainId,
+      (expectedSha256 as string).trim(),
+      (signatureHex as string).trim(),
+      (trustedPublicKeyHex as string).trim()
+    );
     if (!result.valid) {
       return { status: "invalid", configured: true, verified: false, assetCount: 0, reason: result.reason };
     }
@@ -73,6 +85,8 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
   const registryIntegrity = await inspectRegistryIntegrity(
     options.onchainAssetRegistryJson ?? process.env.PASTX_ONCHAIN_ASSET_REGISTRY_JSON,
     options.onchainAssetRegistrySha256 ?? process.env.PASTX_ONCHAIN_ASSET_REGISTRY_SHA256,
+    options.onchainAssetRegistrySignature ?? process.env.PASTX_ONCHAIN_ASSET_REGISTRY_SIGNATURE,
+    options.onchainAssetRegistryPublicKey ?? process.env.PASTX_ONCHAIN_ASSET_REGISTRY_PUBLIC_KEY,
     chainExpectedChainId
   );
   const discoveryUnavailableReason = registryIntegrity.status === "verified"
