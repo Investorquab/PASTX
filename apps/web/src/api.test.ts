@@ -25,6 +25,18 @@ describe("getChainStatus", () => {
     await expect(getChainStatus(fetcher as unknown as typeof fetch)).rejects.toBeInstanceOf(ApiClientError);
   });
 
+  it("rejects internally inconsistent chain identity states", async () => {
+    const fetcher = async () => new Response(JSON.stringify({
+      item: {
+        configured: true, reachable: true, networkMatches: true,
+        expectedChainId: 420420777, chainId: 1, status: "verified", verificationScope: "chain_id_only"
+      }
+    }), { status: 200 });
+    await expect(getChainStatus(fetcher as unknown as typeof fetch)).rejects.toMatchObject({
+      name: "ApiClientError", message: "PASTX API returned an inconsistent chain status."
+    });
+  });
+
   it("maps non-2xx responses to safe client errors", async () => {
     const fetcher = async () => new Response("private upstream details", { status: 503 });
     await expect(getChainStatus(fetcher as unknown as typeof fetch)).rejects.toMatchObject({ statusCode: 503 });
