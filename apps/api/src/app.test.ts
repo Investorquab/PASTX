@@ -105,7 +105,7 @@ describe("PASTX API", () => {
   it("blocks live quote display by default until licensing is confirmed", async () => {
     const getQuote = vi.fn();
     const fakeAdapter = { getQuote, getCandles: vi.fn() } as unknown as TwelveDataAdapter;
-    const app = await buildApp({ logger: false, marketData: fakeAdapter });
+    const app = await buildApp({ logger: false, marketDataApiKey: "configured-key", marketData: fakeAdapter });
     const response = await app.inject({ method: "GET", url: "/api/markets/AAPL/quote" });
     expect(response.statusCode).toBe(403);
     expect(response.json().error.code).toBe("MARKET_DATA_DISPLAY_DISABLED");
@@ -151,7 +151,7 @@ describe("PASTX API", () => {
       getQuote: vi.fn().mockRejectedValue(new MarketDataError("PROVIDER_RATE_LIMIT", "Market data provider rate limit reached.", 429)),
       getCandles: vi.fn()
     } as unknown as TwelveDataAdapter;
-    const app = await buildApp({ logger: false, marketData: fakeAdapter, marketDataDisplayEnabled: true });
+    const app = await buildApp({ logger: false, marketDataApiKey: "configured-key", marketData: fakeAdapter, marketDataDisplayEnabled: true });
     const response = await app.inject({ method: "GET", url: "/api/markets/AAPL/quote" });
     expect(response.statusCode).toBe(429);
     expect(response.json().error).toMatchObject({ code: "PROVIDER_RATE_LIMIT" });
