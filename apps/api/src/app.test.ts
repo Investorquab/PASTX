@@ -27,6 +27,7 @@ describe("PASTX API", () => {
         marketQuotes: { implemented: true, enabled: false },
         marketCandles: { implemented: true, enabled: false },
         chainIdentityProbe: { implemented: true, enabled: true, verificationScope: "chain_id_and_latest_block_read" },
+        onchainAssetDiscovery: { implemented: false, enabled: false, reason: "runtime_adapter_unverified" },
         walletConnection: { implemented: false, enabled: false },
         orderPreview: { implemented: true, enabled: true, execution: false },
         orderSubmission: { implemented: false, enabled: false },
@@ -89,6 +90,19 @@ describe("PASTX API", () => {
     await expect(buildApp({ logger: false, chainExpectedChainId: 0 })).rejects.toThrow(
       "PORTALDOT_EVM_CHAIN_ID must be a positive safe integer."
     );
+  });
+
+
+  it("keeps on-chain asset discovery explicitly unavailable rather than returning fabricated assets", async () => {
+    const app = await buildApp({ logger: false });
+    try {
+      const response = await app.inject({ method: "GET", url: "/api/assets/onchain" });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({ status: "unavailable", items: [], reason: "runtime_adapter_unverified" });
+      const capabilities = await app.inject({ method: "GET", url: "/api/capabilities" });
+      expect(capabilities.json().capabilities.onchainAssetDiscovery).toEqual({ implemented: false, enabled: false, reason: "runtime_adapter_unverified" });
+      expect(capabilities.json().capabilities.onchainBalances).toEqual({ implemented: false, enabled: false });
+    } finally { await app.close(); }
   });
 
   it("returns only explicitly classified reference catalogue entries", async () => {

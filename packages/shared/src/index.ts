@@ -11,6 +11,20 @@ export type MarketInstrument = {
 
 export type QuoteSource = "fixture" | "twelve_data";
 
+/** Asset discovery is separate from external market references and never implies ownership. */
+export type OnchainAssetMetadata = {
+  chainId: number;
+  contractAddress: string;
+  symbol: string;
+  name: string;
+  decimals: number;
+  provenance: "verified_registry";
+};
+
+export type OnchainAssetDiscovery =
+  | { status: "available"; chainId: number; items: OnchainAssetMetadata[]; observedAt: string }
+  | { status: "unavailable"; items: []; reason: "runtime_adapter_unverified" | "registry_not_configured" };
+
 export type MarketQuote = {
   symbol: string;
   price: number;
@@ -42,6 +56,7 @@ export type ApiErrorCode =
   | "PROVIDER_RATE_LIMIT"
   | "PROVIDER_UNAVAILABLE"
   | "PROVIDER_INVALID_RESPONSE"
+  | "CHAIN_ASSET_DISCOVERY_UNAVAILABLE"
   | "INTERNAL_ERROR";
 
 export type ApiError = {

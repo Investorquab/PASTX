@@ -60,6 +60,7 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
       marketQuotes: { implemented: true, enabled: marketDataDisplayEnabled && marketDataConfigured },
       marketCandles: { implemented: true, enabled: marketDataDisplayEnabled && marketDataConfigured },
       chainIdentityProbe: { implemented: true, enabled: true, verificationScope: "chain_id_and_latest_block_read" },
+      onchainAssetDiscovery: { implemented: false, enabled: false, reason: "runtime_adapter_unverified" },
       walletConnection: { implemented: false, enabled: false },
       onchainBalances: { implemented: false, enabled: false },
       orderPreview: { implemented: true, enabled: true, execution: false },
@@ -75,6 +76,14 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
   }));
 
   app.get("/api/chain/status", async () => ({ item: await chainProbe() }));
+
+  // Explicitly unavailable until a supported runtime adapter and trusted asset
+  // registry are configured. An empty list must never masquerade as a zero balance.
+  app.get("/api/assets/onchain", async () => ({
+    status: "unavailable" as const,
+    items: [] as const,
+    reason: "runtime_adapter_unverified" as const
+  }));
 
   app.get("/api/markets", async () => ({
     items: MARKET_INSTRUMENTS,
