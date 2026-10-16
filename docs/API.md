@@ -50,7 +50,7 @@ The provider's API key is sent only by the server. It must never be added to the
 
 `GET /api/markets/AAPL/candles?interval=1day&outputsize=30`
 
-Supported intervals: `1min`, `5min`, `15min`, `30min`, `1h`, `1day`. `outputsize` must be an integer from 1 through 500. Candles include ISO timestamp, open, high, low, close, and nullable volume. Malformed OHLC relationships are rejected.
+Supported intervals: `1min`, `5min`, `15min`, `30min`, `1h`, `1day`. `outputsize` must contain decimal digits only and represent an integer from 1 through 500; values such as `abc`, `1.5`, negative values, zero and values above 500 are rejected before the provider is called. Candles include ISO timestamp, open, high, low, close, and nullable volume. Malformed OHLC relationships are rejected.
 
 ## Error contract
 
