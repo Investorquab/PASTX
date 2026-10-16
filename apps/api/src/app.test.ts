@@ -67,6 +67,29 @@ describe("PASTX API", () => {
     await app.close();
   });
 
+  it("uses an explicitly configured expected chain ID for the read-only probe", async () => {
+    const app = await buildApp({ logger: false, chainExpectedChainId: 5042 });
+    try {
+      const response = await app.inject({ method: "GET", url: "/api/chain/status" });
+      expect(response.statusCode).toBe(200);
+      expect(response.json().item).toMatchObject({
+        configured: false,
+        expectedChainId: 5042,
+        chainId: null,
+        status: "not_configured",
+        verificationScope: "chain_id_only"
+      });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it("rejects an invalid configured expected chain ID at startup", async () => {
+    await expect(buildApp({ logger: false, chainExpectedChainId: 0 })).rejects.toThrow(
+      "PORTALDOT_EVM_CHAIN_ID must be a positive safe integer."
+    );
+  });
+
   it("returns only explicitly classified reference catalogue entries", async () => {
     const app = await buildApp({ logger: false });
     const response = await app.inject({ method: "GET", url: "/api/markets" });

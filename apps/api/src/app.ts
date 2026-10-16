@@ -92,7 +92,7 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
     const instrument = findInstrument(request.params.symbol);
     if (!instrument) return reply.code(404).send(apiError("NOT_FOUND", "Market instrument was not found.", request.id));
     if (!marketDataConfigured) return reply.code(503).send(apiError("PROVIDER_NOT_CONFIGURED", "Market data provider is not configured.", request.id));
-      if (!marketDataDisplayEnabled) return reply.code(403).send(apiError("MARKET_DATA_DISPLAY_DISABLED", "Live market-data display is disabled until provider terms are verified.", request.id));
+    if (!marketDataDisplayEnabled) return reply.code(403).send(apiError("MARKET_DATA_DISPLAY_DISABLED", "Live market-data display is disabled until provider terms are verified.", request.id));
     try {
       return { item: await marketData.getQuote(instrument) };
     } catch (error) {

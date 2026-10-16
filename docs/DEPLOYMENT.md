@@ -41,7 +41,7 @@ Before public client-facing display, verify the provider account's license and t
 
 ## Optional Portaldot RPC probe
 
-Set `PORTALDOT_EVM_RPC_URL` to the public RPC endpoint for the intended Portaldot V3 EVM environment. The API route `GET /api/chain/status` performs a read-only chain-ID check against `420420777`. An unreachable or wrong network is reported explicitly; the endpoint never submits a transaction or exposes the configured URL. A matching chain ID is not proof of asset interoperability or settlement safety. Check the endpoint directly when needed:
+Set `PORTALDOT_EVM_RPC_URL` to the public RPC endpoint for the intended Portaldot V3 EVM environment. The API route `GET /api/chain/status` performs a read-only chain-ID check against `PORTALDOT_EVM_CHAIN_ID` (default `420420777`, the documented testnet ID). An unreachable or wrong network is reported explicitly; the endpoint never submits a transaction or exposes the configured URL. A matching chain ID is not proof of asset interoperability or settlement safety. Check the endpoint directly when needed:
 
 ```bash
 curl --connect-timeout 3 --max-time 8 -sS \

@@ -15,7 +15,7 @@ PASTX is an early engineering foundation for Portaldot ecosystem market discover
 - Provider keys remain server-side. Quote/candle routes require a nonblank key and explicit `MARKET_DATA_DISPLAY_ENABLED=true`; live display remains disabled until licensing is confirmed.
 - Quote/candle payloads are normalized and validated; candles enforce bounded inputs and OHLC relationships. The frontend checks quote symbol/currency and candle symbol/interval and keeps partial failures isolated.
 - Order preview is deterministic arithmetic only and always `executable: false`. Wallet connection, balances, order submission, transaction history and atomic settlement are not implemented. Trading remains disabled.
-- CI includes frozen-lockfile install, workspace type checks, unit tests and production builds. Baseline CI #204 passed for commit `2fb138dbb8a1f7deab699427c11ea41a2309abb6`; this is not evidence that a subsequent audit commit passes.
+- CI includes frozen-lockfile install, workspace type checks, unit tests and production builds. CI #205 passed on 16 October 2026 for current `main` commit `a9b1071cff610aaf6e24e89d71b66babe0408771` (typecheck, unit tests and production build). This does not establish a production deployment or external integration.
 
 ## Chain configuration warning
 
