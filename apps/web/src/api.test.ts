@@ -25,6 +25,18 @@ describe("getChainStatus", () => {
     await expect(getChainStatus(fetcher as unknown as typeof fetch)).rejects.toBeInstanceOf(ApiClientError);
   });
 
+  it("rejects a backend payload that changes the expected Portaldot chain ID", async () => {
+    const fetcher = async () => new Response(JSON.stringify({
+      item: {
+        configured: true, reachable: true, networkMatches: true,
+        expectedChainId: 1, chainId: 1, status: "verified", verificationScope: "chain_id_only"
+      }
+    }), { status: 200 });
+    await expect(getChainStatus(fetcher as unknown as typeof fetch)).rejects.toMatchObject({
+      name: "ApiClientError", message: "PASTX API returned an invalid chain status."
+    });
+  });
+
   it("rejects internally inconsistent chain identity states", async () => {
     const fetcher = async () => new Response(JSON.stringify({
       item: {
