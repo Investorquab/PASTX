@@ -97,3 +97,5 @@ Update `docs/API.md` whenever routes or schemas change, `docs/ARCHITECTURE.md` w
 - A source audit found that the candle `outputsize` digit-check regex was over-escaped, so ordinary numeric strings could be rejected before range validation.
 - Corrected the regex and expanded API regression coverage for non-numeric, fractional, negative, zero, out-of-range and valid numeric values. Invalid requests must be rejected before the provider adapter is called.
 - Updated API/testing documentation to match the contract. This correction is not considered verified until the CI run for the resulting `main` revision succeeds.
+
+- Provider payload audit: candle rows now reject a present but non-numeric volume field instead of silently normalizing malformed provider data to `null`; missing or explicitly null volume remains supported. A regression test covers malformed volume values.
