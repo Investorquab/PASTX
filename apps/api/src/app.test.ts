@@ -153,6 +153,91 @@ describe("PASTX API", () => {
 
 
 
+  it("reports all on-chain readiness blockers without implying asset discovery is enabled", async () => {
+    const app = await buildApp({ logger: false });
+    try {
+      const response = await app.inject({ method: "GET", url: "/api/assets/onchain/readiness" });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toMatchObject({
+        status: "blocked",
+        discoveryEnabled: false,
+        checks: {
+          registryIntegrity: { status: "not_configured", verified: false, assetCount: 0, reason: "registry_not_configured" },
+          chainFingerprint: { status: "not_configured", verified: false, reason: "trusted_fingerprint_not_configured" },
+          runtimeAdapter: { status: "unverified", verified: false }
+        },
+        blockers: [
+          "registry_not_configured",
+          "chain_fingerprint_not_configured",
+          "runtime_adapter_unverified"
+        ]
+      });
+      const capabilities = await app.inject({ method: "GET", url: "/api/capabilities" });
+      expect(capabilities.json().capabilities.onchainAssetReadiness).toEqual({
+        implemented: true,
+        enabled: true,
+        readOnly: true
+      });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it("keeps discovery blocked even when the signed registry and trusted chain fingerprint verify", async () => {
+    const rawJson = JSON.stringify([{
+      chainId: PORTALDOT_V3_EVM_CHAIN_ID,
+      contractAddress: "0x1111111111111111111111111111111111111111",
+      symbol: "USDC",
+      name: "USD Coin",
+      decimals: 6,
+      provenance: "verified_registry"
+    }]);
+    const sha256 = createHash("sha256").update(rawJson).digest("hex");
+    const signed = await signRegistry(rawJson);
+    const app = await buildApp({
+      logger: false,
+      chainRpcUrl: "https://rpc.example.invalid",
+      chainExpectedGenesisHash: `0x${"1".repeat(64)}`,
+      chainCheckpointBlock: "100",
+      chainExpectedCheckpointHash: `0x${"2".repeat(64)}`,
+      chainFingerprintProbe: async () => ({
+        configured: true,
+        reachable: true,
+        verified: true,
+        status: "verified",
+        expectedChainId: PORTALDOT_V3_EVM_CHAIN_ID,
+        checkpointBlock: "100",
+        chainId: PORTALDOT_V3_EVM_CHAIN_ID,
+        genesisHash: `0x${"1".repeat(64)}`,
+        checkpointHash: `0x${"2".repeat(64)}`,
+        latestBlockNumber: "105",
+        verificationScope: "chain_id_genesis_checkpoint_latest_block_read"
+      }),
+      onchainAssetRegistryJson: rawJson,
+      onchainAssetRegistrySha256: sha256,
+      onchainAssetRegistrySignature: signed.signature,
+      onchainAssetRegistryPublicKey: signed.publicKey
+    });
+    try {
+      const response = await app.inject({ method: "GET", url: "/api/assets/onchain/readiness" });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toMatchObject({
+        status: "blocked",
+        discoveryEnabled: false,
+        checks: {
+          registryIntegrity: { status: "verified", verified: true, assetCount: 1 },
+          chainFingerprint: { status: "verified", verified: true },
+          runtimeAdapter: { status: "unverified", verified: false }
+        },
+        blockers: ["runtime_adapter_unverified"]
+      });
+      const assets = await app.inject({ method: "GET", url: "/api/assets/onchain" });
+      expect(assets.json()).toEqual({ status: "unavailable", items: [], reason: "runtime_adapter_unverified" });
+    } finally {
+      await app.close();
+    }
+  });
+
   it("treats blank optional registry environment placeholders as unconfigured", async () => {
     const app = await buildApp({
       logger: false,
