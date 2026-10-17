@@ -74,6 +74,14 @@ The first post-merge state-inspection run encountered a different hash from the 
 
 A fresh independent runtime-evidence run on 17 October 2026 reported metadata length 561,916 and SHA-256 `acc74bc508af18c1d754b12abf0251e6aae6221ee905817de67aa223a7eec9a6` at finalized block `0xff8e00467ba814926925931e067a5e0b61b4e50d96008d9410e73cc7783bde4d`, while keeping the same node version, chain label, runtime spec name/version, and transaction version as the earlier capture. This differs from the audit fingerprint `942ea1b81eaed81273d95ae263d0002595fcf95183df77ce5114248c35efcda3`. The latest state-inspection attempt then stopped on a diagnostic-code error before comparing both representations or reading storage. Do not treat this as evidence of a populated asset registry and do not update the pin until the raw/decoded metadata and selected schema are reconciled. The revised checker requests raw metadata through the same provider connection used for API decoding, fixes type-registry reporting, and keeps the fingerprint gate closed.
 
+### Repeated-capture metadata discrepancy
+
+Three archived metadata captures each contain 561,916 bytes and the same V14 prefix, but have different SHA-256 fingerprints. A byte-level comparison found exactly one differing byte at offset 549822, with observed values 0x97, 0x5b, and 0x56. The chain label and runtime version fields remained PortaldotV3 Test, portaldot-v3 spec version 3002, and transaction version 2. The semantic identity of the differing byte has not yet been established, so it is not a sufficient basis for updating the audited metadata pin.
+
+The latest asset-state diagnostic confirmed that raw RPC metadata and API-decoded metadata matched on the same provider connection (SHA-256 aaf882cc4d657fa7ae9ee14e1ad079618a0e94a8f55ece31ce5a23117c5495a9 at finalized block 69071). Metadata described the selected Assets, PoolAssets, AssetConversion, and AssetsPrecompiles storage entries, including key/value type IDs, but the hash differed from the audited pin, so the script stopped before querying storage values.
+
+A same-finalized-block, independent-connection consistency check is being added to distinguish runtime metadata variance from connection/backend variance. Storage queries remain blocked until that check passes and the byte-level discrepancy is explained.
+
 ## Remaining gates
 
 1. Review the bounded live testnet storage results and verify key/value decoding against the captured metadata.

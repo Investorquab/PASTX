@@ -64,6 +64,55 @@ function toHuman(value) {
   return bounded(value);
 }
 
+async function fetchMetadataHexOnFreshConnection(endpoint, blockHash) {
+  const socket = new WebSocket(endpoint);
+  try {
+    await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error("Metadata diagnostic WebSocket connection timed out")), 8000);
+      socket.addEventListener("open", () => { clearTimeout(timeout); resolve(); }, { once: true });
+      socket.addEventListener("error", () => { clearTimeout(timeout); reject(new Error("Metadata diagnostic WebSocket connection failed")); }, { once: true });
+    });
+    return await new Promise((resolve, reject) => {
+      const id = 1;
+      const timeout = setTimeout(() => reject(new Error("Metadata diagnostic RPC timed out")), 8000);
+      const onMessage = event => {
+        let message;
+        try { message = JSON.parse(String(event.data)); } catch { return; }
+        if (message.id !== id) return;
+        clearTimeout(timeout);
+        socket.removeEventListener("message", onMessage);
+        if (message.jsonrpc !== "2.0") reject(new Error("Metadata diagnostic returned an invalid JSON-RPC version"));
+        else if (message.error) reject(new Error("Metadata diagnostic RPC failed: " + JSON.stringify(message.error)));
+        else if (typeof message.result !== "string" || !/^0x(?:[0-9a-f]{2})+$/i.test(message.result)) reject(new Error("Metadata diagnostic returned malformed hex"));
+        else resolve(message.result);
+      };
+      socket.addEventListener("message", onMessage);
+      socket.send(JSON.stringify({ jsonrpc: "2.0", id, method: "state_getMetadata", params: [blockHash] }));
+    });
+  } finally {
+    if (socket.readyState < WebSocket.CLOSING) socket.close();
+  }
+}
+
+function compareMetadataBytes(referenceHex, candidateHex) {
+  const reference = Buffer.from(referenceHex.slice(2), "hex");
+  const candidate = Buffer.from(candidateHex.slice(2), "hex");
+  let differentByteCount = 0;
+  let firstDifferentByteOffset = null;
+  const sharedLength = Math.min(reference.byteLength, candidate.byteLength);
+  for (let index = 0; index < sharedLength; index += 1) {
+    if (reference[index] !== candidate[index]) {
+      differentByteCount += 1;
+      if (firstDifferentByteOffset === null) firstDifferentByteOffset = index;
+    }
+  }
+  if (reference.byteLength !== candidate.byteLength) {
+    differentByteCount += Math.abs(reference.byteLength - candidate.byteLength);
+    if (firstDifferentByteOffset === null) firstDifferentByteOffset = sharedLength;
+  }
+  return { sameLength: reference.byteLength === candidate.byteLength, differentByteCount, firstDifferentByteOffset };
+}
+
 async function main() {
   const moduleEntry = process.env.PASTX_POLKADOT_API_ENTRY;
   if (!moduleEntry || !path.isAbsolute(moduleEntry)) {
@@ -120,6 +169,36 @@ async function main() {
     }
     const rawMetadataBytes = Buffer.from(rawMetadataHex.slice(2), "hex");
     const rawMetadataSha256 = createHash("sha256").update(rawMetadataBytes).digest("hex");
+
+    // Probe the same finalized block through two independent sessions. If the public
+    // endpoint routes sessions to nodes with different runtime metadata, refuse storage reads.
+    const independentMetadataSamples = [];
+    for (let sampleIndex = 0; sampleIndex < 2; sampleIndex += 1) {
+      try {
+        const sampleHex = await fetchMetadataHexOnFreshConnection(ENDPOINT, finalizedHash.toHex());
+        const sampleBytes = Buffer.from(sampleHex.slice(2), "hex");
+        const sampleSha256 = createHash("sha256").update(sampleBytes).digest("hex");
+        independentMetadataSamples.push({
+          sample: sampleIndex + 1,
+          byteLength: sampleBytes.byteLength,
+          sha256: sampleSha256,
+          matchesProviderMetadata: sampleHex.toLowerCase() === rawMetadataHex.toLowerCase(),
+          ...compareMetadataBytes(rawMetadataHex, sampleHex)
+        });
+      } catch (error) {
+        independentMetadataSamples.push({
+          sample: sampleIndex + 1,
+          error: error instanceof Error ? error.message : "metadata_sample_failed"
+        });
+      }
+    }
+    const metadataConsistentAcrossConnections = independentMetadataSamples.length === 2 &&
+      independentMetadataSamples.every(sample =>
+        sample.sha256 === rawMetadataSha256 &&
+        sample.byteLength === rawMetadataBytes.byteLength &&
+        sample.matchesProviderMetadata === true
+      );
+
     const schemaSummary = requested.map(spec => {
       const pallet = pallets.find(entry => entry.name.toString() === spec.pallet);
       const storage = pallet?.storage && pallet.storage.isSome ? pallet.storage.unwrap() : null;
@@ -155,15 +234,22 @@ async function main() {
         prefix: metadataHex.slice(0, 18)
       },
       rawAndApiMetadataBytesMatch: rawMetadataHex.toLowerCase() === metadataHex.toLowerCase(),
+      independentMetadataSamples,
+      metadataConsistentAcrossConnections,
       palletCount: pallets.length,
       portableTypeCount: (meta.lookup?.types?.length ?? null),
       selectedStorageSchema: schemaSummary
     };
     console.log("OBSERVED_RUNTIME_METADATA " + JSON.stringify(observedFingerprint, null, 2));
 
+    if (!metadataConsistentAcrossConnections) {
+      throw new Error(
+        "The testnet endpoint returned inconsistent metadata for the same finalized block across independent WebSocket sessions; refusing storage queries."
+      );
+    }
     if (rawMetadataHex.toLowerCase() !== metadataHex.toLowerCase()) {
       throw new Error(
-        "Raw state_getMetadata bytes differ from the API-decoded metadata bytes at the same finalized block; refusing storage queries."
+        "Raw state_getMetadata bytes differ from the API-decoded metadata bytes on the same provider connection; refusing storage queries."
       );
     }
     if (specName !== EXPECTED_SPEC_NAME || specVersion !== EXPECTED_SPEC_VERSION ||
