@@ -37,17 +37,17 @@ jobs:
         run: |
           mkdir -p evidence
           set +e
-          PASTX_POLKADOT_API_ENTRY="$RUNNER_TEMP/pastx-runtime-tooling/node_modules/@polkadot/api/index.js" node scripts/check-portaldot-v3-testnet-assets.mjs > evidence/portaldot-v3-testnet-asset-state-check.json 2>&1
+          PASTX_POLKADOT_API_ENTRY="$RUNNER_TEMP/pastx-runtime-tooling/node_modules/@polkadot/api/index.js" node scripts/check-portaldot-v3-testnet-assets.mjs > evidence/portaldot-v3-testnet-asset-state-check.txt 2>&1
           result=$?
           set -e
-          cat evidence/portaldot-v3-testnet-asset-state-check.json
-          printf '\nexit_code=%s\n' "$result" >> evidence/portaldot-v3-testnet-asset-state-check.json
+          cat evidence/portaldot-v3-testnet-asset-state-check.txt
+          printf '\nexit_code=%s\n' "$result" >> evidence/portaldot-v3-testnet-asset-state-check.txt
           exit "$result"
       - name: Preserve read-only state evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: portaldot-v3-testnet-asset-state-evidence-\${{ github.run_id }}
-          path: evidence/portaldot-v3-testnet-asset-state-check.json
+          path: evidence/portaldot-v3-testnet-asset-state-check.txt
           if-no-files-found: error
           retention-days: 14
