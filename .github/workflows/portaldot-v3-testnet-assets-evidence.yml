@@ -37,7 +37,7 @@ jobs:
           result=$?
           set -e
           cat evidence/portaldot-v3-testnet-substrate-runtime-check.txt
-          printf '\\nexit_code=%s\\n' "$result" >> evidence/portaldot-v3-testnet-substrate-runtime-check.txt
+          printf '\nexit_code=%s\n' "$result" >> evidence/portaldot-v3-testnet-substrate-runtime-check.txt
           exit "$result"
       - name: Install pinned temporary Substrate query tooling
         shell: bash
