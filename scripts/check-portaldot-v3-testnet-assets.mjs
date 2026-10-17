@@ -142,8 +142,10 @@ async function main() {
     for (const spec of requested) {
       const definition = findStorage(spec.pallet, spec.item);
       if (!definition.found) {
-        storageResults.push({ ...spec, status: definition.reason, palletIndex: definition.palletIndex ?? null });
-        continue;
+        throw new Error(
+          "Expected runtime storage item " + spec.pallet + "." + spec.item +
+          " is not present in the pinned metadata (" + definition.reason + "); refusing to interpret state."
+        );
       }
 
       const sectionName = firstLower(spec.pallet);
@@ -151,12 +153,10 @@ async function main() {
       const section = apiAt.query[sectionName];
       const query = section?.[methodName];
       if (typeof query !== "function") {
-        storageResults.push({
-          ...spec,
-          status: "metadata_present_query_not_decorated",
-          palletIndex: definition.palletIndex
-        });
-        continue;
+        throw new Error(
+          "Metadata contains " + spec.pallet + "." + spec.item +
+          " but the API did not decorate a matching read-only query method."
+        );
       }
 
       const base = {
@@ -184,9 +184,11 @@ async function main() {
         continue;
       }
 
-      if (typeof query.entriesPaged !== "function") {
-        storageResults.push({ ...base, status: "metadata_map_without_entriesPaged" });
-        continue;
+      if (!definition.item.type.isMap || typeof query.entriesPaged !== "function") {
+        throw new Error(
+          "Expected " + spec.pallet + "." + spec.item +
+          " to be a readable storage map; refusing an unbounded or unsupported query."
+        );
       }
 
       // Keep scans bounded. This captures at most one page and doesn't attempt
