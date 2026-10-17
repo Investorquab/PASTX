@@ -2,6 +2,12 @@ name: Portaldot V3 Testnet Substrate Runtime Evidence
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/check-portaldot-v3-testnet-substrate.mjs"
+      - ".github/workflows/portaldot-v3-testnet-substrate-evidence.yml"
 
 permissions:
   contents: read
@@ -37,7 +43,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: portaldot-v3-testnet-substrate-evidence-\${{ github.run_id }}
+          name: portaldot-v3-testnet-substrate-evidence-${{ github.run_id }}
           path: |
             evidence/portaldot-v3-testnet-substrate-check.txt
             evidence/portaldot-v3-testnet-substrate-metadata.hex
