@@ -19,7 +19,7 @@ The Substrate runtime-evidence workflow captured metadata and the returned hex b
 | Runtime \`transactionVersion\` | \`2\` |
 | Metadata format | FRAME metadata V14 |
 | Metadata bytes | \`561,916\` |
-| Metadata SHA-256 | \`942ea1b81eaed81273d95ae263d0002595fcf95183df77ce5114248c35efcda3\` |
+| Initial-capture metadata SHA-256 | \`942ea1b81eaed81273d95ae263d0002595fcf95183df77ce5114248c35efcda3\` |
 | Portable type registry entries | \`911\` |
 | Pallet metadata entries | \`69\` |
 | Decoder end position | Exact end of metadata; \`0\` trailing bytes |
@@ -54,39 +54,42 @@ These are time-bounded testnet observations. One peer is a limited connectivity 
 
 ## Engineering conclusion
 
-**There is a plausible generic-asset integration surface to investigate, but PASTX is not ready to enable asset discovery or trading.**
+**The testnet exposes a usable generic-asset read surface, but no evidence of listed-stock tokens. PASTX must remain read-only and must not enable trading or settlement.**
 
-Before integrating any pallet into the application, the next read-only gate is to inspect current testnet state for the asset metadata and precompile-mapping storage items, confirm exact key/value types and namespaces, and verify the account-mapping behavior against official runtime source or documentation. Keep \`Assets\`, \`PoolAssets\`, \`AssetConversion\`, \`Revive\`, and precompile integrations behind read-only/disabled boundaries during that work.
+## Bounded live asset/precompile snapshot — 17 October 2026
 
-Do not submit any extrinsic, call a write method, sign a message, connect a user wallet, or change the PASTX discovery capability as part of this audit. The current findings do not establish that any listed stock is represented on-chain, that market prices are executable, or that settlement is safe.
+The [Asset State Evidence workflow](https://github.com/Investorquab/PASTX/actions/runs/39061172178) passed at commit `f23a336b8b79cc853e85a8585836dd2af671288b`; [artifact 12111426560](https://github.com/Investorquab/PASTX/actions/runs/39061172178/artifacts/12111426560) contains the bounded console output and captured metadata.
 
-## Next read-only state inspection
+| Field | Observed value |
+|---|---|
+| Chain | `PortaldotV3 Test` |
+| Finalized block | `78248` |
+| Finalized hash | `0x2e5b0dd5db35dd6f8156a392f21c9bbf83a413c1559565ebe077b8a5a3341dca` |
+| Runtime | `portaldot-v3`, spec version `3002`, transaction version `2` |
+| Metadata format and size | FRAME metadata V14, `561,916` bytes |
+| Raw metadata SHA-256 | `08448367f7ca945170dcadfa416894e199fd11df43fe4811b723c0aada193857` |
+| Normalized metadata SHA-256 | `fec08cb5d8b6edc591fb7ee1d3c2af369185befb3c0d13bde6c5d23e020e3bf1` |
+| Raw/API metadata equality | Exact byte match; two additional sessions matched at the same finalized block |
+| Query limits | Maximum 25 entries per map; no account balances, signing, extrinsics or storage writes |
 
-A bounded implementation now exists in `scripts/check-portaldot-v3-testnet-assets.mjs`, with workflow `Portaldot V3 Testnet Asset State Evidence`. It uses metadata-aware Substrate query tooling temporarily installed at an exact package version, verifies the expected chain/runtime/metadata fingerprint, fixes all reads to one finalized block, and samples at most 25 entries per selected map. It checks the runtime-described `Assets`, `PoolAssets`, `AssetConversion.Pools`, and `AssetsPrecompiles` mapping storage. It also reads next-ID values where present.
+### Observed public state
 
-The script must fail closed if the chain label or runtime fingerprint differs from the evidence captured on 17 October 2026. An updated runtime requires a fresh metadata audit before re-running storage interpretation. The workflow artifact is intended to establish what public asset/precompile state is actually populated, not to approve any integration. Live results remain pending until that workflow run has completed and its output has been reviewed.
+- `Assets.Asset`: IDs `1` and `2` returned. ID `1` has metadata name `example asset for testnet`, symbol `TST`, decimals `18`, raw supply `0`. ID `2` has name `test asset`, symbol `TEST`, decimals `18`, raw supply `15,000,000,000,000,000,000`.
+- `PoolAssets.Asset` and `PoolAssets.Metadata`: no entries returned.
+- `AssetConversion.Pools`: no entries returned.
+- `Assets.NextAssetId` and `PoolAssets.NextAssetId`: no value returned in this snapshot.
+- `AssetsPrecompiles.AssetIndexToForeignAssetId`: index `0 -> 1`, `1 -> 2`.
+- `AssetsPrecompiles.ForeignAssetIdToAssetIndex`: asset ID `1 -> 0`, `2 -> 1`. The two mappings are inverse-consistent for these entries.
 
-### Fingerprint mismatch observed on 17 October 2026
+**Conclusion:** only generic test assets named `TST` and `TEST` were observed. The snapshot found no listed-stock symbols or evidence of tokenized AAPL/NVDA/TSLA/MSFT shares and no conversion pools. Generic asset existence and precompile-index mappings do not establish issuer backing, legal ownership rights, redemption, price validity, wallet/account mapping, or executable market behavior.
 
-The first post-merge state-inspection run encountered a different hash from the metadata-aware API object than the hash captured in the earlier raw runtime evidence. It failed before issuing the selected storage reads, so no asset or precompile contents were observed in that run. Do not update the expected hash merely to make the workflow pass. The diagnostic path now requests `state_getRuntimeVersion` and `state_getMetadata` at a single finalized block, separately fetches the raw `state_getMetadata` JSON-RPC bytes at the same block, hashes both representations, and emits a bounded summary of the target storage schema. This should distinguish an actual metadata change from an API encoding/normalization difference. Until that report is reviewed, state inspection remains blocked.
+The inspector uses read-only metadata-aware queries fixed to one finalized block. It caps each map at one 25-entry page and does not request per-account balances, connect a wallet, sign, submit extrinsics, or write state. This is a point-in-time **testnet** observation only. Do not infer mainnet state or enable the PASTX discovery capability from this result alone.
 
-### Follow-up runtime fingerprint discrepancy
+## Metadata fingerprint normalization
 
-A fresh independent runtime-evidence run on 17 October 2026 reported metadata length 561,916 and SHA-256 `acc74bc508af18c1d754b12abf0251e6aae6221ee905817de67aa223a7eec9a6` at finalized block `0xff8e00467ba814926925931e067a5e0b61b4e50d96008d9410e73cc7783bde4d`, while keeping the same node version, chain label, runtime spec name/version, and transaction version as the earlier capture. This differs from the audit fingerprint `942ea1b81eaed81273d95ae263d0002595fcf95183df77ce5114248c35efcda3`. The latest state-inspection attempt then stopped on a diagnostic-code error before comparing both representations or reading storage. Do not treat this as evidence of a populated asset registry and do not update the pin until the raw/decoded metadata and selected schema are reconciled. The revised checker requests raw metadata through the same provider connection used for API decoding, fixes type-registry reporting, and keeps the fingerprint gate closed.
+Six archived metadata captures, each 561,916 bytes, matched at every byte except offsets `549822` and `549823`. A SCALE V14 field walk maps those bytes to fallback/default-value byte indices `34` and `35` for `Revive.EthBlockBuilderIR`, outside the nine selected asset/precompile storage descriptions. Observed pairs were `(0x97, 0xa4)`, `(0x5b, 0xa4)`, `(0x56, 0xa4)`, `(0x51, 0xa4)`, `(0xa0, 0xa0)`, and `(0x9b, 0xa0)`. Normalizing only these two byte offsets produces SHA-256 `fec08cb5d8b6edc591fb7ee1d3c2af369185befb3c0d13bde6c5d23e020e3bf1` for every captured file.
 
-### Repeated-capture metadata discrepancy
-
-Three archived metadata captures each contain 561,916 bytes and the same V14 prefix, but have different SHA-256 fingerprints. A byte-level comparison found exactly one differing byte at offset 549822, with observed values 0x97, 0x5b, and 0x56. The chain label and runtime version fields remained PortaldotV3 Test, portaldot-v3 spec version 3002, and transaction version 2. The semantic identity of the differing byte has not yet been established, so it is not a sufficient basis for updating the audited metadata pin.
-
-The latest asset-state diagnostic confirmed that raw RPC metadata and API-decoded metadata matched on the same provider connection (SHA-256 aaf882cc4d657fa7ae9ee14e1ad079618a0e94a8f55ece31ce5a23117c5495a9 at finalized block 69071). Metadata described the selected Assets, PoolAssets, AssetConversion, and AssetsPrecompiles storage entries, including key/value type IDs, but the hash differed from the audited pin, so the script stopped before querying storage values.
-
-A same-finalized-block, independent-connection consistency check is being added to distinguish runtime metadata variance from connection/backend variance. Storage queries remain blocked until that check passes and the byte-level discrepancy is explained.
-
-### Audited metadata variation and narrowly scoped normalization
-
-Five independently captured metadata files, each 561,916 bytes, are compared against the original raw fingerprint. The first four captures differed at offset 549822 only; the latest capture differs at offsets 549822 and 549823. The two bytes map to indices 34 and 35 of Revive.EthBlockBuilderIR's storage metadata fallback/default-value bytes. They are outside the nine selected storage entries in Assets, PoolAssets, AssetConversion, and AssetsPrecompiles. Observed byte pairs were (0x97, 0xa4), (0x5b, 0xa4), (0x56, 0xa4), (0x51, 0xa4), and (0xa0, 0xa0). Zeroing only these two byte offsets yields SHA-256 fec08cb5d8b6edc591fb7ee1d3c2af369185befb3c0d13bde6c5d23e020e3bf1 for all five snapshots.
-
-The testnet gate now accepts only this exact two-byte variance: fixed metadata length, normalized whole-metadata hash, chain/runtime versions, raw/API byte equality, three independent reads at the same finalized block, and structural confirmation that the bytes still map to Revive.EthBlockBuilderIR.fallback[34:36]. Any other byte difference fails closed. The original raw hash remains in evidence. No Revive values are read; eventual reads are limited to the bounded public asset and asset-precompile catalogues.
+The checker accepts this exact two-byte variance only. It pins the normalized digest and metadata length, checks chain/runtime identity and versions, requires exact raw/API equality and three matching same-finalized-block sessions, and verifies that the changing bytes remain at `Revive.EthBlockBuilderIR.fallback[34:36]`. Any other metadata difference or moved field fails closed. The original raw SHA remains in the artifact. The Revive fallback entry is not queried or interpreted as live state.
 
 ## Remaining gates
 
