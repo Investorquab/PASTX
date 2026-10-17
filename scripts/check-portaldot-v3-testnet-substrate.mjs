@@ -111,10 +111,16 @@ async function main() {
     throw new Error("The endpoint reports a mainnet chain label; refusing to emit testnet evidence.");
   }
 
+  // Anchor runtime-version and metadata reads to the same finalized block so the
+  // reported fingerprint can be compared with other API representations safely.
+  const snapshotFinalizedHash = await rpc("chain_getFinalizedHead");
+  if (typeof snapshotFinalizedHash !== "string" || !/^0x[0-9a-f]{64}$/i.test(snapshotFinalizedHash)) {
+    throw new Error("Malformed finalized block hash response.");
+  }
   const [nodeVersion, runtimeVersion, metadata] = await Promise.all([
     rpc("system_version"),
-    rpc("state_getRuntimeVersion"),
-    rpc("state_getMetadata")
+    rpc("state_getRuntimeVersion", [snapshotFinalizedHash]),
+    rpc("state_getMetadata", [snapshotFinalizedHash])
   ]);
   if (typeof nodeVersion !== "string" || nodeVersion.length === 0) {
     throw new Error("Malformed system_version response.");
@@ -147,6 +153,8 @@ async function main() {
   const runtimeFingerprint = {
     chain,
     nodeVersion,
+    metadataAtFinalizedHash: snapshotFinalizedHash,
+    metadataHexPrefix: metadata.slice(0, 18),
     specName: runtimeVersion.specName,
     specVersion: runtimeVersion.specVersion,
     transactionVersion: runtimeVersion.transactionVersion,
