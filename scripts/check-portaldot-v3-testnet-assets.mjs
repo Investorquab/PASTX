@@ -226,7 +226,7 @@ async function main() {
           byteLength: metadataBytes.byteLength,
           sha256: metadataSha256,
           palletCount: pallets.length,
-          portableTypeCount: meta.types.length
+          portableTypeCount: meta.types.types.length
         },
         health: {
           peers: health.peers,
