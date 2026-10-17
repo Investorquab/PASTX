@@ -18,6 +18,7 @@ const ENDPOINT = "wss://test-node-v3.portaldot.dev";
 const EXPECTED_CHAIN = "PortaldotV3 Test";
 const EXPECTED_SPEC_NAME = "portaldot-v3";
 const EXPECTED_SPEC_VERSION = 3002;
+const EXPECTED_TRANSACTION_VERSION = 2;
 const EXPECTED_METADATA_SHA256 = "942ea1b81eaed81273d95ae263d0002595fcf95183df77ce5114248c35efcda3";
 const PAGE_SIZE = 25;
 const MAX_STRING_LENGTH = 512;
@@ -98,7 +99,7 @@ async function main() {
     const transactionVersion = runtimeVersion.transactionVersion.toNumber();
 
     if (specName !== EXPECTED_SPEC_NAME || specVersion !== EXPECTED_SPEC_VERSION ||
-        metadataSha256 !== EXPECTED_METADATA_SHA256) {
+        transactionVersion !== EXPECTED_TRANSACTION_VERSION || metadataSha256 !== EXPECTED_METADATA_SHA256) {
       throw new Error(
         "Runtime fingerprint changed; refusing to decode state with stale assumptions. " +
         JSON.stringify({ chain, specName, specVersion, metadataSha256 })
