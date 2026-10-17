@@ -28,6 +28,17 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 22
+      - name: Capture raw metadata at a finalized testnet block
+        shell: bash
+        run: |
+          mkdir -p evidence
+          set +e
+          PASTX_METADATA_OUTPUT=evidence/portaldot-v3-testnet-substrate-metadata.hex node scripts/check-portaldot-v3-testnet-substrate.mjs wss://test-node-v3.portaldot.dev 3 5000 > evidence/portaldot-v3-testnet-substrate-runtime-check.txt 2>&1
+          result=$?
+          set -e
+          cat evidence/portaldot-v3-testnet-substrate-runtime-check.txt
+          printf '\nexit_code=%s\n' "$result" >> evidence/portaldot-v3-testnet-substrate-runtime-check.txt
+          exit "$result"
       - name: Install pinned temporary Substrate query tooling
         shell: bash
         run: |
@@ -48,6 +59,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: portaldot-v3-testnet-asset-state-evidence-${{ github.run_id }}
-          path: evidence/portaldot-v3-testnet-asset-state-check.txt
-          if-no-files-found: error
+          path: |
+            evidence/portaldot-v3-testnet-asset-state-check.txt
+            evidence/portaldot-v3-testnet-substrate-runtime-check.txt
+            evidence/portaldot-v3-testnet-substrate-metadata.hex
+          if-no-files-found: warn
           retention-days: 14

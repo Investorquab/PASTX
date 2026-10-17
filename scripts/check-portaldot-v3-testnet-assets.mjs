@@ -64,6 +64,50 @@ function toHuman(value) {
   return bounded(value);
 }
 
+async function fetchRawMetadataHex(endpoint, blockHash) {
+  const socket = new WebSocket(endpoint);
+  try {
+    await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error("Raw metadata WebSocket connection timed out")), 8000);
+      socket.addEventListener("open", () => { clearTimeout(timeout); resolve(); }, { once: true });
+      socket.addEventListener("error", () => { clearTimeout(timeout); reject(new Error("Raw metadata WebSocket connection failed")); }, { once: true });
+    });
+
+    const payload = await new Promise((resolve, reject) => {
+      const id = 1;
+      const timeout = setTimeout(() => reject(new Error("Raw state_getMetadata request timed out")), 8000);
+      const onMessage = event => {
+        let message;
+        try {
+          message = JSON.parse(String(event.data));
+        } catch {
+          return;
+        }
+        if (message.id !== id) return;
+        clearTimeout(timeout);
+        socket.removeEventListener("message", onMessage);
+        if (message.jsonrpc !== "2.0") reject(new Error("Raw metadata request returned an invalid JSON-RPC version"));
+        else if (message.error) reject(new Error("Raw state_getMetadata failed: " + JSON.stringify(message.error)));
+        else if (typeof message.result !== "string" || !/^0x(?:[0-9a-f]{2})+$/i.test(message.result)) {
+          reject(new Error("Raw state_getMetadata returned malformed hex metadata"));
+        } else {
+          resolve(message.result);
+        }
+      };
+      socket.addEventListener("message", onMessage);
+      socket.send(JSON.stringify({
+        jsonrpc: "2.0",
+        id,
+        method: "state_getMetadata",
+        params: [blockHash]
+      }));
+    });
+    return payload;
+  } finally {
+    if (socket.readyState < WebSocket.CLOSING) socket.close();
+  }
+}
+
 async function main() {
   const moduleEntry = process.env.PASTX_POLKADOT_API_ENTRY;
   if (!moduleEntry || !path.isAbsolute(moduleEntry)) {
@@ -97,19 +141,8 @@ async function main() {
     const specName = runtimeVersion.specName.toString();
     const specVersion = runtimeVersion.specVersion.toNumber();
     const transactionVersion = runtimeVersion.transactionVersion.toNumber();
-
-    if (specName !== EXPECTED_SPEC_NAME || specVersion !== EXPECTED_SPEC_VERSION ||
-        transactionVersion !== EXPECTED_TRANSACTION_VERSION || metadataSha256 !== EXPECTED_METADATA_SHA256) {
-      throw new Error(
-        "Runtime fingerprint changed; refusing to decode state with stale assumptions. " +
-        JSON.stringify({ chain, specName, specVersion, metadataSha256 })
-      );
-    }
-
-    const apiAt = await api.at(finalizedHash);
     const meta = metadata.asLatest;
     const pallets = [...meta.pallets];
-    const storageResults = [];
     const requested = [
       { pallet: "Assets", item: "Asset", kind: "asset-catalogue" },
       { pallet: "Assets", item: "Metadata", kind: "asset-metadata" },
@@ -121,6 +154,67 @@ async function main() {
       { pallet: "AssetsPrecompiles", item: "AssetIndexToForeignAssetId", kind: "precompile-index-to-asset" },
       { pallet: "AssetsPrecompiles", item: "ForeignAssetIdToAssetIndex", kind: "precompile-asset-to-index" }
     ];
+
+    const rawMetadataHex = await fetchRawMetadataHex(ENDPOINT, finalizedHash.toHex());
+    const rawMetadataBytes = Buffer.from(rawMetadataHex.slice(2), "hex");
+    const rawMetadataSha256 = createHash("sha256").update(rawMetadataBytes).digest("hex");
+    const schemaSummary = requested.map(spec => {
+      const pallet = pallets.find(entry => entry.name.toString() === spec.pallet);
+      const storage = pallet?.storage && pallet.storage.isSome ? pallet.storage.unwrap() : null;
+      const item = storage ? [...storage.items].find(entry => entry.name.toString() === spec.item) : null;
+      return {
+        pallet: spec.pallet,
+        palletIndex: pallet ? Number(pallet.index.toString()) : null,
+        item: spec.item,
+        present: Boolean(item),
+        type: item ? (item.type.isPlain ? "plain" : item.type.isMap ? "map" : item.type.toString()) : null,
+        keyType: item?.type.isMap ? item.type.asMap.key.toString() : null,
+        valueType: item?.type.isMap ? item.type.asMap.value.toString() :
+          item?.type.isPlain ? item.type.asPlain.toString() : null
+      };
+    });
+
+    const observedFingerprint = {
+      chain,
+      finalizedBlock: finalizedHeader.number.toString(),
+      finalizedHash: finalizedHash.toHex(),
+      nodeVersion: (await api.rpc.system.version()).toString(),
+      specName,
+      specVersion,
+      transactionVersion,
+      rawRpcMetadata: {
+        byteLength: rawMetadataBytes.byteLength,
+        sha256: rawMetadataSha256,
+        prefix: rawMetadataHex.slice(0, 18)
+      },
+      apiDecodedMetadata: {
+        byteLength: metadataBytes.byteLength,
+        sha256: metadataSha256,
+        prefix: metadataHex.slice(0, 18)
+      },
+      rawAndApiMetadataBytesMatch: rawMetadataHex.toLowerCase() === metadataHex.toLowerCase(),
+      palletCount: pallets.length,
+      portableTypeCount: meta.types.types.length,
+      selectedStorageSchema: schemaSummary
+    };
+    console.log("OBSERVED_RUNTIME_METADATA " + JSON.stringify(observedFingerprint, null, 2));
+
+    if (rawMetadataHex.toLowerCase() !== metadataHex.toLowerCase()) {
+      throw new Error(
+        "Raw state_getMetadata bytes differ from the API-decoded metadata bytes at the same finalized block; refusing storage queries."
+      );
+    }
+    if (specName !== EXPECTED_SPEC_NAME || specVersion !== EXPECTED_SPEC_VERSION ||
+        transactionVersion !== EXPECTED_TRANSACTION_VERSION || rawMetadataSha256 !== EXPECTED_METADATA_SHA256) {
+      throw new Error(
+        "Runtime fingerprint changed; refusing to decode state with stale assumptions. " +
+        JSON.stringify({ chain, specName, specVersion, transactionVersion, metadataSha256: rawMetadataSha256 })
+      );
+    }
+
+    const apiAt = await api.at(finalizedHash);
+    const storageResults = [];
+
 
     function numericIndex(value) {
       return typeof value === "number" ? value : value.toNumber();

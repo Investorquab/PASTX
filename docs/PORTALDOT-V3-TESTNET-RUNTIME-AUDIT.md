@@ -66,6 +66,10 @@ A bounded implementation now exists in `scripts/check-portaldot-v3-testnet-asset
 
 The script must fail closed if the chain label or runtime fingerprint differs from the evidence captured on 17 October 2026. An updated runtime requires a fresh metadata audit before re-running storage interpretation. The workflow artifact is intended to establish what public asset/precompile state is actually populated, not to approve any integration. Live results remain pending until that workflow run has completed and its output has been reviewed.
 
+### Fingerprint mismatch observed on 17 October 2026
+
+The first post-merge state-inspection run encountered a different hash from the metadata-aware API object than the hash captured in the earlier raw runtime evidence. It failed before issuing the selected storage reads, so no asset or precompile contents were observed in that run. Do not update the expected hash merely to make the workflow pass. The diagnostic path now requests `state_getRuntimeVersion` and `state_getMetadata` at a single finalized block, separately fetches the raw `state_getMetadata` JSON-RPC bytes at the same block, hashes both representations, and emits a bounded summary of the target storage schema. This should distinguish an actual metadata change from an API encoding/normalization difference. Until that report is reviewed, state inspection remains blocked.
+
 ## Remaining gates
 
 1. Review the bounded live testnet storage results and verify key/value decoding against the captured metadata.
