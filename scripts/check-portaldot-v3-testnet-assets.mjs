@@ -64,50 +64,6 @@ function toHuman(value) {
   return bounded(value);
 }
 
-async function fetchRawMetadataHex(endpoint, blockHash) {
-  const socket = new WebSocket(endpoint);
-  try {
-    await new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error("Raw metadata WebSocket connection timed out")), 8000);
-      socket.addEventListener("open", () => { clearTimeout(timeout); resolve(); }, { once: true });
-      socket.addEventListener("error", () => { clearTimeout(timeout); reject(new Error("Raw metadata WebSocket connection failed")); }, { once: true });
-    });
-
-    const payload = await new Promise((resolve, reject) => {
-      const id = 1;
-      const timeout = setTimeout(() => reject(new Error("Raw state_getMetadata request timed out")), 8000);
-      const onMessage = event => {
-        let message;
-        try {
-          message = JSON.parse(String(event.data));
-        } catch {
-          return;
-        }
-        if (message.id !== id) return;
-        clearTimeout(timeout);
-        socket.removeEventListener("message", onMessage);
-        if (message.jsonrpc !== "2.0") reject(new Error("Raw metadata request returned an invalid JSON-RPC version"));
-        else if (message.error) reject(new Error("Raw state_getMetadata failed: " + JSON.stringify(message.error)));
-        else if (typeof message.result !== "string" || !/^0x(?:[0-9a-f]{2})+$/i.test(message.result)) {
-          reject(new Error("Raw state_getMetadata returned malformed hex metadata"));
-        } else {
-          resolve(message.result);
-        }
-      };
-      socket.addEventListener("message", onMessage);
-      socket.send(JSON.stringify({
-        jsonrpc: "2.0",
-        id,
-        method: "state_getMetadata",
-        params: [blockHash]
-      }));
-    });
-    return payload;
-  } finally {
-    if (socket.readyState < WebSocket.CLOSING) socket.close();
-  }
-}
-
 async function main() {
   const moduleEntry = process.env.PASTX_POLKADOT_API_ENTRY;
   if (!moduleEntry || !path.isAbsolute(moduleEntry)) {
@@ -155,7 +111,13 @@ async function main() {
       { pallet: "AssetsPrecompiles", item: "ForeignAssetIdToAssetIndex", kind: "precompile-asset-to-index" }
     ];
 
-    const rawMetadataHex = await fetchRawMetadataHex(ENDPOINT, finalizedHash.toHex());
+    // Use the existing API WebSocket connection for the raw response. A second connection
+    // can be routed to a different backend node behind the testnet endpoint, making a
+    // same-block fingerprint comparison misleading.
+    const rawMetadataHex = await provider.send("state_getMetadata", [finalizedHash.toHex()]);
+    if (typeof rawMetadataHex !== "string" || !/^0x(?:[0-9a-f]{2})+$/i.test(rawMetadataHex)) {
+      throw new Error("Raw state_getMetadata returned malformed hex metadata.");
+    }
     const rawMetadataBytes = Buffer.from(rawMetadataHex.slice(2), "hex");
     const rawMetadataSha256 = createHash("sha256").update(rawMetadataBytes).digest("hex");
     const schemaSummary = requested.map(spec => {
@@ -194,7 +156,7 @@ async function main() {
       },
       rawAndApiMetadataBytesMatch: rawMetadataHex.toLowerCase() === metadataHex.toLowerCase(),
       palletCount: pallets.length,
-      portableTypeCount: meta.types.types.length,
+      portableTypeCount: (meta.lookup?.types?.length ?? null),
       selectedStorageSchema: schemaSummary
     };
     console.log("OBSERVED_RUNTIME_METADATA " + JSON.stringify(observedFingerprint, null, 2));
@@ -323,7 +285,7 @@ async function main() {
           byteLength: metadataBytes.byteLength,
           sha256: metadataSha256,
           palletCount: pallets.length,
-          portableTypeCount: meta.types.types.length
+          portableTypeCount: (meta.lookup?.types?.length ?? null)
         },
         health: {
           peers: health.peers,
