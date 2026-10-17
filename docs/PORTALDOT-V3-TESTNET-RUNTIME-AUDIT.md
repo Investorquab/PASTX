@@ -70,6 +70,10 @@ The script must fail closed if the chain label or runtime fingerprint differs fr
 
 The first post-merge state-inspection run encountered a different hash from the metadata-aware API object than the hash captured in the earlier raw runtime evidence. It failed before issuing the selected storage reads, so no asset or precompile contents were observed in that run. Do not update the expected hash merely to make the workflow pass. The diagnostic path now requests `state_getRuntimeVersion` and `state_getMetadata` at a single finalized block, separately fetches the raw `state_getMetadata` JSON-RPC bytes at the same block, hashes both representations, and emits a bounded summary of the target storage schema. This should distinguish an actual metadata change from an API encoding/normalization difference. Until that report is reviewed, state inspection remains blocked.
 
+### Follow-up runtime fingerprint discrepancy
+
+A fresh independent runtime-evidence run on 17 October 2026 reported metadata length 561,916 and SHA-256 `acc74bc508af18c1d754b12abf0251e6aae6221ee905817de67aa223a7eec9a6` at finalized block `0xff8e00467ba814926925931e067a5e0b61b4e50d96008d9410e73cc7783bde4d`, while keeping the same node version, chain label, runtime spec name/version, and transaction version as the earlier capture. This differs from the audit fingerprint `942ea1b81eaed81273d95ae263d0002595fcf95183df77ce5114248c35efcda3`. The latest state-inspection attempt then stopped on a diagnostic-code error before comparing both representations or reading storage. Do not treat this as evidence of a populated asset registry and do not update the pin until the raw/decoded metadata and selected schema are reconciled. The revised checker requests raw metadata through the same provider connection used for API decoding, fixes type-registry reporting, and keeps the fingerprint gate closed.
+
 ## Remaining gates
 
 1. Review the bounded live testnet storage results and verify key/value decoding against the captured metadata.
