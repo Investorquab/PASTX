@@ -1,0 +1,53 @@
+name: Portaldot V3 Testnet Asset State Evidence
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/check-portaldot-v3-testnet-assets.mjs"
+      - ".github/workflows/portaldot-v3-testnet-assets-evidence.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pastx-portaldot-v3-testnet-asset-state-evidence
+  cancel-in-progress: false
+
+jobs:
+  inspect:
+    name: Bounded read-only asset and precompile storage inspection
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Install pinned temporary Substrate query tooling
+        shell: bash
+        run: |
+          npm install --prefix "$RUNNER_TEMP/pastx-runtime-tooling" --save-exact --no-audit --no-fund @polkadot/api@17.0.2
+      - name: Inspect metadata-pinned testnet storage at finalized state
+        shell: bash
+        run: |
+          mkdir -p evidence
+          set +e
+          PASTX_POLKADOT_API_ENTRY="$RUNNER_TEMP/pastx-runtime-tooling/node_modules/@polkadot/api/index.js" node scripts/check-portaldot-v3-testnet-assets.mjs > evidence/portaldot-v3-testnet-asset-state-check.json 2>&1
+          result=$?
+          set -e
+          cat evidence/portaldot-v3-testnet-asset-state-check.json
+          printf '\nexit_code=%s\n' "$result" >> evidence/portaldot-v3-testnet-asset-state-check.json
+          exit "$result"
+      - name: Preserve read-only state evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: portaldot-v3-testnet-asset-state-evidence-\${{ github.run_id }}
+          path: evidence/portaldot-v3-testnet-asset-state-check.json
+          if-no-files-found: error
+          retention-days: 14
