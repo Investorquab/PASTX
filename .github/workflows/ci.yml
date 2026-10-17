@@ -41,7 +41,7 @@ jobs:
         run: pnpm build
 
       - name: Syntax-check read-only operational scripts
-        run: node --check scripts/smoke-test-deployment.mjs && node --check scripts/check-chain-progress.mjs && node --check scripts/check-substrate-progress.mjs && node --check scripts/check-portaldot-v3-testnet.mjs && node --check scripts/check-portaldot-v3-testnet-substrate.mjs
+        run: node --check scripts/smoke-test-deployment.mjs && node --check scripts/check-chain-progress.mjs && node --check scripts/check-substrate-progress.mjs && node --check scripts/check-portaldot-v3-testnet.mjs && node --check scripts/check-portaldot-v3-testnet-substrate.mjs && node --check scripts/check-portaldot-v3-testnet-assets.mjs
 
       - name: Smoke-test bundled API and graceful shutdown
         run: |

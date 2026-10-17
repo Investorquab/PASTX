@@ -60,10 +60,15 @@ Before integrating any pallet into the application, the next read-only gate is t
 
 Do not submit any extrinsic, call a write method, sign a message, connect a user wallet, or change the PASTX discovery capability as part of this audit. The current findings do not establish that any listed stock is represented on-chain, that market prices are executable, or that settlement is safe.
 
+## Next read-only state inspection
+
+A bounded implementation now exists in `scripts/check-portaldot-v3-testnet-assets.mjs`, with workflow `Portaldot V3 Testnet Asset State Evidence`. It uses metadata-aware Substrate query tooling temporarily installed at an exact package version, verifies the expected chain/runtime/metadata fingerprint, fixes all reads to one finalized block, and samples at most 25 entries per selected map. It checks the runtime-described `Assets`, `PoolAssets`, `AssetConversion.Pools`, and `AssetsPrecompiles` mapping storage. It also reads next-ID values where present.
+
+The script must fail closed if the chain label or runtime fingerprint differs from the evidence captured on 17 October 2026. An updated runtime requires a fresh metadata audit before re-running storage interpretation. The workflow artifact is intended to establish what public asset/precompile state is actually populated, not to approve any integration. Live results remain pending until that workflow run has completed and its output has been reviewed.
+
 ## Remaining gates
 
-1. Confirm the metadata schema and storage-key encoding against a compatible official decoder/runtime source before implementing a client adapter.
-2. Read testnet asset/precompile mappings only, validate decoded responses against the captured metadata, and preserve evidence with a pinned runtime fingerprint.
-3. Establish account/address mapping rules and safe read-only balance queries without using private keys or signing.
-4. Verify official mainnet endpoints and independently sourced chain fingerprints before making any mainnet claim.
-5. Keep trading and settlement disabled until supported assets, market semantics, transaction outcomes, and rollback/failure behavior are tested end-to-end.
+1. Review the bounded live testnet storage results and verify key/value decoding against the captured metadata.
+2. Establish account/address mapping rules and safe read-only balance queries without using private keys or signing.
+3. Verify official mainnet endpoints and independently sourced chain fingerprints before making any mainnet claim.
+4. Keep trading and settlement disabled until supported assets, market semantics, transaction outcomes, and rollback/failure behavior are tested end-to-end.
