@@ -1,0 +1,51 @@
+name: Portaldot V3 Testnet Substrate Runtime Evidence
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/check-portaldot-v3-testnet-substrate.mjs"
+      - ".github/workflows/portaldot-v3-testnet-substrate-evidence.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pastx-portaldot-v3-testnet-substrate-evidence
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Read-only testnet runtime fingerprint and head progression
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Probe official Portaldot V3 testnet Substrate endpoint
+        shell: bash
+        run: |
+          mkdir -p evidence
+          set +e
+          PASTX_METADATA_OUTPUT=evidence/portaldot-v3-testnet-substrate-metadata.hex node scripts/check-portaldot-v3-testnet-substrate.mjs > evidence/portaldot-v3-testnet-substrate-check.txt 2>&1
+          result=$?
+          set -e
+          cat evidence/portaldot-v3-testnet-substrate-check.txt
+          printf '\nexit_code=%s\n' "$result" >> evidence/portaldot-v3-testnet-substrate-check.txt
+          exit "$result"
+      - name: Preserve testnet runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: portaldot-v3-testnet-substrate-evidence-${{ github.run_id }}
+          path: |
+            evidence/portaldot-v3-testnet-substrate-check.txt
+            evidence/portaldot-v3-testnet-substrate-metadata.hex
+          if-no-files-found: warn
+          retention-days: 14

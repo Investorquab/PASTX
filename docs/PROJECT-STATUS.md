@@ -19,9 +19,11 @@ PASTX is an early engineering foundation for Portaldot ecosystem market discover
 
 ## Portaldot V3 testnet evidence
 
-The Portaldot team announced the following V3 testnet endpoints: Substrate WebSocket `wss://test-node-v3.portaldot.dev`, EVM JSON-RPC `https://test-evm-rpc-v3.portaldot.dev`, and EVM chain ID `420420777`. The standalone `scripts/check-portaldot-v3-testnet.mjs` probe verifies the EVM chain ID and block-height progression using read-only JSON-RPC calls. The manual `Portaldot V3 Testnet EVM Evidence` workflow preserves its output as a 14-day artifact. Run the workflow manually to collect fresh evidence.
+The Portaldot team announced the following V3 testnet endpoints: Substrate WebSocket `wss://test-node-v3.portaldot.dev`, EVM JSON-RPC `https://test-evm-rpc-v3.portaldot.dev`, and EVM chain ID `420420777`. The standalone `scripts/check-portaldot-v3-testnet.mjs` probe verifies the expected EVM chain ID and block-height progression using read-only JSON-RPC calls. The `Portaldot V3 Testnet EVM Evidence` workflow supports manual dispatch and automatically runs on `main` when its probe or workflow definition changes; output is preserved as a 14-day artifact.
 
-This is explicitly testnet-scoped. It must not be used to infer or configure mainnet chain identity. Substrate runtime version and metadata should be captured separately from the official testnet WebSocket before making claims about runtime pallets, asset representation, or supported operations. A successful endpoint probe alone does not prove asset interoperability, wallet mapping, trading, or settlement.
+For Substrate, `scripts/check-portaldot-v3-testnet-substrate.mjs` is pinned to the announced WSS testnet hostname. It records the node-reported chain and node version, runtime spec name/version, transaction version, metadata byte length and SHA-256, health observations, and best/finalized block progression. When run in the workflow it also preserves the exact returned metadata as hex in a 14-day artifact for offline decoding. `Portaldot V3 Testnet Substrate Runtime Evidence` supports manual dispatch and automatically runs on `main` when its probe or workflow definition changes.
+
+This is explicitly testnet-scoped. It must not be used to infer or configure mainnet chain identity. The node-reported chain label is recorded and a mainnet label causes the testnet probe to fail. Even successful endpoint probes do not prove runtime pallet semantics, asset representation, EVM support, canonicality, wallet mapping, trading, or settlement.
 
 ## Chain configuration warning
 
