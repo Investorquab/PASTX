@@ -19,12 +19,13 @@ const EXPECTED_CHAIN = "PortaldotV3 Test";
 const EXPECTED_SPEC_NAME = "portaldot-v3";
 const EXPECTED_SPEC_VERSION = 3002;
 const EXPECTED_TRANSACTION_VERSION = 2;
-// Four captured V14 metadata snapshots differ at one byte only. That byte is
-// Revive.EthBlockBuilderIR.fallback[34]. Zeroing only that byte pins all other bytes.
+// Five captured V14 snapshots differ only at offsets 549822-549823. They map
+// to Revive.EthBlockBuilderIR.fallback[34:36]. Only these two bytes are normalized.
 const EXPECTED_METADATA_BYTE_LENGTH = 561916;
 const METADATA_VOLATILE_BYTE_OFFSET = 549822;
 const METADATA_VOLATILE_FIELD_BYTE_INDEX = 34;
-const EXPECTED_NORMALIZED_METADATA_SHA256 = "d847236dca0da987572b11e71b0b70709ada43cacd53aa9ed3dd5cb2a1dca50c";
+const METADATA_VOLATILE_FIELD_BYTE_LENGTH = 2;
+const EXPECTED_NORMALIZED_METADATA_SHA256 = "fec08cb5d8b6edc591fb7ee1d3c2af369185befb3c0d13bde6c5d23e020e3bf1";
 const PAGE_SIZE = 25;
 const MAX_STRING_LENGTH = 512;
 const MAX_OBJECT_FIELDS = 32;
@@ -175,9 +176,16 @@ async function main() {
     const rawMetadataBytes = Buffer.from(rawMetadataHex.slice(2), "hex");
     const rawMetadataSha256 = createHash("sha256").update(rawMetadataBytes).digest("hex");
     const normalizedMetadataBytes = Buffer.from(rawMetadataBytes);
-    const volatileMetadataByte = rawMetadataBytes[METADATA_VOLATILE_BYTE_OFFSET];
+    const volatileMetadataBytes = Array.from(
+      { length: METADATA_VOLATILE_FIELD_BYTE_LENGTH },
+      (_, index) => rawMetadataBytes[METADATA_VOLATILE_BYTE_OFFSET + index]
+    );
     if (rawMetadataBytes.byteLength === EXPECTED_METADATA_BYTE_LENGTH) {
-      normalizedMetadataBytes[METADATA_VOLATILE_BYTE_OFFSET] = 0;
+      normalizedMetadataBytes.fill(
+        0,
+        METADATA_VOLATILE_BYTE_OFFSET,
+        METADATA_VOLATILE_BYTE_OFFSET + METADATA_VOLATILE_FIELD_BYTE_LENGTH
+      );
     }
     const normalizedMetadataSha256 = createHash("sha256").update(normalizedMetadataBytes).digest("hex");
 
@@ -196,8 +204,11 @@ async function main() {
       : null;
     const volatileByteMatchesExpectedField = Boolean(
       volatileFallbackBytes &&
-      volatileFallbackBytes.length > METADATA_VOLATILE_FIELD_BYTE_INDEX &&
-      volatileFallbackBytes[METADATA_VOLATILE_FIELD_BYTE_INDEX] === volatileMetadataByte
+      volatileFallbackBytes.length >= METADATA_VOLATILE_FIELD_BYTE_INDEX + METADATA_VOLATILE_FIELD_BYTE_LENGTH &&
+      volatileMetadataBytes.every((value, index) =>
+        value !== undefined &&
+        volatileFallbackBytes[METADATA_VOLATILE_FIELD_BYTE_INDEX + index] === value
+      )
     );
 
     // Probe the same finalized block through two independent sessions. If the public
@@ -270,8 +281,11 @@ async function main() {
         expectedByteLength: EXPECTED_METADATA_BYTE_LENGTH,
         observedByteLength: rawMetadataBytes.byteLength,
         normalizedByteOffset: METADATA_VOLATILE_BYTE_OFFSET,
-        observedByteValue: Number.isInteger(volatileMetadataByte) ? "0x" + volatileMetadataByte.toString(16).padStart(2, "0") : null,
-        field: "Revive.EthBlockBuilderIR.fallback[34]",
+        normalizedByteLength: METADATA_VOLATILE_FIELD_BYTE_LENGTH,
+        observedByteValues: volatileMetadataBytes.map(value =>
+          Number.isInteger(value) ? "0x" + value.toString(16).padStart(2, "0") : null
+        ),
+        field: "Revive.EthBlockBuilderIR.fallback[34:36]",
         volatileByteMatchesExpectedField
       },
       independentMetadataSamples,
