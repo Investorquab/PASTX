@@ -115,24 +115,28 @@ async function main() {
       { pallet: "Assets", item: "NextAssetId", kind: "asset-next-id" },
       { pallet: "PoolAssets", item: "Asset", kind: "pool-asset-catalogue" },
       { pallet: "PoolAssets", item: "Metadata", kind: "pool-asset-metadata" },
-      { pallet: "PoolAssets", item: "NextPoolAssetId", kind: "pool-asset-next-id" },
+      { pallet: "PoolAssets", item: "NextAssetId", kind: "pool-asset-next-id" },
       { pallet: "AssetConversion", item: "Pools", kind: "asset-conversion-pools" },
       { pallet: "AssetsPrecompiles", item: "AssetIndexToForeignAssetId", kind: "precompile-index-to-asset" },
       { pallet: "AssetsPrecompiles", item: "ForeignAssetIdToAssetIndex", kind: "precompile-asset-to-index" }
     ];
 
+    function numericIndex(value) {
+      return typeof value === "number" ? value : value.toNumber();
+    }
+
     function findStorage(palletName, itemName) {
       const pallet = pallets.find(item => item.name.toString() === palletName);
       if (!pallet) return { found: false, reason: "pallet_missing_from_metadata" };
       if (!pallet.storage || pallet.storage.isNone) {
-        return { found: false, reason: "pallet_has_no_storage_metadata", palletIndex: pallet.index.toNumber() };
+        return { found: false, reason: "pallet_has_no_storage_metadata", palletIndex: numericIndex(pallet.index) };
       }
       const storage = pallet.storage.unwrap();
       const item = [...storage.items].find(entry => entry.name.toString() === itemName);
       if (!item) {
-        return { found: false, reason: "storage_item_missing_from_metadata", palletIndex: pallet.index.toNumber() };
+        return { found: false, reason: "storage_item_missing_from_metadata", palletIndex: numericIndex(pallet.index) };
       }
-      return { found: true, pallet, item, palletIndex: pallet.index.toNumber() };
+      return { found: true, pallet, item, palletIndex: numericIndex(pallet.index) };
     }
 
     for (const spec of requested) {
