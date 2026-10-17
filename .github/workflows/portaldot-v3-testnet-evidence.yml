@@ -2,6 +2,12 @@ name: Portaldot V3 Testnet EVM Evidence
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/check-portaldot-v3-testnet.mjs"
+      - ".github/workflows/portaldot-v3-testnet-evidence.yml"
 
 permissions:
   contents: read
