@@ -41,6 +41,12 @@ Three evidence artifacts captured metadata length 561,916 with different SHA-256
 
 The next diagnostic revision requests the same finalized block metadata through two additional independent WebSocket sessions, logs the fingerprint comparison and byte-difference summary, and refuses storage reads unless all three sessions agree and same-connection raw/API representations match. The audited hash pin remains unchanged pending a semantic audit of the differing byte.
 
+### Audited one-byte metadata variation
+
+Four archived testnet metadata captures have 561,916 bytes and differ from the original audited capture at one byte only: offset 549822. A SCALE V14 field walk identifies that byte as index 34 of the Revive.EthBlockBuilderIR storage entry's fallback/default-value bytes, not in any of the nine selected Assets, PoolAssets, AssetConversion, or AssetsPrecompiles storage descriptions. The differing values observed across captures were 0x97, 0x5b, 0x56, and 0x51. Replacing only that one byte with zero produces the same normalized SHA-256 for all four captures: d847236dca0da987572b11e71b0b70709ada43cacd53aa9ed3dd5cb2a1dca50c.
+
+The asset-state checker now gates on the normalized digest, exact byte length, chain label/runtime spec/transaction version, raw/API equality, and three matching metadata reads at one finalized block. It also verifies that the changing byte still maps to Revive.EthBlockBuilderIR.fallback[34]. Any additional metadata difference or moved field fails closed. The original raw SHA-256 is still captured in evidence. This is not permission to query or decode the Revive entry; only the bounded public asset/precompile catalogues are considered by the next step.
+
 ## Chain configuration warning
 
 The expected EVM chain ID `420420777` is from a published **Portaldot V3 testnet** guide. It must not be assumed to be the mainnet ID. The read-only chain-and-latest-block probe is configurable through `PORTALDOT_EVM_CHAIN_ID`; the default remains the documented testnet value. Configure another value only after independently verifying the official chain ID for the intended network. A matching chain ID and successful latest-block read do not prove the RPC is canonical, that blocks continue advancing, wallet address mapping works, assets interoperate, or settlement is safe. No live Portaldot transaction or settlement evidence is established.

@@ -82,6 +82,12 @@ The latest asset-state diagnostic confirmed that raw RPC metadata and API-decode
 
 A same-finalized-block, independent-connection consistency check is being added to distinguish runtime metadata variance from connection/backend variance. Storage queries remain blocked until that check passes and the byte-level discrepancy is explained.
 
+### Audited metadata variation and narrowly scoped normalization
+
+Four independently captured metadata files, each 561,916 bytes, differed from the original fingerprint at byte offset 549822 only. A SCALE V14 decoder places this byte at index 34 of Revive.EthBlockBuilderIR's storage metadata fallback/default-value bytes. It is outside the nine selected storage entries in Assets, PoolAssets, AssetConversion, and AssetsPrecompiles. Observed values were 0x97, 0x5b, 0x56, and 0x51. Setting only byte 549822 to zero yields the same SHA-256 across all four captures: d847236dca0da987572b11e71b0b70709ada43cacd53aa9ed3dd5cb2a1dca50c.
+
+The testnet gate accepts only this exact single-byte variance: it checks the fixed byte length, normalized full-metadata hash, chain/runtime versions, raw/API byte equality, three independent same-finalized-block reads, and that the byte remains at Revive.EthBlockBuilderIR.fallback[34]. Any additional change fails closed. The original raw hash is preserved for audit. No Revive values are read; the only eventual reads are the bounded public asset and asset-precompile catalogues described above.
+
 ## Remaining gates
 
 1. Review the bounded live testnet storage results and verify key/value decoding against the captured metadata.

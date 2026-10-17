@@ -19,7 +19,12 @@ const EXPECTED_CHAIN = "PortaldotV3 Test";
 const EXPECTED_SPEC_NAME = "portaldot-v3";
 const EXPECTED_SPEC_VERSION = 3002;
 const EXPECTED_TRANSACTION_VERSION = 2;
-const EXPECTED_METADATA_SHA256 = "942ea1b81eaed81273d95ae263d0002595fcf95183df77ce5114248c35efcda3";
+// Four captured V14 metadata snapshots differ at one byte only. That byte is
+// Revive.EthBlockBuilderIR.fallback[34]. Zeroing only that byte pins all other bytes.
+const EXPECTED_METADATA_BYTE_LENGTH = 561916;
+const METADATA_VOLATILE_BYTE_OFFSET = 549822;
+const METADATA_VOLATILE_FIELD_BYTE_INDEX = 34;
+const EXPECTED_NORMALIZED_METADATA_SHA256 = "d847236dca0da987572b11e71b0b70709ada43cacd53aa9ed3dd5cb2a1dca50c";
 const PAGE_SIZE = 25;
 const MAX_STRING_LENGTH = 512;
 const MAX_OBJECT_FIELDS = 32;
@@ -169,6 +174,31 @@ async function main() {
     }
     const rawMetadataBytes = Buffer.from(rawMetadataHex.slice(2), "hex");
     const rawMetadataSha256 = createHash("sha256").update(rawMetadataBytes).digest("hex");
+    const normalizedMetadataBytes = Buffer.from(rawMetadataBytes);
+    const volatileMetadataByte = rawMetadataBytes[METADATA_VOLATILE_BYTE_OFFSET];
+    if (rawMetadataBytes.byteLength === EXPECTED_METADATA_BYTE_LENGTH) {
+      normalizedMetadataBytes[METADATA_VOLATILE_BYTE_OFFSET] = 0;
+    }
+    const normalizedMetadataSha256 = createHash("sha256").update(normalizedMetadataBytes).digest("hex");
+
+    const revivePallet = pallets.find(entry => entry.name.toString() === "Revive");
+    const reviveStorage = revivePallet?.storage && revivePallet.storage.isSome
+      ? revivePallet.storage.unwrap()
+      : null;
+    const ethBlockBuilderEntry = reviveStorage
+      ? [...reviveStorage.items].find(entry => entry.name.toString() === "EthBlockBuilderIR")
+      : null;
+    const volatileFallbackHex = typeof ethBlockBuilderEntry?.fallback?.toHex === "function"
+      ? ethBlockBuilderEntry.fallback.toHex()
+      : null;
+    const volatileFallbackBytes = volatileFallbackHex
+      ? Buffer.from(volatileFallbackHex.slice(2), "hex")
+      : null;
+    const volatileByteMatchesExpectedField = Boolean(
+      volatileFallbackBytes &&
+      volatileFallbackBytes.length > METADATA_VOLATILE_FIELD_BYTE_INDEX &&
+      volatileFallbackBytes[METADATA_VOLATILE_FIELD_BYTE_INDEX] === volatileMetadataByte
+    );
 
     // Probe the same finalized block through two independent sessions. If the public
     // endpoint routes sessions to nodes with different runtime metadata, refuse storage reads.
@@ -234,6 +264,16 @@ async function main() {
         prefix: metadataHex.slice(0, 18)
       },
       rawAndApiMetadataBytesMatch: rawMetadataHex.toLowerCase() === metadataHex.toLowerCase(),
+      metadataNormalization: {
+        normalizedSha256: normalizedMetadataSha256,
+        expectedNormalizedSha256: EXPECTED_NORMALIZED_METADATA_SHA256,
+        expectedByteLength: EXPECTED_METADATA_BYTE_LENGTH,
+        observedByteLength: rawMetadataBytes.byteLength,
+        normalizedByteOffset: METADATA_VOLATILE_BYTE_OFFSET,
+        observedByteValue: Number.isInteger(volatileMetadataByte) ? "0x" + volatileMetadataByte.toString(16).padStart(2, "0") : null,
+        field: "Revive.EthBlockBuilderIR.fallback[34]",
+        volatileByteMatchesExpectedField
+      },
       independentMetadataSamples,
       metadataConsistentAcrossConnections,
       palletCount: pallets.length,
@@ -252,11 +292,28 @@ async function main() {
         "Raw state_getMetadata bytes differ from the API-decoded metadata bytes on the same provider connection; refusing storage queries."
       );
     }
-    if (specName !== EXPECTED_SPEC_NAME || specVersion !== EXPECTED_SPEC_VERSION ||
-        transactionVersion !== EXPECTED_TRANSACTION_VERSION || rawMetadataSha256 !== EXPECTED_METADATA_SHA256) {
+    if (
+      specName !== EXPECTED_SPEC_NAME ||
+      specVersion !== EXPECTED_SPEC_VERSION ||
+      transactionVersion !== EXPECTED_TRANSACTION_VERSION ||
+      rawMetadataBytes.byteLength !== EXPECTED_METADATA_BYTE_LENGTH ||
+      normalizedMetadataSha256 !== EXPECTED_NORMALIZED_METADATA_SHA256 ||
+      !volatileByteMatchesExpectedField
+    ) {
       throw new Error(
-        "Runtime fingerprint changed; refusing to decode state with stale assumptions. " +
-        JSON.stringify({ chain, specName, specVersion, transactionVersion, metadataSha256: rawMetadataSha256 })
+        "Runtime metadata differs beyond the single audited Revive default-value byte; refusing storage queries. " +
+        JSON.stringify({
+          chain,
+          specName,
+          specVersion,
+          transactionVersion,
+          rawMetadataSha256,
+          normalizedMetadataSha256,
+          expectedNormalizedMetadataSha256: EXPECTED_NORMALIZED_METADATA_SHA256,
+          metadataByteLength: rawMetadataBytes.byteLength,
+          expectedMetadataByteLength: EXPECTED_METADATA_BYTE_LENGTH,
+          volatileByteMatchesExpectedField
+        })
       );
     }
 
