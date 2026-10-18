@@ -24,7 +24,7 @@ External stock quotes are references only. They do not represent tokenized equit
 - `packages/chain-adapter`: read-only Portaldot EVM RPC chain-and-latest-block probe; no transaction writes.
 - `docs/`: architecture, API, settlement, security, tests and deployment notes.
 
-See [Architecture](docs/ARCHITECTURE.md), [API](docs/API.md), [Settlement Design](docs/SETTLEMENT-DESIGN.md), [Hackathon Requirements](docs/HACKATHON-REQUIREMENTS.md), and [Project Status](docs/PROJECT-STATUS.md).
+See [Architecture](docs/ARCHITECTURE.md), [API](docs/API.md), [Settlement Design](docs/SETTLEMENT-DESIGN.md), [Hackathon Requirements](docs/HACKATHON-REQUIREMENTS.md), [Project Status](docs/PROJECT-STATUS.md), and the [Human Validation Checklist](docs/HUMAN-VALIDATION-CHECKLIST.md).
 
 ## Requirements
 
