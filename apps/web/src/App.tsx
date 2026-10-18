@@ -74,6 +74,8 @@ function App() {
   const [orderSymbol,setOrderSymbol]=useState("AAPL");
   const [orderExchange,setOrderExchange]=useState("NASDAQ");
   const [orderMicCode,setOrderMicCode]=useState("XNAS");
+  const [orderCountry,setOrderCountry]=useState("United States");
+  const [orderCurrencyCode,setOrderCurrencyCode]=useState("USD");
   const [orderSide, setOrderSide] = useState<"buy" | "sell">("buy");
   const [orderQuantity, setOrderQuantity] = useState("1");
   const [marketMenuOpen, setMarketMenuOpen] = useState(false);
@@ -93,11 +95,11 @@ function App() {
     };
   }, []);
 
-  useEffect(()=>{let active=true;Promise.all([getApiCapabilities(),getMarketCatalogue()]).then(([contract,instruments])=>{if(!active)return;const rows=instruments.map((i:MarketInstrument)=>{const seed=referenceMarkets.find((m)=>m.symbol===i.symbol),exchange=i.exchange??seed?.exchange;return {...i,exchange,micCode:i.micCode??seed?.micCode,country:i.country??seed?.country,instrumentType:i.instrumentType??seed?.instrumentType??"Common Stock",category:(exchange??"EQUITY")+" · LISTED STOCK",price:"—",change:"—",positive:true,initials:i.symbol.slice(0,1)};});setMarketCatalogue(rows);const initial=rows.find((m)=>m.symbol==="AAPL");if(initial){setOrderExchange(initial.exchange??"NASDAQ");setOrderMicCode(initial.micCode??"");}setMarketDataEnabled({quotes:contract.capabilities.marketQuotes.enabled,candles:contract.capabilities.marketCandles.enabled});}).catch(()=>{/* seed entries remain available when API is not reachable */});return()=>{active=false;};},[]);
+  useEffect(()=>{let active=true;Promise.all([getApiCapabilities(),getMarketCatalogue()]).then(([contract,instruments])=>{if(!active)return;const rows=instruments.map((i:MarketInstrument)=>{const seed=referenceMarkets.find((m)=>m.symbol===i.symbol),exchange=i.exchange??seed?.exchange;return {...i,exchange,micCode:i.micCode??seed?.micCode,country:i.country??seed?.country,instrumentType:i.instrumentType??seed?.instrumentType??"Common Stock",category:(exchange??"EQUITY")+" · LISTED STOCK",price:"—",change:"—",positive:true,initials:i.symbol.slice(0,1)};});setMarketCatalogue(rows);const initial=rows.find((m)=>m.symbol==="AAPL");if(initial){setOrderExchange(initial.exchange??"NASDAQ");setOrderMicCode(initial.micCode??"");setOrderCountry(initial.country??"United States");setOrderCurrencyCode(initial.currency??"USD");}setMarketDataEnabled({quotes:contract.capabilities.marketQuotes.enabled,candles:contract.capabilities.marketCandles.enabled});}).catch(()=>{/* seed entries remain available when API is not reachable */});return()=>{active=false;};},[]);
 
   useEffect(()=>{const q=searchTerm.trim();if(!marketMenuOpen||q.length<2){setRemoteSearchResults([]);setMarketSearchLoading(false);setMarketSearchError(false);return;}let active=true;const timer=window.setTimeout(()=>{setMarketSearchLoading(true);setMarketSearchError(false);getMarketSearch(q,15).then((items)=>{if(active)setRemoteSearchResults(items.map((i)=>({...i,category:(i.exchange??"EQUITY")+" · "+(i.instrumentType??"LISTED STOCK").toUpperCase(),price:"—",change:"—",positive:true,initials:i.symbol.slice(0,1)})));}).catch(()=>{if(active){setRemoteSearchResults([]);setMarketSearchError(true);}}).finally(()=>{if(active)setMarketSearchLoading(false);});},300);return()=>{active=false;window.clearTimeout(timer);};},[searchTerm,marketMenuOpen]);
 
-  const selectedOrderInstrument=findMarketByIdentity(marketCatalogue,{symbol:orderSymbol,exchange:orderExchange,micCode:orderMicCode})??marketCatalogue[0]??referenceMarkets[0];
+  const selectedOrderInstrument=findMarketByIdentity(marketCatalogue,{symbol:orderSymbol,exchange:orderExchange,micCode:orderMicCode,country:orderCountry,currency:orderCurrencyCode})??findMarketByIdentity(referenceMarkets,{symbol:orderSymbol,exchange:orderExchange,micCode:orderMicCode,country:orderCountry,currency:orderCurrencyCode})??referenceMarkets[0];
   useEffect(()=>{if(!marketDataEnabled.quotes)return;let active=true;const refresh=async()=>{try{const q=await getMarketQuote(selectedOrderInstrument);if(active)setLiveQuotes((current)=>({...current,[marketKey(selectedOrderInstrument)]:q}));}catch{/* no invented fallback; retain any last successful quote */}};void refresh();const timer=window.setInterval(()=>{void refresh();},60_000);return()=>{active=false;window.clearInterval(timer);};},[marketDataEnabled.quotes,selectedOrderInstrument]);
   useEffect(()=>{if(!marketDataEnabled.candles){setLiveCandles(null);return;}let active=true;setLiveCandles(null);getMarketCandles(selectedOrderInstrument,"1day",30).then((rows)=>{if(active)setLiveCandles(rows);}).catch(()=>{if(active)setLiveCandles(null);});return()=>{active=false;};},[marketDataEnabled.candles,selectedOrderInstrument]);
   const selectedOrderQuote=liveQuotes[marketKey(selectedOrderInstrument)];
@@ -133,13 +135,13 @@ function App() {
   const networkTone = chainStatus?.status === "verified" ? "online" : chainStatusError || chainStatus?.status === "unreachable" || chainStatus?.status === "wrong_network" ? "warning" : "pending";
 
   const visibleMarkets=useMemo(()=>{const q=searchTerm.trim().toLowerCase();if(q.length>=2)return remoteSearchResults;if(!q)return marketCatalogue;return marketCatalogue.filter((m)=>[m.symbol,m.name,m.category,m.exchange??"",m.country??""].some((v)=>v.toLowerCase().includes(q)));},[marketCatalogue,remoteSearchResults,searchTerm]);
-  function selectMarket(m:MarketItem){const key=marketKey(m);setMarketCatalogue((current)=>current.some((i)=>marketKey(i)===key)?current:[...current,m].slice(-80));setOrderSymbol(m.symbol);setOrderExchange(m.exchange??"");setOrderMicCode(m.micCode??"");setLiveCandles(null);setMarketMenuOpen(false);setSearchTerm("");setRemoteSearchResults([]);}
+  function selectMarket(m:MarketItem){const key=marketKey(m);setMarketCatalogue((current)=>current.some((i)=>marketKey(i)===key)?current:[...current,m].slice(-80));setOrderSymbol(m.symbol);setOrderExchange(m.exchange??"");setOrderMicCode(m.micCode??"");setOrderCountry(m.country??"");setOrderCurrencyCode(m.currency);setLiveCandles(null);setMarketMenuOpen(false);setSearchTerm("");setRemoteSearchResults([]);}
 
   if (activePage === "overview") {
     return <OverviewPage language={language} onLanguageChange={setLanguage} text={t} markets={marketCatalogue}
       chainStatusLabel={chainStatusLabel} chainStatusDetail={chainStatusDetail} networkTone={networkTone}
       notificationsOpen={notificationsOpen} setNotificationsOpen={setNotificationsOpen}
-      onOpenApp={(symbol,exchange,micCode)=>{if(symbol){const m=findMarketByIdentity(marketCatalogue,{symbol,exchange,micCode});if(m){setOrderSymbol(m.symbol);setOrderExchange(m.exchange??"");setOrderMicCode(m.micCode??"");}}setActivePage("app");setMarketMenuOpen(false);}} />;
+      onOpenApp={(symbol,exchange,micCode,country,currency)=>{if(symbol){const m=findMarketByIdentity(marketCatalogue,{symbol,exchange,micCode,country,currency});if(m){setOrderSymbol(m.symbol);setOrderExchange(m.exchange??"");setOrderMicCode(m.micCode??"");setOrderCountry(m.country??"");setOrderCurrencyCode(m.currency);}}setActivePage("app");setMarketMenuOpen(false);}} />;
   }
 
   return (
