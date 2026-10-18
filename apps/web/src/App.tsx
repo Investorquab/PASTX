@@ -158,7 +158,6 @@ function App() {
   const selectedOrderInstrument = marketCatalogue.find((market) => market.symbol === orderSymbol) ?? marketCatalogue[0] ?? referenceMarkets[0];
   const selectedOrderQuote = liveQuotes[orderSymbol];
   const orderUnitPrice = selectedOrderQuote?.price ?? Number(selectedOrderInstrument.price.replace(/[$,]/g, ""));
-  const orderQuantityNumber = parsePreviewQuantity(orderQuantity);
   const orderNotional = calculateReferenceNotional(orderQuantity, orderUnitPrice);
   const orderCurrency = selectedOrderQuote?.currency ?? selectedOrderInstrument.currency;
   const selectedChange = selectedOrderQuote?.changePercent;
