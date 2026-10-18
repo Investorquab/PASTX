@@ -19,8 +19,8 @@ Local development defaults to `http://localhost:4000`. All routes are prefixed w
 | GET | `/api/assets/onchain/readiness` | Combines registry integrity, the live trusted-chain fingerprint result, and runtime-adapter readiness into a read-only blocker report |
 | GET | `/api/markets` | Four featured reference instruments; not the full stock universe |
 | GET | `/api/markets/search?q=...&limit=...` | Bounded provider-backed listed-equity search with exchange/MIC identity |
-| GET | `/api/markets/:symbol` | Metadata for a featured catalogue instrument |
-| GET | `/api/markets/:symbol/logo?exchange=...&mic_code=...` | Validated HTTPS company-logo URL, or `null` for initials fallback |
+| GET | `/api/markets/:symbol` | Metadata for a featured or explicitly identified discovered listing |
+| GET | `/api/markets/:symbol/logo?exchange=...&mic_code=...&country=...&currency=...` | Validated HTTPS company-logo URL for the selected listing, or `null` for initials fallback |
 | GET | `/api/markets/:symbol/quote` | Normalized quote from Twelve Data for a selected listing |
 | GET | `/api/markets/:symbol/candles` | Normalized OHLCV candles from Twelve Data for a selected listing |
 
