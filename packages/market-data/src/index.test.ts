@@ -118,8 +118,8 @@ describe("TwelveDataAdapter", () => {
       const country = url.searchParams.get("country");
       const quote = url.pathname.endsWith("/quote");
       const payload = quote
-        ? { symbol: "ABC", exchange: "NASDAQ", close: country === "United States" ? "10" : "20", change: "1", percent_change: "1", currency: "USD", timestamp: 1792033200 }
-        : { meta: { symbol: "ABC", exchange: "NASDAQ", interval: "1day", currency: "USD" }, values: [{ datetime: "2026-10-15", open: "10", high: "21", low: "9", close: country === "United States" ? "10" : "20", volume: "50" }] };
+        ? { symbol: "ABC", exchange: "NASDAQ", country, close: country === "United States" ? "10" : "20", change: "1", percent_change: "1", currency: "USD", timestamp: 1792033200 }
+        : { meta: { symbol: "ABC", exchange: "NASDAQ", country, interval: "1day", currency: "USD" }, values: [{ datetime: "2026-10-15", open: "10", high: "21", low: "9", close: country === "United States" ? "10" : "20", volume: "50" }] };
       return new Response(JSON.stringify(payload), { status: 200, headers: { "content-type": "application/json" } });
     }) as unknown as typeof fetch;
     const adapter = new TwelveDataAdapter("test-key", fetcher);
@@ -132,6 +132,37 @@ describe("TwelveDataAdapter", () => {
     await expect(adapter.getCandles(ca, "1day", 1)).resolves.toMatchObject([{ close: 20 }]);
     expect(fetcher).toHaveBeenCalledTimes(4);
     expect(requested.map((url) => url.searchParams.get("country"))).toEqual(["United States", "Canada", "United States", "Canada"]);
+  });
+
+  it("fails closed when country-qualified quote, candle, or logo responses cannot verify country without a MIC", async () => {
+    const countryInstrument = {
+      symbol: "ABC", name: "ABC Canada", kind: "reference" as const, description: "test",
+      currency: "USD", providerSymbol: "ABC", exchange: "Regional Exchange", country: "Canada"
+    };
+    const validQuote = {
+      symbol: "ABC", exchange: "Regional Exchange", close: "10", change: "1",
+      percent_change: "1", currency: "USD", timestamp: 1792033200
+    };
+    const missingCountryQuote = new TwelveDataAdapter("key", fakeFetch(validQuote));
+    const wrongCountryQuote = new TwelveDataAdapter("key", fakeFetch({ ...validQuote, country: "United States" }));
+    await expect(missingCountryQuote.getQuote(countryInstrument)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
+    await expect(wrongCountryQuote.getQuote(countryInstrument)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
+
+    const candles = [{ datetime: "2026-10-15", open: "10", high: "11", low: "9", close: "10", volume: "50" }];
+    const missingCountryCandles = new TwelveDataAdapter("key", fakeFetch({
+      meta: { symbol: "ABC", exchange: "Regional Exchange", interval: "1day", currency: "USD" }, values: candles
+    }));
+    const wrongCountryCandles = new TwelveDataAdapter("key", fakeFetch({
+      meta: { symbol: "ABC", exchange: "Regional Exchange", country: "United States", interval: "1day", currency: "USD" }, values: candles
+    }));
+    await expect(missingCountryCandles.getCandles(countryInstrument, "1day", 1)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
+    await expect(wrongCountryCandles.getCandles(countryInstrument, "1day", 1)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
+
+    const wrongCountryLogo = new TwelveDataAdapter("key", fakeFetch({
+      meta: { symbol: "ABC", exchange: "Regional Exchange", country: "United States" },
+      url: "https://assets.example.test/abc.png"
+    }));
+    await expect(wrongCountryLogo.getLogo(countryInstrument)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
   });
 
   it("rejects provider quotes for a different symbol or currency", async () => {

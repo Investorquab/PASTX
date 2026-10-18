@@ -202,7 +202,7 @@ function App() {
                     {marketSearchLoading&&<div className="picker-empty">{t.searchingStockDirectory}</div>}
                     {marketSearchError&&<div className="picker-empty">{t.stockSearchUnavailable}</div>}
                     {visibleMarkets.map((market)=><button className={"market-option "+(marketKey(market)===marketKey(selectedOrderInstrument)?"selected":"")} type="button" key={marketKey(market)} onClick={()=>selectMarket(market)}>
-                      <AssetLogo symbol={market.symbol} name={market.name} initials={market.initials} exchange={market.exchange} micCode={market.micCode} country={market.country} currency={market.currency} className={"option-mark mark-"+market.symbol.toLowerCase()}/>
+                      <AssetLogo symbol={market.symbol} name={market.name} initials={market.initials} exchange={market.exchange} micCode={market.micCode} country={market.country} currency={market.currency} allowRemote={false} className={"option-mark mark-"+market.symbol.toLowerCase()}/>
                       <span className="option-label"><strong>{market.symbol} <small>{market.exchange??""}</small></strong><small>{market.name}{market.country?" · "+market.country:""}</small></span>
                       {marketKey(market)===marketKey(selectedOrderInstrument)?<Check size={15}/>:<span className="option-price">{formatQuotePrice(liveQuotes[marketKey(market)],market.price)}</span>}
                     </button>)}
@@ -277,7 +277,7 @@ function App() {
           <div className="watchlist-rows">
             {visibleMarkets.map((market) => (
               <button key={marketKey(market)} className={"watchlist-row "+(marketKey(market)===marketKey(selectedOrderInstrument)?"chosen":"")} type="button" onClick={()=>selectMarket(market)}>
-                <AssetLogo symbol={market.symbol} name={market.name} initials={market.initials} exchange={market.exchange} micCode={market.micCode} country={market.country} currency={market.currency} className={"option-mark mark-"+market.symbol.toLowerCase()}/>
+                <AssetLogo symbol={market.symbol} name={market.name} initials={market.initials} exchange={market.exchange} micCode={market.micCode} country={market.country} currency={market.currency} allowRemote={false} className={"option-mark mark-"+market.symbol.toLowerCase()}/>
                 <span className="watchlist-name"><strong>{market.symbol}</strong><small>{market.name}</small><em>{market.category}</em></span>
                 <span className="watchlist-price"><strong>{formatQuotePrice(liveQuotes[marketKey(market)],market.price)}</strong><small>{liveQuotes[marketKey(market)]?"Twelve Data · "+formatTimestamp(liveQuotes[marketKey(market)].observedAt):t.awaitingQuote}</small></span>
                 <span className={"watchlist-change "+((liveQuotes[marketKey(market)]?.changePercent??0)>=0?"positive":"negative")}>{liveQuotes[marketKey(market)]?(liveQuotes[marketKey(market)].changePercent>=0?<ArrowUpRight size={13}/>:<ArrowDownRight size={13}/>):null}{formatQuoteChange(liveQuotes[marketKey(market)],market.change)}</span>

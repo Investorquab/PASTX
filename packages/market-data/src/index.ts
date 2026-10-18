@@ -37,6 +37,38 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
   return value as Record<string, unknown>;
 }
+function normalizeCountryIdentity(value: string): string {
+  const normalized = value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const aliases: Record<string, string> = {
+    US: "UNITEDSTATES", USA: "UNITEDSTATES", UNITEDSTATESOFAMERICA: "UNITEDSTATES",
+    CA: "CANADA", CAN: "CANADA",
+    GB: "UNITEDKINGDOM", UK: "UNITEDKINGDOM", GBR: "UNITEDKINGDOM", GREATBRITAIN: "UNITEDKINGDOM",
+    AU: "AUSTRALIA", AUS: "AUSTRALIA", JP: "JAPAN", JPN: "JAPAN",
+    CN: "CHINA", CHN: "CHINA", DE: "GERMANY", DEU: "GERMANY",
+    FR: "FRANCE", FRA: "FRANCE", IN: "INDIA", IND: "INDIA",
+    SG: "SINGAPORE", SGP: "SINGAPORE", HK: "HONGKONG", HKG: "HONGKONG",
+    CH: "SWITZERLAND", CHE: "SWITZERLAND", KR: "SOUTHKOREA", KOR: "SOUTHKOREA",
+    NL: "NETHERLANDS", NLD: "NETHERLANDS", IE: "IRELAND", IRL: "IRELAND",
+    NZ: "NEWZEALAND", NZL: "NEWZEALAND"
+  };
+  return aliases[normalized] ?? normalized;
+}
+
+/** A country-qualified listing must be verified by returned country metadata or a matching MIC. */
+function countryIdentityMatches(
+  expectedCountry: string | undefined,
+  returnedCountry: unknown,
+  expectedMic: string | undefined,
+  returnedMic: string
+): boolean {
+  if (!expectedCountry?.trim()) return true;
+  if (typeof returnedCountry === "string" && returnedCountry.trim()) {
+    return normalizeCountryIdentity(expectedCountry) === normalizeCountryIdentity(returnedCountry);
+  }
+  const expected = expectedMic?.trim().toUpperCase() ?? "";
+  const actual = returnedMic.trim().toUpperCase();
+  return Boolean(expected && actual && expected === actual);
+}
 
 function providerError(payload: unknown): ProviderErrorPayload | null {
   const record = asRecord(payload);
@@ -140,7 +172,8 @@ export class TwelveDataAdapter {
       const responseMic=typeof meta?.mic_code==="string"?meta.mic_code.trim().toUpperCase():"";
       const expectedExchange=instrument.exchange?.trim().toUpperCase()??"",expectedMic=instrument.micCode?.trim().toUpperCase()??"";
       const venueMatches=expectedMic&&responseMic?expectedMic===responseMic:expectedExchange?Boolean(responseExchange)&&expectedExchange.replace(/[^A-Z0-9]/g,"")===responseExchange.replace(/[^A-Z0-9]/g,""):true;
-      if(returned!==symbol||!venueMatches)throw new MarketDataError("PROVIDER_INVALID_RESPONSE","Market data provider returned a logo for a different listing.",502);
+      const countryMatches=countryIdentityMatches(instrument.country,meta?.country,expectedMic,responseMic);
+      if(returned!==symbol||!venueMatches||!countryMatches)throw new MarketDataError("PROVIDER_INVALID_RESPONSE","Market data provider returned a logo for a different listing.",502);
       const raw=typeof payload?.url==="string"?payload.url.trim():"";let logo:string|null=null;
       if(raw){try{const url=new URL(raw);if(url.protocol!=="https:"||url.username||url.password||!url.hostname||raw.length>2048)throw new Error("unsafe");logo=url.toString();}catch{throw new MarketDataError("PROVIDER_INVALID_RESPONSE","Market data provider returned an unsafe logo URL.",502);}}
       this.storeCache(this.logoCache,key,logo,86_400_000);return logo;
@@ -209,6 +242,7 @@ export class TwelveDataAdapter {
       const responseMic=typeof payload.mic_code==="string"?payload.mic_code.trim().toUpperCase():"";
       const expectedExchange=instrument.exchange?.trim().toUpperCase()??"",expectedMic=instrument.micCode?.trim().toUpperCase()??"";
       const venueMatches=expectedMic&&responseMic?expectedMic===responseMic:expectedExchange?Boolean(responseExchange)&&expectedExchange.replace(/[^A-Z0-9]/g,"")===responseExchange.replace(/[^A-Z0-9]/g,""):true;
+      const countryMatches=countryIdentityMatches(instrument.country,payload.country,expectedMic,responseMic);
       const rawTimestamp = payload.timestamp;
       let timestamp: string | null = null;
       if (typeof rawTimestamp === "number" || (typeof rawTimestamp === "string" && /^\d+$/.test(rawTimestamp))) {
@@ -218,7 +252,7 @@ export class TwelveDataAdapter {
         timestamp = new Date(payload.datetime).toISOString();
       }
 
-      if(responseSymbol!==expectedSymbol||!venueMatches||price===null||price<=0||change===null||changePercent===null||!timestamp||currency!==instrument.currency||!/^[A-Z]{3}$/.test(currency)){
+      if(responseSymbol!==expectedSymbol||!venueMatches||!countryMatches||price===null||price<=0||change===null||changePercent===null||!timestamp||currency!==instrument.currency||!/^[A-Z]{3}$/.test(currency)){
         throw new MarketDataError("PROVIDER_INVALID_RESPONSE", "Market data provider quote was missing required fields.", 502);
       }
 
@@ -264,6 +298,7 @@ export class TwelveDataAdapter {
       const responseExchange=typeof meta?.exchange==="string"?meta.exchange.trim().toUpperCase():"",responseMic=typeof meta?.mic_code==="string"?meta.mic_code.trim().toUpperCase():"";
       const expectedExchange=instrument.exchange?.trim().toUpperCase()??"",expectedMic=instrument.micCode?.trim().toUpperCase()??"";
       const venueMatches=expectedMic&&responseMic?expectedMic===responseMic:expectedExchange?Boolean(responseExchange)&&expectedExchange.replace(/[^A-Z0-9]/g,"")===responseExchange.replace(/[^A-Z0-9]/g,""):true;
+      const countryMatches=countryIdentityMatches(instrument.country,meta?.country,expectedMic,responseMic);
       const expectedSymbol = (instrument.providerSymbol ?? instrument.symbol).trim().toUpperCase();
       const values = payload?.values;
       if (
@@ -271,6 +306,7 @@ export class TwelveDataAdapter {
         responseInterval !== interval ||
         responseCurrency !== instrument.currency ||
         !venueMatches ||
+        !countryMatches ||
         !Array.isArray(values)
       ) {
         throw new MarketDataError("PROVIDER_INVALID_RESPONSE", "Market data provider returned mismatched or incomplete candle metadata.", 502);
