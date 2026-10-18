@@ -23,7 +23,7 @@ export function findMarketByIdentity<T extends MarketIdentity>(
   if (exchange) {
     const matches = markets.filter((market) => normalize(market.symbol) === symbol && normalize(market.exchange) === exchange && (!country || normalize(market.country) === country) && (!currency || normalize(market.currency) === currency));
     if (matches.length === 1) return matches[0];
-    return matches.find((market) => !normalize(market.micCode));
+    return undefined;
   }
   return markets.find((market) => normalize(market.symbol) === symbol);
 }
