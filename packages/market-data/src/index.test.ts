@@ -240,6 +240,18 @@ describe("TwelveDataAdapter", () => {
       values: [{ datetime: "2026-10-15 10:00:00", open: "10", high: "12", low: "9", close: "11", volume: "50" }]
     }));
     await expect(missingMetadata.getCandles(instrument, "1min", 1)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
+
+    const listedInstrument = {
+      ...instrument, symbol: "SHEL", providerSymbol: "SHEL", currency: "USD",
+      exchange: "NASDAQ", micCode: "XNAS"
+    };
+    const wrongVenue = new TwelveDataAdapter("test-key", fakeFetch({
+      meta: { symbol: "SHEL", interval: "1min", currency: "USD", exchange: "NYSE", mic_code: "XNYS" },
+      values: [{ datetime: "2026-10-15 10:00:00", open: "10", high: "12", low: "9", close: "11", volume: "50" }]
+    }));
+    await expect(wrongVenue.getCandles(listedInstrument, "1min", 1)).rejects.toMatchObject({
+      code: "PROVIDER_INVALID_RESPONSE", statusCode: 502
+    });
   });
 
   it("normalizes provider candle timestamps as UTC independent of server timezone", async () => {
