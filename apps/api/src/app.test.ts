@@ -341,6 +341,14 @@ describe("PASTX API", () => {
       expect(response.json().item.description).toContain("not a Portaldot-issued equity token");
     }finally{await app.close();}
   });
+  it("rejects an incomplete listing identity instead of silently falling back to a ticker match",async()=>{
+    const app=await buildApp({logger:false});
+    try{
+      const response=await app.inject({method:"GET",url:"/api/markets/AAPL?mic_code=XNYS"});
+      expect(response.statusCode).toBe(404);
+      expect(response.json().error.code).toBe("NOT_FOUND");
+    }finally{await app.close();}
+  });
   it("forwards exchange identity to company logo lookup",async()=>{
     const getLogo=vi.fn().mockResolvedValue(null);const app=await buildApp({logger:false,marketDataApiKey:"configured",marketData:{getLogo} as unknown as TwelveDataAdapter});
     try{const response=await app.inject({method:"GET",url:"/api/markets/AMD/logo?exchange=NASDAQ&mic_code=XNAS&currency=USD&country=United%20States"});expect(response.json()).toEqual({url:null});expect(getLogo).toHaveBeenCalledWith(expect.objectContaining({symbol:"AMD",exchange:"NASDAQ",micCode:"XNAS",currency:"USD"}));}
