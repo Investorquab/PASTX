@@ -27,6 +27,10 @@ describe("market listing identity", () => {
     expect(findMarketByIdentity(listings, { symbol: "ABC", exchange: "Regional Exchange", country: "United States", currency: "USD" })).toBe(listings[3]);
   });
 
+  it("does not guess between country-distinct listings when country and currency are omitted", () => {
+    expect(findMarketByIdentity(listings, { symbol: "ABC", exchange: "Regional Exchange" })).toBeUndefined();
+  });
+
   it("does not silently substitute a different listing when the requested MIC is absent", () => {
     expect(findMarketByIdentity(listings, { symbol: "ABC", exchange: "NASDAQ", micCode: "XLON" })).toBeUndefined();
   });
