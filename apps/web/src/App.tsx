@@ -204,7 +204,7 @@ function App() {
                       <span className="option-label"><strong>{market.symbol} <small>{market.exchange??""}</small></strong><small>{market.name}{market.country?" · "+market.country:""}</small></span>
                       {marketKey(market)===marketKey(selectedOrderInstrument)?<Check size={15}/>:<span className="option-price">{formatQuotePrice(liveQuotes[marketKey(market)],market.price)}</span>}
                     </button>)}
-                    {!marketSearchLoading&&!marketSearchError&&visibleMarkets.length===0&&<div className="picker-empty">{searchTerm.trim().length>=2?"{t.noMatchingListedStocks}":"{t.typeTwoCharacters}"}</div>}
+                    {!marketSearchLoading&&!marketSearchError&&visibleMarkets.length===0&&<div className="picker-empty">{searchTerm.trim().length>=2?t.noMatchingListedStocks:t.typeTwoCharacters}</div>}
                   </div>
                   <div className="picker-foot">{t.externalStockDirectory} · {t.onchainTokenAvailabilitySeparate}</div>
                 </div>
@@ -215,7 +215,7 @@ function App() {
           <div className="asset-market-stats">
             <div className="chain-caption"><span className="small-status-dot" /> PORTALDOT · RPC STATUS</div>
             <div className="market-stats-row">
-              <div className="market-stat"><span>{t.latestQuote.toUpperCase()}</span><strong>{formatQuotePrice(selectedOrderQuote,selectedOrderInstrument.price)}</strong><small>{selectedOrderQuote?"Twelve Data · "+formatTimestamp(selectedOrderQuote.observedAt)+" · delay status unknown":"No provider quote loaded"}</small></div>
+              <div className="market-stat"><span>{t.latestQuote.toUpperCase()}</span><strong>{formatQuotePrice(selectedOrderQuote,selectedOrderInstrument.price)}</strong><small>{selectedOrderQuote?"Twelve Data · "+formatTimestamp(selectedOrderQuote.observedAt)+" · "+t.quoteTimestampDelayUnknown:t.noProviderQuoteLoaded}</small></div>
               <div className="market-stat change-stat"><span>{t.providerChange.toUpperCase()}</span><strong className={(selectedChange??0)>=0?"positive":"negative"}>{selectedOrderQuote?selectedChangeText:"—"}</strong><small>{t.fromLatestProviderResponse}</small></div>
             </div>
           </div>
@@ -240,7 +240,7 @@ function App() {
               <MiniChart values={hasLiveCandles ? liveCandles?.map((candle) => candle.close) : undefined} />
             </div>
             <div className="chart-x-axis">{chartAxisLabels.map((label, index) => <span key={label + "-" + index}>{label}</span>)}</div>
-            <div className="chart-footer"><span>{hasLiveCandles?selectedOrderInstrument.symbol+" · 1 DAY":"NO HISTORICAL SERIES"}</span><span>{hasLiveCandles?"SOURCE: TWELVE DATA":"NO CHART FIXTURES DISPLAYED"}</span></div>
+            <div className="chart-footer"><span>{hasLiveCandles?selectedOrderInstrument.symbol+" · 1 DAY":t.chartDataUnavailable.toUpperCase()}</span><span>{hasLiveCandles?"Twelve Data":t.awaitingFeed.toUpperCase()}</span></div>
           </div>
 
           <aside className="trade-card surface" aria-labelledby="trade-title">
