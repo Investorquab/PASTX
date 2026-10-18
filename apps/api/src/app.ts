@@ -259,8 +259,8 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
     catch(error){if(error instanceof MarketDataError){if(error.code==="PROVIDER_UNAVAILABLE"||error.code==="PROVIDER_INVALID_RESPONSE")return {url:null};return reply.code(error.statusCode).send(apiError(error.code,error.message,request.id));}request.log.error({err:error},"Unexpected company logo lookup error");return {url:null};}
   });
 
-  app.get<{ Params: { symbol: string } }>("/api/markets/:symbol", async (request, reply) => {
-    const instrument = findInstrument(request.params.symbol);
+  app.get<{ Params: { symbol: string }; Querystring: MarketIdentityQuery }>("/api/markets/:symbol", async (request, reply) => {
+    const instrument = resolveMarketInstrument(request.params.symbol, request.query);
     if (!instrument) return reply.code(404).send(apiError("NOT_FOUND", "Market instrument was not found.", request.id));
     return { item: instrument };
   });
