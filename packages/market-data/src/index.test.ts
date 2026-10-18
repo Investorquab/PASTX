@@ -22,6 +22,15 @@ describe("TwelveDataAdapter", () => {
     ]}));
     const items=await adapter.searchStocks("Microsoft",20);expect(items).toHaveLength(3);expect(items[0]).toMatchObject({symbol:"MSFT",exchange:"NASDAQ",micCode:"XNAS"});expect(items.filter((item)=>item.symbol==="SHEL").map((item)=>item.micCode)).toEqual(["XNYS","XLON"]);
   });
+  it("preserves country-distinct listings when MIC identity is unavailable", async () => {
+    const adapter = new TwelveDataAdapter("test-key", fakeFetch({ status: "ok", data: [
+      { symbol: "ABC", instrument_name: "ABC US", exchange: "Regional Exchange", country: "United States", currency: "USD", instrument_type: "Common Stock" },
+      { symbol: "ABC", instrument_name: "ABC CA", exchange: "Regional Exchange", country: "Canada", currency: "CAD", instrument_type: "Common Stock" }
+    ] }));
+    const items = await adapter.searchStocks("ABC", 20);
+    expect(items).toHaveLength(2);
+    expect(items.map((item) => [item.country, item.currency])).toEqual([["United States", "USD"], ["Canada", "CAD"]]);
+  });
   it("rejects too-short stock queries before network access",async()=>{const fetcher=vi.fn();const adapter=new TwelveDataAdapter("key",fetcher as unknown as typeof fetch);await expect(adapter.searchStocks("A")).rejects.toMatchObject({statusCode:400});expect(fetcher).not.toHaveBeenCalled();});
   it("validates logo URL and symbol/listing identity", async () => {
     const listedInstrument = {
