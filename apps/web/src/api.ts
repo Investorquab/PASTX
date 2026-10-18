@@ -202,15 +202,20 @@ export async function getMarketCatalogue(fetchImpl: typeof fetch = fetch): Promi
     if (
       typeof item.symbol !== "string" ||
       !/^[A-Z0-9][A-Z0-9.-]{0,19}$/.test(item.symbol) ||
-      seen.has(item.symbol) ||
       typeof item.name !== "string" || !item.name.trim() ||
       (item.kind !== "reference" && item.kind !== "simulated" && item.kind !== "onchain") ||
       typeof item.description !== "string" || !item.description.trim() ||
       typeof item.currency !== "string" || !/^[A-Z]{3,8}$/.test(item.currency) ||
       !(item.providerSymbol === undefined || (typeof item.providerSymbol === "string" && item.providerSymbol.trim().length > 0))
     ) return null;
-    seen.add(item.symbol);
-    const parsed=parseMarketInstrument(item);if(!parsed)return null;return parsed;
+    const parsed = parseMarketInstrument(item);
+    if (!parsed) return null;
+    // A ticker can be listed on multiple exchanges. Reject duplicate listings,
+    // not distinct instruments that happen to share the same symbol.
+    const identity = parsed.symbol.toUpperCase() + ":" + (parsed.micCode ?? parsed.exchange?.toUpperCase() ?? "");
+    if (seen.has(identity)) return null;
+    seen.add(identity);
+    return parsed;
   });
   if (items.some((item) => item === null) || items.length === 0) {
     throw new ApiClientError("PASTX API returned an invalid market catalogue.");
