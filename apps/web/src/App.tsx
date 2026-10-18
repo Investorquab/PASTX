@@ -190,7 +190,7 @@ function App() {
             <div className="asset-title-wrap">
               <div className="asset-title-line">
                 <h1>{selectedOrderInstrument.symbol}</h1>
-                <button className="asset-picker-toggle" type="button" aria-expanded={marketMenuOpen} onClick={() => setMarketMenuOpen((open) => !open)} aria-label="Choose market"><ChevronDown size={17} /></button>
+                <button className="asset-picker-toggle" type="button" aria-expanded={marketMenuOpen} onClick={() => setMarketMenuOpen((open) => { if (open) setSearchTerm(""); return !open; })} aria-label="Choose market"><ChevronDown size={17} /></button>
               </div>
               <p>{selectedOrderInstrument.name} <span>·</span> Listed stock data</p>
               {marketMenuOpen && (
