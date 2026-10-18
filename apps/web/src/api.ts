@@ -173,7 +173,7 @@ export async function getMarketSearch(query:string,limit=15,fetchImpl:typeof fet
  const q=query.trim();if(q.length<2||q.length>80||!Number.isInteger(limit)||limit<1||limit>20)throw new ApiClientError("Stock search needs 2–80 characters and a result limit from 1 to 20.");
  const payload=await fetchJson(fetchImpl,"/api/markets/search?q="+encodeURIComponent(q)+"&limit="+limit);if(typeof payload!=="object"||payload===null)throw new ApiClientError("PASTX API returned invalid stock search.");
  const root=payload as Record<string,unknown>;if(root.query!==q||!Array.isArray(root.items)||root.count!==root.items.length||root.classification!=="external listed-stock directory; not proof of a Portaldot-issued equity token")throw new ApiClientError("PASTX API returned invalid stock search.");
- const seen=new Set<string>();const items=root.items.map((v):MarketInstrument|null=>{const i=parseMarketInstrument(v);if(!i||!i.exchange)return null;const key=i.symbol+":"+(i.micCode??i.exchange.toUpperCase());if(seen.has(key))return null;seen.add(key);return i;});
+ const seen=new Set<string>();const items=root.items.map((v):MarketInstrument|null=>{const i=parseMarketInstrument(v);if(!i||!i.exchange)return null;const key=i.symbol+":"+(i.micCode??i.exchange.toUpperCase())+":"+(i.country??"").trim().toUpperCase()+":"+i.currency.toUpperCase();if(seen.has(key))return null;seen.add(key);return i;});
  if(items.some((i)=>i===null))throw new ApiClientError("PASTX API returned malformed stock search results.");return items as MarketInstrument[];
 }
 export async function getMarketLogoUrl(i:MarketInstrument,fetchImpl:typeof fetch=fetch):Promise<string|null>{
@@ -212,7 +212,7 @@ export async function getMarketCatalogue(fetchImpl: typeof fetch = fetch): Promi
     if (!parsed) return null;
     // A ticker can be listed on multiple exchanges. Reject duplicate listings,
     // not distinct instruments that happen to share the same symbol.
-    const identity = parsed.symbol.toUpperCase() + ":" + (parsed.micCode ?? parsed.exchange?.toUpperCase() ?? "");
+    const identity = parsed.symbol.toUpperCase() + ":" + (parsed.micCode ?? parsed.exchange?.toUpperCase() ?? "") + ":" + (parsed.country ?? "").trim().toUpperCase() + ":" + parsed.currency.toUpperCase();
     if (seen.has(identity)) return null;
     seen.add(identity);
     return parsed;
