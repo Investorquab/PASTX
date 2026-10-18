@@ -83,7 +83,7 @@ function findInstrument(symbol: string): MarketInstrument | undefined {
 type MarketIdentityQuery={exchange?:string;mic_code?:string;country?:string;currency?:string};
 function resolveMarketInstrument(rawSymbol:string,q:MarketIdentityQuery={}):MarketInstrument|undefined{
  const symbol=rawSymbol.trim().toUpperCase();if(!/^[A-Z0-9][A-Z0-9.-]{0,19}$/.test(symbol))return undefined;
- const known=findInstrument(symbol),exchange=q.exchange?.trim();if(!exchange)return known;
+ const known=findInstrument(symbol),exchange=q.exchange?.trim();if(!exchange)return q.mic_code?.trim()?undefined:known;
  if(exchange.length>100||!/^[A-Za-z0-9][A-Za-z0-9 .&()'/_+-]{0,99}$/.test(exchange))return undefined;
  const currency=(q.currency??known?.currency??"").trim().toUpperCase();if(!/^[A-Z]{3}$/.test(currency))return undefined;
  const micCode=q.mic_code?.trim().toUpperCase();if(micCode&&!/^[A-Z0-9]{4}$/.test(micCode))return undefined;
