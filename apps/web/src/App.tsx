@@ -2,6 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { getApiCapabilities, getChainStatus, getMarketCatalogue, getMarketCandles, getMarketQuote, type ChainStatus } from "./api";
 import type { MarketCandle, MarketInstrument, MarketQuote } from "@pastx/shared";
 import { calculateReferenceNotional } from "./orderPreview";
+import { AssetLogo } from "./AssetLogo";
+import { OverviewPage } from "./OverviewPage";
+import { textFor, type LanguageCode } from "./i18n";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import {
   Activity,
   ArrowDownRight,
@@ -84,6 +88,9 @@ function formatQuoteChange(quote: MarketQuote | undefined, fixtureChange: string
 }
 
 function App() {
+  const [activePage, setActivePage] = useState<"overview" | "app">("overview");
+  const [language, setLanguage] = useState<LanguageCode>("en");
+  const t = textFor(language);
   const [searchTerm, setSearchTerm] = useState("");
   const [chainStatus, setChainStatus] = useState<ChainStatus | null>(null);
   const [chainStatusError, setChainStatusError] = useState(false);
@@ -201,6 +208,13 @@ function App() {
     setSearchTerm("");
   }
 
+  if (activePage === "overview") {
+    return <OverviewPage language={language} onLanguageChange={setLanguage} text={t} markets={marketCatalogue}
+      chainStatusLabel={chainStatusLabel} chainStatusDetail={chainStatusDetail} networkTone={networkTone}
+      notificationsOpen={notificationsOpen} setNotificationsOpen={setNotificationsOpen}
+      onOpenApp={(symbol) => { if (symbol) setOrderSymbol(symbol); setActivePage("app"); setMarketMenuOpen(false); }} />;
+  }
+
   return (
     <div className="app-shell">
       <header className="site-header">
@@ -210,31 +224,31 @@ function App() {
         </a>
 
         <nav className="top-nav" aria-label="Main navigation">
-          <a className="top-nav-item active" href="#markets"><Compass size={15} /> Markets</a>
-          <a className="top-nav-item" href="#portfolio"><Layers3 size={15} /> Portfolio</a>
-          <a className="top-nav-item" href="#activity"><Activity size={15} /> Activity</a>
+          <button className="top-nav-item" type="button" onClick={() => setActivePage("overview")}><Compass size={15} /> {t.overview}</button><button className="top-nav-item active" type="button" onClick={() => setActivePage("app")}><ChartCandlestick size={15} /> {t.trade}</button>
+          <a className="top-nav-item" href="#portfolio"><Layers3 size={15} /> {t.portfolio}</a>
+          <a className="top-nav-item" href="#activity"><Activity size={15} /> {t.activity}</a>
         </nav>
 
         <div className="header-actions">
-          <a className="documentation-link" href="https://github.com/Investorquab/PASTX#readme" target="_blank" rel="noreferrer"><CircleHelp size={15} /> Documentation <ExternalLink size={12} /></a>
+          <a className="documentation-link" href="https://github.com/Investorquab/PASTX#readme" target="_blank" rel="noreferrer"><CircleHelp size={15} /> {t.documentation} <ExternalLink size={12} /></a>
           <div className="network-status" title={chainStatusDetail} aria-label={"Network status: " + chainStatusLabel}>
             <span className={"network-dot " + networkTone} />
             <span className="network-label">Network</span>
             <strong>{chainStatusLabel}</strong>
           </div>
           <div className="notification-wrap">
-            <button className="icon-button" type="button" aria-label="Notifications" aria-expanded={notificationsOpen} onClick={() => setNotificationsOpen((open) => !open)} title="Notifications">
+            <LanguageSwitcher language={language} onChange={setLanguage} text={t} /><button className="icon-button" type="button" aria-label={t.notifications} aria-expanded={notificationsOpen} onClick={() => setNotificationsOpen((open) => !open)} title={t.notifications}>
               <Bell size={17} />
             </button>
             {notificationsOpen && (
               <div className="notification-popover" role="status">
-                <div className="popover-heading"><strong>Notifications</strong><button type="button" aria-label="Close notifications" onClick={() => setNotificationsOpen(false)}><X size={14} /></button></div>
-                <p>You’re all caught up.</p>
-                <span>Notification delivery is not enabled in this preview.</span>
+                <div className="popover-heading"><strong>{t.notifications}</strong><button type="button" aria-label="Close notifications" onClick={() => setNotificationsOpen(false)}><X size={14} /></button></div>
+                <p>{t.notificationsEmpty}</p>
+                <span>{t.notificationsDisabled}</span>
               </div>
             )}
           </div>
-          <button className="wallet-button" type="button" disabled title="Wallet connection is not implemented yet"><Wallet size={15} /> Wallet pending</button>
+          <button className="wallet-button" type="button" disabled title="Wallet connection is not implemented yet"><Wallet size={15} /> {t.walletPending}</button>
         </div>
       </header>
 
@@ -246,7 +260,7 @@ function App() {
 
         <section className="asset-heading" id="markets">
           <div className="asset-identity">
-            <div className={"asset-mark mark-" + selectedOrderInstrument.symbol.toLowerCase()}>{selectedOrderInstrument.initials}</div>
+            <AssetLogo symbol={selectedOrderInstrument.symbol} name={selectedOrderInstrument.name} initials={selectedOrderInstrument.initials} className={"asset-mark mark-" + selectedOrderInstrument.symbol.toLowerCase()} />
             <div className="asset-title-wrap">
               <div className="asset-title-line">
                 <h1>{selectedOrderInstrument.symbol}</h1>
@@ -259,7 +273,7 @@ function App() {
                   <div className="market-picker-list">
                     {visibleMarkets.map((market) => (
                       <button className={"market-option " + (market.symbol === orderSymbol ? "selected" : "")} type="button" key={market.symbol} onClick={() => selectMarket(market.symbol)}>
-                        <span className={"option-mark mark-" + market.symbol.toLowerCase()}>{market.initials}</span>
+                        <AssetLogo symbol={market.symbol} name={market.name} initials={market.initials} className={"option-mark mark-" + market.symbol.toLowerCase()} />
                         <span className="option-label"><strong>{market.symbol}</strong><small>{market.name}</small></span>
                         {market.symbol === orderSymbol ? <Check size={15} /> : <span className="option-price">{formatQuotePrice(liveQuotes[market.symbol], market.price)}</span>}
                       </button>
@@ -307,13 +321,13 @@ function App() {
           </div>
 
           <aside className="trade-card surface" aria-labelledby="trade-title">
-            <div className="trade-card-heading"><h2 id="trade-title">Trade</h2><span>{selectedOrderInstrument.symbol}</span></div>
+            <div className="trade-card-heading"><h2 id="trade-title">{t.trade}</h2><span>{selectedOrderInstrument.symbol}</span></div>
             <div className="side-switch" role="group" aria-label="Order side">
-              <button className={orderSide === "buy" ? "active buy-active" : ""} type="button" onClick={() => setOrderSide("buy")}>Buy</button>
-              <button className={orderSide === "sell" ? "active sell-active" : ""} type="button" onClick={() => setOrderSide("sell")}>Sell</button>
+              <button className={orderSide === "buy" ? "active buy-active" : ""} type="button" onClick={() => setOrderSide("buy")}>{t.buy}</button>
+              <button className={orderSide === "sell" ? "active sell-active" : ""} type="button" onClick={() => setOrderSide("sell")}>{t.sell}</button>
             </div>
             <div className="order-type-row"><span>Order type</span><strong>Market</strong></div>
-            <label className="amount-label" htmlFor="order-quantity">AMOUNT TO SPEND</label>
+            <label className="amount-label" htmlFor="order-quantity">{t.quantity.toUpperCase()}</label>
             <div className="amount-input-wrap"><input id="order-quantity" type="number" min="0.0001" max="1000000" step="0.0001" value={orderQuantity} onChange={(event) => setOrderQuantity(event.target.value)} /><span>{orderCurrency}</span></div>
             <div className="available-row"><span>Available</span><strong>Log in to see your balance</strong></div>
             <div className="receive-row"><span>Estimated reference value</span><strong>{orderNotional !== null && Number.isFinite(orderNotional) ? new Intl.NumberFormat("en-US", { style: "currency", currency: orderCurrency, maximumFractionDigits: 2 }).format(orderNotional) : "—"}</strong></div>
@@ -338,7 +352,7 @@ function App() {
           <div className="watchlist-rows">
             {visibleMarkets.map((market) => (
               <button key={market.symbol} className={"watchlist-row " + (market.symbol === orderSymbol ? "chosen" : "")} type="button" onClick={() => selectMarket(market.symbol)}>
-                <span className={"option-mark mark-" + market.symbol.toLowerCase()}>{market.initials}</span>
+                <AssetLogo symbol={market.symbol} name={market.name} initials={market.initials} className={"option-mark mark-" + market.symbol.toLowerCase()} />
                 <span className="watchlist-name"><strong>{market.symbol}</strong><small>{market.name}</small><em>{market.category}</em></span>
                 <span className="watchlist-price"><strong>{formatQuotePrice(liveQuotes[market.symbol], market.price)}</strong><small>{liveQuotes[market.symbol] ? "Twelve Data" : "Sample value"}</small></span>
                 <span className={"watchlist-change " + ((liveQuotes[market.symbol]?.changePercent ?? (market.positive ? 1 : -1)) >= 0 ? "positive" : "negative")}>{(liveQuotes[market.symbol]?.changePercent ?? (market.positive ? 1 : -1)) >= 0 ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}{formatQuoteChange(liveQuotes[market.symbol], market.change)}</span>
