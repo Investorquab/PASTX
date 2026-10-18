@@ -120,7 +120,7 @@ export class TwelveDataAdapter {
         const currency=typeof row.currency==="string"?row.currency.trim().toUpperCase():"";
         const instrumentType=typeof row.instrument_type==="string"?row.instrument_type.trim():"";
         if(!/^[A-Z0-9][A-Z0-9.-]{0,19}$/.test(symbol)||!name||!exchange||exchange.length>100||!/^[A-Z]{3}$/.test(currency)||!types.has(instrumentType.toLowerCase())||(micCode&&!/^[A-Z0-9]{4}$/.test(micCode)))continue;
-        const id=symbol+":"+(micCode||exchange.toUpperCase());if(seen.has(id))continue;seen.add(id);
+        const id=symbol+":"+(micCode||exchange.toUpperCase())+":"+country.toUpperCase()+":"+currency;if(seen.has(id))continue;seen.add(id);
         items.push({symbol,name,kind:"reference",description:"Listed stock quote data from an external provider; not a Portaldot-issued equity token.",currency,providerSymbol:symbol,exchange,...(micCode?{micCode}:{}),...(country?{country}:{}),instrumentType});
         if(items.length>=outputSize)break;
       }
