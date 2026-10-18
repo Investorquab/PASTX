@@ -96,6 +96,28 @@ describe("TwelveDataAdapter", () => {
     await expect(wrongCurrency.getQuote(instrument)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
   });
 
+  it("rejects quotes returned for a different exchange listing", async () => {
+    const listedInstrument = {
+      ...instrument, symbol: "SHEL", providerSymbol: "SHEL", currency: "USD",
+      exchange: "NASDAQ", micCode: "XNAS"
+    };
+    const wrongVenue = new TwelveDataAdapter("test-key", fakeFetch({
+      symbol: "SHEL", exchange: "NYSE", mic_code: "XNYS", close: "10.25",
+      change: "0.25", percent_change: "2.4", currency: "USD", timestamp: 1792033200
+    }));
+    await expect(wrongVenue.getQuote(listedInstrument)).rejects.toMatchObject({
+      code: "PROVIDER_INVALID_RESPONSE", statusCode: 502
+    });
+
+    const missingVenue = new TwelveDataAdapter("test-key", fakeFetch({
+      symbol: "SHEL", close: "10.25", change: "0.25", percent_change: "2.4",
+      currency: "USD", timestamp: 1792033200
+    }));
+    await expect(missingVenue.getQuote(listedInstrument)).rejects.toMatchObject({
+      code: "PROVIDER_INVALID_RESPONSE", statusCode: 502
+    });
+  });
+
   it("caches successful quotes briefly and refreshes after expiry", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-10-15T03:00:00.000Z"));
