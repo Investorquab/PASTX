@@ -14,8 +14,9 @@ describe("market listing identity", () => {
   });
 
   it("resolves a selected listing by MIC instead of ticker or display exchange alone", () => {
-    expect(findMarketByIdentity(listings, { symbol: "ABC", exchange: "NASDAQ", micCode: "XNYS" })).toBe(listings[1]);
+    expect(findMarketByIdentity(listings, { symbol: "ABC", exchange: "New York Stock Exchange", micCode: "XNYS" })).toBe(listings[1]);
     expect(findMarketByIdentity(listings, { symbol: "ABC", exchange: "NASDAQ", micCode: "XNAS" })).toBe(listings[0]);
+    expect(findMarketByIdentity(listings, { symbol: "ABC", exchange: "NASDAQ", micCode: "XNYS" })).toBeUndefined();
   });
 
   it("does not silently substitute a different listing when the requested MIC is absent", () => {
