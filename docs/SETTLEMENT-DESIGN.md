@@ -21,13 +21,13 @@ If the chosen runtime cannot provide that guarantee for the intended participant
 
 ## Portaldot V3 facts from the published testnet guide
 
-The [Portaldot V3 Testnet Guide](https://github.com/ItsCogumellum/portaldot-v3-testnet-guide) documents a Solidity-compatible EVM JSON-RPC endpoint using `revive`: `https://testnetv3-eth-rpc.feso-apps.xyz`, chain ID `420420777`, and test token symbol `tPOTv3` with 14 decimals. It also documents mapping an EVM H160 address to a native `AccountId32`/SS58 address through `reviveApi.accountId` before funding from the native side. The guide explicitly warns that an H160 address derived from a key is not necessarily the same address as that key’s Ethereum address.
+The [Portaldot V3 Testnet Guide](https://github.com/ItsCogumellum/portaldot-v3-testnet-guide) was updated on 16 October 2026 and says the former `feso-apps.xyz` endpoints are no longer in use. The current documented Substrate WebSocket is `wss://test-node-v3.portaldot.dev`; the current EVM JSON-RPC endpoint is `https://test-evm-rpc-v3.portaldot.dev`; the EVM chain ID remains `420420777`; and the test token is `tPOTv3` with 14 decimals. The guide documents mapping an EVM H160 address to a native `AccountId32`/SS58 address through `reviveApi.accountId` before funding from the native side. It warns that an H160 address derived from a key is not necessarily the same address as that key’s Ethereum address.
 
-These are **documented testnet configuration facts**, not proof that the endpoint is reachable now or that PASTX has completed an integration test. The guide’s [FAQ](https://github.com/ItsCogumellum/portaldot-v3-testnet-guide/blob/main/FAQ.md) says native `assets` and `revive` Solidity contracts are distinct models unless an explicit adapter/wrapper exists, and direct cross-calls between WASM/ink! and Solidity are awaiting confirmation. Therefore, do not assume a native Assets token can be transferred inside a Solidity settlement call.
+These are documented testnet configuration facts, not proof that the endpoint is reachable now or that PASTX has completed an integration test. Earlier CI evidence is recorded in [Project Status](PROJECT-STATUS.md) and must be refreshed before release. The guide’s [FAQ](https://github.com/ItsCogumellum/portaldot-v3-testnet-guide/blob/main/FAQ.md) says native `assets` and `revive` Solidity contracts are distinct models unless an explicit adapter/wrapper exists, and direct cross-calls between WASM/ink! and Solidity are awaiting confirmation. Therefore, do not assume a native Assets token can be transferred inside a Solidity settlement call.
 
 ## Questions to resolve against the actual target runtime
 
-1. Is the documented V3 EVM RPC reachable now, and does it report the expected chain ID and a current block number?
+1. Is the current documented V3 EVM RPC reachable now, and does it report the expected chain ID and a current block number?
 2. Which runtime version and transaction interfaces are active on that endpoint?
 3. Is the intended market asset native `assets`, an ERC-20 deployed through `revive`, or another explicitly documented representation?
 4. Can the payment and market-asset transfer execute atomically within the same supported execution environment and authorization model?
