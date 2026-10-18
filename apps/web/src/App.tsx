@@ -14,7 +14,6 @@ import {
   ChartCandlestick,
   Check,
   ChevronDown,
-  CircleHelp,
   Compass,
   ExternalLink,
   Layers3,
@@ -230,7 +229,6 @@ function App() {
         </nav>
 
         <div className="header-actions">
-          <a className="documentation-link" href="https://github.com/Investorquab/PASTX#readme" target="_blank" rel="noreferrer"><CircleHelp size={15} /> {t.documentation} <ExternalLink size={12} /></a>
           <div className="network-status" title={chainStatusDetail} aria-label={"Network status: " + chainStatusLabel}>
             <span className={"network-dot " + networkTone} />
             <span className="network-label">Network</span>
