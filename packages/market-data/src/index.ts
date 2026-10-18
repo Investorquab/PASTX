@@ -190,7 +190,7 @@ export class TwelveDataAdapter {
     if (instrument.kind !== "reference" || !instrument.providerSymbol?.trim()) {
       throw new MarketDataError("PROVIDER_INVALID_RESPONSE", "External market data is restricted to explicitly mapped reference instruments.", 400);
     }
-    const cacheKey=instrument.symbol+":"+instrument.providerSymbol.trim().toUpperCase()+":"+instrument.currency+":"+(instrument.micCode?.toUpperCase()??instrument.exchange?.toUpperCase()??"");
+    const cacheKey=instrument.symbol+":"+instrument.providerSymbol.trim().toUpperCase()+":"+instrument.currency+":"+(instrument.micCode?.toUpperCase()??instrument.exchange?.toUpperCase()??"")+":"+(instrument.country?.trim().toUpperCase()??"");
     const cached = this.quoteCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) return { ...cached.value };
     if (cached) this.quoteCache.delete(cacheKey);
@@ -241,7 +241,7 @@ export class TwelveDataAdapter {
     if (instrument.kind !== "reference" || !instrument.providerSymbol?.trim()) {
       throw new MarketDataError("PROVIDER_INVALID_RESPONSE", "External market data is restricted to explicitly mapped reference instruments.", 400);
     }
-    const cacheKey=instrument.symbol+":"+instrument.providerSymbol.trim().toUpperCase()+":"+instrument.currency+":"+(instrument.micCode?.toUpperCase()??instrument.exchange?.toUpperCase()??"")+":"+interval+":"+outputSize;
+    const cacheKey=instrument.symbol+":"+instrument.providerSymbol.trim().toUpperCase()+":"+instrument.currency+":"+(instrument.micCode?.toUpperCase()??instrument.exchange?.toUpperCase()??"")+":"+(instrument.country?.trim().toUpperCase()??"")+":"+interval+":"+outputSize;
     const cached = this.candleCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) return cached.value.map((candle) => ({ ...candle }));
     if (cached) this.candleCache.delete(cacheKey);
