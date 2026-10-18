@@ -1,4 +1,4 @@
-import {Activity,ArrowRight,Bell,ChartCandlestick,CircleHelp,Compass,ExternalLink,Search,ShieldCheck,X} from "lucide-react";
+import {Activity,ArrowRight,Bell,ChartCandlestick,Compass,ExternalLink,Search,ShieldCheck,X} from "lucide-react";
 import {AssetLogo} from "./AssetLogo";
 import {LanguageSwitcher} from "./LanguageSwitcher";
 import type {LanguageCode,TranslationText} from "./i18n";
@@ -8,7 +8,7 @@ export function OverviewPage({language,onLanguageChange,text:t,markets,chainStat
  return <div className="app-shell overview-shell">
  <header className="site-header overview-header"><a className="brand" href="#overview" aria-label="PASTX home"><span className="brand-mark"><ChartCandlestick size={21}/></span><span className="brand-word">PAST<span>X</span><small>ASSET EXCHANGE</small></span></a>
  <nav className="top-nav" aria-label="Main navigation"><a className="top-nav-item active" href="#overview"><Compass size={14}/>{t.overview}</a><button className="top-nav-item open-app-nav" type="button" onClick={()=>onOpenApp()}><ChartCandlestick size={14}/>{t.openApp}<ArrowRight size={13}/></button></nav>
- <div className="header-actions"><a className="documentation-link" href="https://github.com/Investorquab/PASTX#readme" target="_blank" rel="noreferrer"><CircleHelp size={14}/>{t.documentation}<ExternalLink size={11}/></a><LanguageSwitcher language={language} onChange={onLanguageChange} text={t}/>
+ <div className="header-actions"><LanguageSwitcher language={language} onChange={onLanguageChange} text={t}/>
  <div className="network-status" title={chainStatusDetail} aria-label={t.networkStatus+": "+chainStatusLabel}><span className={"network-dot "+networkTone}/><span className="network-label">{t.networkStatus}</span><strong>{chainStatusLabel}</strong></div>
  <div className="notification-wrap"><button className="icon-button" type="button" aria-label={t.notifications} aria-expanded={notificationsOpen} onClick={()=>setNotificationsOpen(!notificationsOpen)} title={t.notifications}><Bell size={16}/></button>{notificationsOpen&&<div className="notification-popover" role="status"><div className="popover-heading"><strong>{t.notifications}</strong><button type="button" aria-label="Close notifications" onClick={()=>setNotificationsOpen(false)}><X size={14}/></button></div><p>{t.notificationsEmpty}</p><span>{t.notificationsDisabled}</span></div>}</div></div></header>
  <main className="overview-container" id="overview"><div className="page-meta"><span>PASTX <span className="meta-slash">/</span>{t.overview.toUpperCase()}</span><span className="meta-right">PORTALDOT V3 <span className="meta-slash">/</span>REFERENCE PREVIEW</span></div>
