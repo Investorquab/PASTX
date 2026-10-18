@@ -16,7 +16,9 @@ export function findMarketByIdentity<T extends MarketIdentity>(
 ): T | undefined {
   const symbol = normalize(identity.symbol);
   const micCode = normalize(identity.micCode);
-  const exchange = normalize(identity.exchange);\n  const country = normalize(identity.country);\n  const currency = normalize(identity.currency);
+  const exchange = normalize(identity.exchange);
+  const country = normalize(identity.country);
+  const currency = normalize(identity.currency);
   if (micCode) return markets.find((market) => normalize(market.symbol) === symbol && normalize(market.micCode) === micCode && (!exchange || normalize(market.exchange) === exchange) && (!country || normalize(market.country) === country) && (!currency || normalize(market.currency) === currency));
   if (exchange) {
     const matches = markets.filter((market) => normalize(market.symbol) === symbol && normalize(market.exchange) === exchange && (!country || normalize(market.country) === country) && (!currency || normalize(market.currency) === currency));
