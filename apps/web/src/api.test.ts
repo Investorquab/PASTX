@@ -106,8 +106,8 @@ describe("getMarketCatalogue", () => {
     count: 2,
     classification: "reference catalogue; not proof of tokenized equity or executable market",
     items: [
-      { symbol: "AAPL", name: "Apple Inc.", kind: "reference", description: "External stock-price reference only.", currency: "USD", providerSymbol: "AAPL" },
-      { symbol: "NVDA", name: "NVIDIA Corporation", kind: "reference", description: "External stock-price reference only.", currency: "USD", providerSymbol: "NVDA" }
+      { symbol: "AAPL", name: "Apple Inc.", kind: "reference", description: "External stock-price reference only.", currency: "USD", providerSymbol: "AAPL", exchange: "NASDAQ", micCode: "XNAS" },
+      { symbol: "NVDA", name: "NVIDIA Corporation", kind: "reference", description: "External stock-price reference only.", currency: "USD", providerSymbol: "NVDA", exchange: "NASDAQ", micCode: "XNAS" }
     ]
   };
 
@@ -119,7 +119,21 @@ describe("getMarketCatalogue", () => {
     ]);
   });
 
-  it("rejects duplicate symbols and inconsistent counts", async () => {
+  it("allows the same ticker on distinct exchanges but rejects duplicate listings", async () => {
+    const sameTickerAcrossExchanges = {
+      ...validCatalogue,
+      count: 2,
+      items: [
+        { ...validCatalogue.items[0], exchange: "NASDAQ", micCode: "XNAS" },
+        { ...validCatalogue.items[0], exchange: "New York Stock Exchange", micCode: "XNYS" }
+      ]
+    };
+    const distinctListingsFetcher = async () => new Response(JSON.stringify(sameTickerAcrossExchanges), { status: 200 });
+    await expect(getMarketCatalogue(distinctListingsFetcher as unknown as typeof fetch)).resolves.toMatchObject([
+      { symbol: "AAPL", micCode: "XNAS" },
+      { symbol: "AAPL", micCode: "XNYS" }
+    ]);
+
     const duplicate = { ...validCatalogue, items: [validCatalogue.items[0], validCatalogue.items[0]] };
     const duplicateFetcher = async () => new Response(JSON.stringify(duplicate), { status: 200 });
     await expect(getMarketCatalogue(duplicateFetcher as unknown as typeof fetch)).rejects.toBeInstanceOf(ApiClientError);
