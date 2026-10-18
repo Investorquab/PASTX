@@ -42,6 +42,8 @@ curl -fsS http://localhost:4000/api/assets/onchain/readiness
 
 Expected by default: API health is OK, **tradingEnabled** is **false**, on-chain discovery is unavailable, and readiness identifies the missing registry/fingerprint/runtime adapter gates. A reachable RPC by itself is not proof of the correct chain.
 
+For Portaldot V3 testnet work, the [current guide](https://github.com/ItsCogumellum/portaldot-v3-testnet-guide) was updated on 16 October 2026: Substrate WebSocket `wss://test-node-v3.portaldot.dev`, EVM JSON-RPC `https://test-evm-rpc-v3.portaldot.dev`, EVM chain ID `420420777`. The former `feso-apps.xyz` endpoints are retired. Keep `PORTALDOT_EVM_RPC_URL` blank until you independently re-check the current guide and the endpoint's live identity; these values are testnet-only, not mainnet configuration.
+
 ## 3. Validate market discovery
 
 Without a configured provider key, verify the search route returns a clear configuration error instead of fabricated results:
