@@ -332,6 +332,15 @@ describe("PASTX API", () => {
     try{expect((await app.inject({method:"GET",url:"/api/markets/search?q=A"})).statusCode).toBe(400);expect(searchStocks).not.toHaveBeenCalled();}
     finally{await app.close();}
   });
+  it("resolves market details for dynamically discovered listings by exchange identity",async()=>{
+    const app=await buildApp({logger:false});
+    try{
+      const response=await app.inject({method:"GET",url:"/api/markets/AMD?exchange=NASDAQ&mic_code=XNAS&currency=USD&country=United%20States"});
+      expect(response.statusCode).toBe(200);
+      expect(response.json().item).toMatchObject({symbol:"AMD",name:"AMD",kind:"reference",exchange:"NASDAQ",micCode:"XNAS",currency:"USD",country:"United States"});
+      expect(response.json().item.description).toContain("not a Portaldot-issued equity token");
+    }finally{await app.close();}
+  });
   it("forwards exchange identity to company logo lookup",async()=>{
     const getLogo=vi.fn().mockResolvedValue(null);const app=await buildApp({logger:false,marketDataApiKey:"configured",marketData:{getLogo} as unknown as TwelveDataAdapter});
     try{const response=await app.inject({method:"GET",url:"/api/markets/AMD/logo?exchange=NASDAQ&mic_code=XNAS&currency=USD&country=United%20States"});expect(response.json()).toEqual({url:null});expect(getLogo).toHaveBeenCalledWith(expect.objectContaining({symbol:"AMD",exchange:"NASDAQ",micCode:"XNAS",currency:"USD"}));}
