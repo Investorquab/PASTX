@@ -57,6 +57,31 @@ describe("TwelveDataAdapter", () => {
     expect(Number.isFinite(Date.parse(quote.observedAt))).toBe(true);
   });
 
+  it("keeps quote cache and provider identity separate for the same ticker on different venues", async () => {
+    const requests: URL[] = [];
+    const fetcher = vi.fn(async (input: URL | RequestInfo) => {
+      const url = new URL(String(input));
+      requests.push(url);
+      const mic = url.searchParams.get("mic_code");
+      const listing = mic === "XNAS"
+        ? { exchange: "NASDAQ", mic_code: "XNAS", close: "10.25" }
+        : { exchange: "NYSE", mic_code: "XNYS", close: "11.75" };
+      return new Response(JSON.stringify({
+        symbol: "SHEL", ...listing, change: "0.25", percent_change: "2.4",
+        currency: "USD", timestamp: 1792033200
+      }), { status: 200, headers: { "content-type": "application/json" } });
+    }) as unknown as typeof fetch;
+    const adapter = new TwelveDataAdapter("test-key", fetcher);
+    const nasdaq = { symbol: "SHEL", name: "Shell test listing", kind: "reference" as const, description: "test", currency: "USD", providerSymbol: "SHEL", exchange: "NASDAQ", micCode: "XNAS" };
+    const nyse = { ...nasdaq, exchange: "NYSE", micCode: "XNYS" };
+
+    await expect(adapter.getQuote(nasdaq)).resolves.toMatchObject({ symbol: "SHEL", price: 10.25 });
+    await expect(adapter.getQuote(nyse)).resolves.toMatchObject({ symbol: "SHEL", price: 11.75 });
+    await expect(adapter.getQuote(nasdaq)).resolves.toMatchObject({ price: 10.25 });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(requests.map((url) => url.searchParams.get("mic_code"))).toEqual(["XNAS", "XNYS"]);
+  });
+
   it("rejects provider quotes for a different symbol or currency", async () => {
     const wrongSymbol = new TwelveDataAdapter("test-key", fakeFetch({
       symbol: "NVDA", close: "247.96", change: "3.04", percent_change: "1.24",
