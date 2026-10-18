@@ -8,13 +8,16 @@ import {
   ArrowUpRight,
   Bell,
   ChartCandlestick,
+  Check,
   ChevronDown,
   CircleHelp,
   Compass,
+  ExternalLink,
   Layers3,
   Search,
   ShieldCheck,
   Wallet,
+  X,
 } from "lucide-react";
 
 type MarketItem = {
@@ -42,17 +45,17 @@ function MiniChart({ values }: { values?: number[] }) {
   const minimum = Math.min(...series);
   const maximum = Math.max(...series);
   const range = maximum - minimum || 1;
-  const points = series.map((value, index) => `${(index / (series.length - 1)) * 100},${200 - ((value - minimum) / range) * 160}`).join(" ");
+  const points = series.map((value, index) => (index / (series.length - 1)) * 100 + "," + (200 - ((value - minimum) / range) * 160)).join(" ");
   return (
-    <svg className="chart-line" viewBox="0 0 100 220" preserveAspectRatio="none" role="img" aria-label={values && values.length > 1 ? "Historical AAPL closing prices from Twelve Data" : "Illustrative upward market chart, not live price data"}>
+    <svg className="chart-line" viewBox="0 0 100 220" preserveAspectRatio="none" role="img" aria-label={values && values.length > 1 ? "Historical AAPL closing prices from Twelve Data" : "Illustrative market chart, not live price data"}>
       <defs>
         <linearGradient id="chart-fill" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="#64e5b4" stopOpacity=".24" />
-          <stop offset="100%" stopColor="#64e5b4" stopOpacity="0" />
+          <stop offset="0%" stopColor="#00865f" stopOpacity=".15" />
+          <stop offset="100%" stopColor="#00865f" stopOpacity="0" />
         </linearGradient>
       </defs>
-      <polygon points={`0,220 ${points} 100,220`} fill="url(#chart-fill)" />
-      <polyline points={points} fill="none" stroke="#64e5b4" strokeWidth="1.8" vectorEffect="non-scaling-stroke" />
+      <polygon points={"0,220 " + points + " 100,220"} fill="url(#chart-fill)" />
+      <polyline points={points} fill="none" stroke="#00865f" strokeWidth="1.8" vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }
@@ -71,13 +74,13 @@ function formatAxisDate(timestamp: string): string {
 }
 
 function formatTimestamp(timestamp: string): string {
-  return `${new Date(timestamp).toISOString().replace("T", " ").slice(0, 16)} UTC`;
+  return new Date(timestamp).toISOString().replace("T", " ").slice(0, 16) + " UTC";
 }
 
 function formatQuoteChange(quote: MarketQuote | undefined, fixtureChange: string): string {
   if (!quote) return fixtureChange;
   const sign = quote.changePercent > 0 ? "+" : "";
-  return `${sign}${quote.changePercent.toFixed(2)}%`;
+  return sign + quote.changePercent.toFixed(2) + "%";
 }
 
 function App() {
@@ -90,6 +93,8 @@ function App() {
   const [orderSymbol, setOrderSymbol] = useState("AAPL");
   const [orderSide, setOrderSide] = useState<"buy" | "sell">("buy");
   const [orderQuantity, setOrderQuantity] = useState("1");
+  const [marketMenuOpen, setMarketMenuOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -115,7 +120,7 @@ function App() {
           return {
             symbol: instrument.symbol,
             name: instrument.name,
-            category: `${instrument.kind.toUpperCase()} · ${instrument.kind === "reference" ? "REFERENCE" : instrument.kind === "simulated" ? "SIMULATED" : "ON-CHAIN"}`,
+            category: instrument.kind.toUpperCase() + " · " + (instrument.kind === "reference" ? "REFERENCE" : instrument.kind === "simulated" ? "SIMULATED" : "ON-CHAIN"),
             currency: instrument.currency,
             price: fixture?.price ?? "—",
             change: fixture?.change ?? "—",
@@ -140,7 +145,7 @@ function App() {
         setLiveCandles(candleResult.ok ? candleResult.items : null);
       })
       .catch(() => {
-        // If the API contract or catalogue is unavailable, keep the labelled preview fixtures.
+        // Keep clearly labelled preview fixtures if the API or provider is unavailable.
       });
     return () => {
       active = false;
@@ -148,18 +153,19 @@ function App() {
   }, []);
 
   const hasLiveQuotes = Object.keys(liveQuotes).length > 0;
-  const hasLiveCandles = Boolean(liveCandles && liveCandles.length > 0);
+  const hasLiveCandles = Boolean(liveCandles && liveCandles.length > 1);
   const hasAnyLiveData = hasLiveQuotes || hasLiveCandles;
-
   const selectedOrderInstrument = marketCatalogue.find((market) => market.symbol === orderSymbol) ?? marketCatalogue[0] ?? referenceMarkets[0];
   const selectedOrderQuote = liveQuotes[orderSymbol];
   const orderUnitPrice = selectedOrderQuote?.price ?? Number(selectedOrderInstrument.price.replace(/[$,]/g, ""));
   const orderQuantityNumber = parsePreviewQuantity(orderQuantity);
   const orderNotional = calculateReferenceNotional(orderQuantity, orderUnitPrice);
   const orderCurrency = selectedOrderQuote?.currency ?? selectedOrderInstrument.currency;
-  const chartAxisLabels = hasLiveCandles && liveCandles && liveCandles.length > 0
+  const selectedChange = selectedOrderQuote?.changePercent;
+  const selectedChangeText = selectedOrderQuote ? formatQuoteChange(selectedOrderQuote, selectedOrderInstrument.change) : selectedOrderInstrument.change;
+  const chartAxisLabels = hasLiveCandles && liveCandles
     ? [0, Math.floor((liveCandles.length - 1) / 3), Math.floor(((liveCandles.length - 1) * 2) / 3), liveCandles.length - 1].map((index) => formatAxisDate(liveCandles[index].timestamp))
-    : ["09:00", "12:00", "15:00", "18:00"];
+    : ["Oct 16", "Oct 16", "Oct 17", "Oct 18"];
 
   const chainStatusLabel = chainStatus
     ? ({
@@ -172,14 +178,15 @@ function App() {
       ? "API unavailable"
       : "Checking RPC…";
   const chainStatusDetail = chainStatus?.status === "verified"
-    ? `Read-only chain and latest-block check (block ${chainStatus.blockNumber}); settlement unverified`
+    ? "Read-only chain and latest-block check (block " + chainStatus.blockNumber + "); settlement unverified"
     : chainStatus?.status === "wrong_network"
-      ? `Expected chain ID ${chainStatus.expectedChainId}; received ${chainStatus.chainId}`
+      ? "Expected chain ID " + chainStatus.expectedChainId + "; received " + chainStatus.chainId
       : chainStatus?.status === "unreachable"
         ? "Configured RPC did not respond"
         : chainStatus?.status === "not_configured"
-          ? `Expected EVM chain ID ${chainStatus.expectedChainId}`
+          ? "Expected EVM chain ID " + chainStatus.expectedChainId
           : "Network integration not verified";
+  const networkTone = chainStatus?.status === "verified" ? "online" : chainStatusError || chainStatus?.status === "unreachable" || chainStatus?.status === "wrong_network" ? "warning" : "pending";
 
   const visibleMarkets = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
@@ -189,152 +196,171 @@ function App() {
     );
   }, [marketCatalogue, searchTerm]);
 
+  function selectMarket(symbol: string) {
+    setOrderSymbol(symbol);
+    setMarketMenuOpen(false);
+    setSearchTerm("");
+  }
+
   return (
     <div className="app-shell">
-      <aside className="sidebar">
-        <a className="brand" href="#" aria-label="PASTX home">
-          <span className="brand-mark"><ChartCandlestick size={22} /></span>
-          <span>PAST<span className="brand-x">X</span><small>ASSET EXCHANGE</small></span>
+      <header className="site-header">
+        <a className="brand" href="#markets" aria-label="PASTX home">
+          <span className="brand-mark"><ChartCandlestick size={21} strokeWidth={2.2} /></span>
+          <span className="brand-word">PAST<span>X</span><small>ASSET EXCHANGE</small></span>
         </a>
 
-        <div className="sidebar-label">WORKSPACE</div>
-        <nav className="side-nav" aria-label="Main navigation">
-          <a className="nav-item active" href="#markets"><Compass size={17} /> Markets</a>
-          <a className="nav-item" href="#portfolio"><Layers3 size={17} /> Portfolio <span className="nav-soon">SOON</span></a>
-          <a className="nav-item" href="#activity"><Activity size={17} /> Activity <span className="nav-soon">SOON</span></a>
+        <nav className="top-nav" aria-label="Main navigation">
+          <a className="top-nav-item active" href="#markets"><Compass size={15} /> Markets</a>
+          <a className="top-nav-item" href="#portfolio"><Layers3 size={15} /> Portfolio</a>
+          <a className="top-nav-item" href="#activity"><Activity size={15} /> Activity</a>
         </nav>
 
-        <div className="sidebar-bottom">
-          <div className="network-card">
-            <span className="network-dot" />
-            <div><strong>Network status</strong><small>{chainStatusDetail}</small></div>
+        <div className="header-actions">
+          <a className="documentation-link" href="https://github.com/Investorquab/PASTX#readme" target="_blank" rel="noreferrer"><CircleHelp size={15} /> Documentation <ExternalLink size={12} /></a>
+          <div className="network-status" title={chainStatusDetail} aria-label={"Network status: " + chainStatusLabel}>
+            <span className={"network-dot " + networkTone} />
+            <span className="network-label">Network</span>
+            <strong>{chainStatusLabel}</strong>
           </div>
-          <a className="nav-item muted-link" href="https://github.com/Investorquab/PASTX#readme" target="_blank" rel="noreferrer"><CircleHelp size={17} /> Documentation</a>
-          <div className="sidebar-foot">PASTX PREVIEW <span>v0.1.0</span></div>
-        </div>
-      </aside>
-
-      <main className="main-content">
-        <header className="topbar">
-          <div className="breadcrumb">PASTX <span>/</span> Markets</div>
-          <div className="top-actions">
-            <span className="preview-pill"><span /> {hasAnyLiveData ? "PROVIDER DATA · SNAPSHOT" : "PREVIEW · SAMPLE DATA"}</span>
-            <button className="icon-button" aria-label="Notifications" type="button" disabled title="Notifications are not implemented in this preview"><Bell size={18} /></button>
-            <button className="connect-button" type="button" disabled title="Wallet connection will be added after chain compatibility testing"><Wallet size={16} /> Wallet integration pending</button>
-          </div>
-        </header>
-
-        <section className="page-intro" id="markets">
-          <div>
-            <div className="eyebrow">THE MARKET TERMINAL</div>
-            <h1>Markets, <span>in perspective.</span></h1>
-            <p>Explore reference instruments and prepare for on-chain markets built for Portaldot.</p>
-          </div>
-          <div className="search-box"><Search size={17} /><input aria-label="Search markets" placeholder="Search markets..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /><kbd>Search</kbd></div>
-        </section>
-
-        <div className="notice" role="note">
-          <ShieldCheck size={18} />
-          <div><strong>{hasAnyLiveData ? "Provider reference data · partial availability possible" : "Preview environment"}</strong><span>{hasAnyLiveData ? "Successful quotes and candles are sourced from Twelve Data. Any instrument without a successful provider response retains its explicitly labelled sample value; the chart has its own source label. External reference prices are not on-chain equity or guaranteed execution prices. No trades or wallet transactions are enabled." : "Prices and chart below are illustrative fixtures, not live quotes. No trades or wallet transactions are enabled."}</span></div>
-        </div>
-
-        <section className="summary-grid" aria-label="Market overview">
-          <article className="summary-card">
-            <div className="card-label">TRACKED INSTRUMENTS <span className="tiny-icon"><Layers3 size={15} /></span></div>
-            <div className="summary-value">{String(marketCatalogue.length).padStart(2, "0")} <span className="summary-sub">catalogue entries</span></div>
-            <div className="summary-note">Reference catalogue only</div>
-          </article>
-          <article className="summary-card">
-            <div className="card-label">NETWORK <span className="tiny-icon"><Activity size={15} /></span></div>
-            <div className="summary-value network-value"><span className="status-ring" /> {chainStatusLabel}</div>
-            <div className="summary-note">Read-only chain and block check; no wallet or trades</div>
-          </article>
-          <article className="summary-card">
-            <div className="card-label">TRADE EXECUTION <span className="tiny-icon"><ShieldCheck size={15} /></span></div>
-            <div className="summary-value">Disabled</div>
-            <div className="summary-note">Awaiting settlement verification</div>
-          </article>
-        </section>
-
-        <section className="market-layout">
-          <div className="panel market-panel">
-            <div className="panel-heading">
-              <div><h2>Watchlist</h2><p>{hasLiveQuotes ? "External reference prices where available · Twelve Data" : "Reference instruments · sample values"}</p></div>
-              <button className="subtle-button" type="button" disabled title="This preview contains a curated reference watchlist">Reference list <ChevronDown size={14} /></button>
-            </div>
-            <div className="market-table">
-              <div className="table-head"><span>INSTRUMENT</span><span>REFERENCE PRICE</span><span>24H CHANGE*</span></div>
-              {visibleMarkets.map((market) => (
-                <div className="market-row" key={market.symbol}>
-                  <div className="instrument">
-                    <span className={`instrument-icon icon-${market.symbol.toLowerCase()}`}>{market.initials}</span>
-                    <span><strong>{market.symbol}</strong><small>{market.name}</small><em>{market.category}</em></span>
-                  </div>
-                  <div className="price-cell"><strong className="market-price">{formatQuotePrice(liveQuotes[market.symbol], market.price)}</strong>{liveQuotes[market.symbol] && <small className="quote-time">Twelve Data · as of {formatTimestamp(liveQuotes[market.symbol].observedAt)}</small>}{!liveQuotes[market.symbol] && <small className="quote-time">Sample value · no live quote</small>}</div>
-                  <span className={`market-change ${(liveQuotes[market.symbol]?.changePercent ?? (market.positive ? 1 : -1)) >= 0 ? "positive" : "negative"}`}>{(liveQuotes[market.symbol]?.changePercent ?? (market.positive ? 1 : -1)) >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}{formatQuoteChange(liveQuotes[market.symbol], market.change)}</span>
-                </div>
-              ))}
-              {visibleMarkets.length === 0 && <div className="empty-state">No reference instruments match “{searchTerm}”.</div>}
-            </div>
-            <div className="panel-foot">{hasLiveQuotes ? "Source: Twelve Data for individually timestamped successful quotes; rows labelled Sample value are fixtures. No instrument is verified as an on-chain equity." : "* Sample values for layout preview only. No successful external market-data quotes are available."}</div>
-          </div>
-
-          <div className="panel chart-panel">
-            <div className="panel-heading">
-              <div><h2>Market overview</h2><p>{hasLiveCandles ? "AAPL historical closes · Twelve Data" : "Illustrative trend · no live feed"}</p></div>
-              <button className="subtle-button" type="button" disabled title="Chart intervals are not connected to historical data yet">Preview <ChevronDown size={14} /></button>
-            </div>
-            <div className="chart-metric"><strong>{hasLiveCandles ? "AAPL close history" : "Market trend preview"}</strong><span className="positive"><ArrowUpRight size={15} /> {hasLiveCandles ? "Historical reference" : "Illustrative"}</span></div>
-            <div className="chart-wrap"><div className="chart-grid"><i /><i /><i /><i /></div><MiniChart values={liveCandles?.map((candle) => candle.close)} /></div>
-            <div className="chart-axis">{chartAxisLabels.map((label, index) => <span key={`${label}-${index}`}>{label}</span>)}</div>
-            <div className="chart-legend"><span /><span>{hasLiveCandles ? "AAPL close · Twelve Data" : "Illustrative index"}</span></div>
-            <div className="chart-disclaimer">{hasLiveCandles ? "Historical external reference data; not an executable on-chain price." : "This graphic is a UI fixture, not a real index or a trading signal."}</div>
-          </div>
-        </section>
-
-        <section className="panel order-ticket" aria-labelledby="order-preview-title">
-          <div className="panel-heading">
-            <div><h2 id="order-preview-title">Order ticket</h2><p>Interactive estimate only · no order is submitted</p></div>
-            <span className="feature-status">PREVIEW ONLY</span>
-          </div>
-          <div className="order-form-grid">
-            <label className="order-field">
-              <span>Reference instrument</span>
-              <select value={orderSymbol} onChange={(event) => setOrderSymbol(event.target.value)}>
-                {marketCatalogue.map((market) => <option key={market.symbol} value={market.symbol}>{market.symbol} · {market.name}</option>)}
-              </select>
-            </label>
-            <div className="order-field">
-              <span>Side</span>
-              <div className="order-side-control">
-                <button type="button" className={orderSide === "buy" ? "selected buy-side" : ""} onClick={() => setOrderSide("buy")}>Buy</button>
-                <button type="button" className={orderSide === "sell" ? "selected sell-side" : ""} onClick={() => setOrderSide("sell")}>Sell</button>
+          <div className="notification-wrap">
+            <button className="icon-button" type="button" aria-label="Notifications" aria-expanded={notificationsOpen} onClick={() => setNotificationsOpen((open) => !open)} title="Notifications">
+              <Bell size={17} />
+            </button>
+            {notificationsOpen && (
+              <div className="notification-popover" role="status">
+                <div className="popover-heading"><strong>Notifications</strong><button type="button" aria-label="Close notifications" onClick={() => setNotificationsOpen(false)}><X size={14} /></button></div>
+                <p>You’re all caught up.</p>
+                <span>Notification delivery is not enabled in this preview.</span>
               </div>
-            </div>
-            <label className="order-field">
-              <span>Quantity</span>
-              <input type="number" min="0.0001" max="1000000" step="0.0001" value={orderQuantity} onChange={(event) => setOrderQuantity(event.target.value)} />
-            </label>
-            <div className="order-estimate">
-              <span>Estimated reference value</span>
-              <strong>{orderNotional !== null && Number.isFinite(orderNotional) ? new Intl.NumberFormat("en-US", { style: "currency", currency: orderCurrency, maximumFractionDigits: 2 }).format(orderNotional) : "Enter a valid quantity"}</strong>
-              <small>{selectedOrderQuote ? `Twelve Data · as of ${formatTimestamp(selectedOrderQuote.observedAt)}` : "Sample price · not an execution quote"}</small>
+            )}
+          </div>
+          <button className="wallet-button" type="button" disabled title="Wallet connection is not implemented yet"><Wallet size={15} /> Wallet pending</button>
+        </div>
+      </header>
+
+      <main className="page-container">
+        <div className="page-meta">
+          <span>PASTX <span className="meta-slash">/</span> TRADE</span>
+          <span className="meta-right">PORTALDOT V3 <span className="meta-slash">/</span> READ-ONLY PREVIEW</span>
+        </div>
+
+        <section className="asset-heading" id="markets">
+          <div className="asset-identity">
+            <div className={"asset-mark mark-" + selectedOrderInstrument.symbol.toLowerCase()}>{selectedOrderInstrument.initials}</div>
+            <div className="asset-title-wrap">
+              <div className="asset-title-line">
+                <h1>{selectedOrderInstrument.symbol}</h1>
+                <button className="asset-picker-toggle" type="button" aria-expanded={marketMenuOpen} onClick={() => setMarketMenuOpen((open) => !open)} aria-label="Choose market"><ChevronDown size={17} /></button>
+              </div>
+              <p>{selectedOrderInstrument.name} <span>·</span> External reference</p>
+              {marketMenuOpen && (
+                <div className="market-picker">
+                  <label className="market-search"><Search size={15} /><input autoFocus aria-label="Search assets" placeholder="Search name or ticker" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /><kbd>FILTER</kbd></label>
+                  <div className="market-picker-list">
+                    {visibleMarkets.map((market) => (
+                      <button className={"market-option " + (market.symbol === orderSymbol ? "selected" : "")} type="button" key={market.symbol} onClick={() => selectMarket(market.symbol)}>
+                        <span className={"option-mark mark-" + market.symbol.toLowerCase()}>{market.initials}</span>
+                        <span className="option-label"><strong>{market.symbol}</strong><small>{market.name}</small></span>
+                        {market.symbol === orderSymbol ? <Check size={15} /> : <span className="option-price">{formatQuotePrice(liveQuotes[market.symbol], market.price)}</span>}
+                      </button>
+                    ))}
+                    {visibleMarkets.length === 0 && <div className="picker-empty">No assets match “{searchTerm}”.</div>}
+                  </div>
+                  <div className="picker-foot">Reference instruments only · No tokenized stock is verified</div>
+                </div>
+              )}
             </div>
           </div>
-          <div className="order-preview-footer">
-            <span>{orderSide === "buy" ? "Buy" : "Sell"} preview: {orderQuantityNumber !== null ? orderQuantityNumber.toLocaleString("en-US", { maximumFractionDigits: 4 }) : "—"} {orderSymbol}</span>
-            <button className="connect-button" type="button" disabled title="Trade submission is disabled until Portaldot settlement is verified">Trading disabled</button>
+
+          <div className="asset-market-stats">
+            <div className="chain-caption"><span className="small-status-dot" /> PORTALDOT · RPC STATUS</div>
+            <div className="market-stats-row">
+              <div className="market-stat"><span>REFERENCE PRICE</span><strong>{formatQuotePrice(selectedOrderQuote, selectedOrderInstrument.price)}</strong><small>{selectedOrderQuote ? "Twelve Data · " + formatTimestamp(selectedOrderQuote.observedAt) : "Illustrative sample value"}</small></div>
+              <div className="market-stat change-stat"><span>CHANGE</span><strong className={(selectedChange ?? (selectedOrderInstrument.positive ? 1 : -1)) >= 0 ? "positive" : "negative"}>{selectedChangeText}</strong><small>Reference only</small></div>
+            </div>
           </div>
-          <p className="order-disclaimer">This is a non-executable estimate using an external reference price. It is not a tokenized equity, an order, or proof of on-chain settlement.</p>
         </section>
 
-        <section className="bottom-grid">
-          <div className="panel bottom-card" id="portfolio"><div className="bottom-icon"><Wallet size={18} /></div><div><h3>Portfolio</h3><p>Connect a supported wallet after network and balance reads are verified.</p></div><span className="feature-status">PLANNED</span></div>
-          <div className="panel bottom-card" id="activity"><div className="bottom-icon"><Activity size={18} /></div><div><h3>On-chain activity</h3><p>Transaction history will be based on verifiable chain evidence.</p></div><span className="feature-status">PLANNED</span></div>
+        <div className="preview-notice" role="note">
+          <ShieldCheck size={16} />
+          <p><strong>{hasAnyLiveData ? "External provider data · partial availability" : "Preview environment"}</strong><span>{hasAnyLiveData ? "Only individually timestamped successful quotes are live. Other values remain labelled samples. No wallet transactions or trades are enabled." : "Prices and chart are illustrative fixtures, not live quotes. No wallet transactions or trades are enabled."}</span></p>
+        </div>
+
+        <section className="trade-workspace" aria-label="Market chart and order preview">
+          <div className="chart-panel surface">
+            <div className="panel-topline">
+              <div className="panel-tab"><ChartCandlestick size={16} /><strong>Chart</strong><span>MARKET / PORTALDOT</span></div>
+              <span className={"data-badge " + (hasLiveCandles ? "data-badge-live" : "")}>{hasLiveCandles ? "PROVIDER DATA" : "SAMPLE PREVIEW"}</span>
+            </div>
+            <div className="chart-period-row"><span className="period-chip active">1D</span><span className="period-chip">1W</span><span className="period-chip">1M</span><span className="period-note">Historical feed when enabled</span></div>
+            <div className="chart-summary">
+              <div><span className="chart-symbol">{hasLiveCandles ? "AAPL · HISTORICAL CLOSE" : selectedOrderInstrument.symbol + " · REFERENCE PREVIEW"}</span><strong>{hasLiveCandles ? "Historical reference" : "Illustrative trend"}</strong></div>
+              <span className="chart-return"><span className="chart-dot" />{hasLiveCandles ? "Twelve Data" : "Not live"}</span>
+            </div>
+            <div className="chart-stage">
+              <div className="chart-gridlines"><i /><i /><i /><i /><i /></div>
+              <div className="chart-y-axis"><span>$400.00</span><span>$300.00</span><span>$200.00</span><span>$100.00</span><span>$0.00</span></div>
+              <MiniChart values={hasLiveCandles ? liveCandles?.map((candle) => candle.close) : undefined} />
+            </div>
+            <div className="chart-x-axis">{chartAxisLabels.map((label, index) => <span key={label + "-" + index}>{label}</span>)}</div>
+            <div className="chart-footer"><span>{hasLiveCandles ? "AAPL · 1 DAY" : "ILLUSTRATIVE SERIES"}</span><span>{hasLiveCandles ? "SOURCE: TWELVE DATA" : "NO LIVE PRICE FEED"}</span></div>
+          </div>
+
+          <aside className="trade-card surface" aria-labelledby="trade-title">
+            <div className="trade-card-heading"><h2 id="trade-title">Trade</h2><span>{selectedOrderInstrument.symbol}</span></div>
+            <div className="side-switch" role="group" aria-label="Order side">
+              <button className={orderSide === "buy" ? "active buy-active" : ""} type="button" onClick={() => setOrderSide("buy")}>Buy</button>
+              <button className={orderSide === "sell" ? "active sell-active" : ""} type="button" onClick={() => setOrderSide("sell")}>Sell</button>
+            </div>
+            <div className="order-type-row"><span>Order type</span><strong>Market</strong></div>
+            <label className="amount-label" htmlFor="order-quantity">AMOUNT TO SPEND</label>
+            <div className="amount-input-wrap"><input id="order-quantity" type="number" min="0.0001" max="1000000" step="0.0001" value={orderQuantity} onChange={(event) => setOrderQuantity(event.target.value)} /><span>{orderCurrency}</span></div>
+            <div className="available-row"><span>Available</span><strong>Log in to see your balance</strong></div>
+            <div className="receive-row"><span>Estimated reference value</span><strong>{orderNotional !== null && Number.isFinite(orderNotional) ? new Intl.NumberFormat("en-US", { style: "currency", currency: orderCurrency, maximumFractionDigits: 2 }).format(orderNotional) : "—"}</strong></div>
+            <p className="trade-hint">Enter an amount to preview the reference value. No order is submitted.</p>
+            <div className="trade-actions"><button className="cancel-button" type="button" onClick={() => { setOrderQuantity("1"); setOrderSide("buy"); }}>Reset</button><button className="submit-button" type="button" disabled title="Order submission is not implemented">{orderSide === "buy" ? "Buy" : "Sell"} · Preview</button></div>
+            <div className="trade-card-links"><a href="#asset-details">Asset details <ExternalLink size={12} /></a><a href="https://github.com/Investorquab/PASTX#readme" target="_blank" rel="noreferrer">Documentation <ExternalLink size={12} /></a></div>
+          </aside>
         </section>
 
-        <footer className="footer"><span>PASTX · Portaldot Asset & Stock Trading Exchange</span><span>Early preview · Not financial advice</span></footer>
+        <section className="asset-details surface" id="asset-details" aria-label="Asset and network details">
+          <div className="details-topline"><span>PASTX / REFERENCE DATA</span><span>NETWORK CHECK: {chainStatusLabel.toUpperCase()}</span></div>
+          <div className="details-grid">
+            <div className="detail-item"><span>Reference price</span><strong>{formatQuotePrice(selectedOrderQuote, selectedOrderInstrument.price)}</strong><small>{selectedOrderQuote ? "Twelve Data · observed " + formatTimestamp(selectedOrderQuote.observedAt) : "Sample only · not an execution quote"}</small></div>
+            <div className="detail-item"><span>Asset classification</span><strong>External stock reference</strong><small>Not verified as tokenized equity on Portaldot</small></div>
+            <div className="detail-item network-detail"><span><Activity size={13} /> Network status</span><strong>{chainStatusLabel}</strong><small>{chainStatusDetail}</small></div>
+          </div>
+          <p className="details-disclaimer">External reference prices do not establish token ownership, backing, exchange listing or an executable trading price.</p>
+        </section>
+
+        <section className="watchlist-section" aria-label="Reference market watchlist">
+          <div className="watchlist-heading"><div><span className="section-kicker">MARKET DISCOVERY</span><h2>Reference markets</h2></div><span>{marketCatalogue.length} instruments</span></div>
+          <div className="watchlist-rows">
+            {visibleMarkets.map((market) => (
+              <button key={market.symbol} className={"watchlist-row " + (market.symbol === orderSymbol ? "chosen" : "")} type="button" onClick={() => selectMarket(market.symbol)}>
+                <span className={"option-mark mark-" + market.symbol.toLowerCase()}>{market.initials}</span>
+                <span className="watchlist-name"><strong>{market.symbol}</strong><small>{market.name}</small><em>{market.category}</em></span>
+                <span className="watchlist-price"><strong>{formatQuotePrice(liveQuotes[market.symbol], market.price)}</strong><small>{liveQuotes[market.symbol] ? "Twelve Data" : "Sample value"}</small></span>
+                <span className={"watchlist-change " + ((liveQuotes[market.symbol]?.changePercent ?? (market.positive ? 1 : -1)) >= 0 ? "positive" : "negative")}>{(liveQuotes[market.symbol]?.changePercent ?? (market.positive ? 1 : -1)) >= 0 ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}{formatQuoteChange(liveQuotes[market.symbol], market.change)}</span>
+              </button>
+            ))}
+          </div>
+          <p className="watchlist-disclaimer">These are reference instruments, not verified on-chain equities. Selecting a row updates the preview ticket only.</p>
+        </section>
+
+        <section className="below-grid">
+          <div className="below-card" id="portfolio"><span className="below-icon"><Wallet size={17} /></span><div><strong>Portfolio</strong><p>Wallet connection and verified balance reads are not available yet.</p></div><span className="feature-tag">PLANNED</span></div>
+          <div className="below-card" id="activity"><span className="below-icon"><Activity size={17} /></span><div><strong>On-chain activity</strong><p>Transaction history will be added after a verified transaction flow exists.</p></div><span className="feature-tag">PLANNED</span></div>
+        </section>
       </main>
+
+      <footer className="site-footer">
+        <a className="footer-brand" href="#markets"><span className="brand-mark"><ChartCandlestick size={19} /></span><span>PAST<span>X</span><small>ASSET EXCHANGE</small></span></a>
+        <span className="footer-tagline">Markets for the Portaldot ecosystem.</span>
+        <div className="footer-links"><a href="https://github.com/Investorquab/PASTX#readme" target="_blank" rel="noreferrer">Documentation <ExternalLink size={12} /></a><a href="https://github.com/Investorquab/PASTX" target="_blank" rel="noreferrer">GitHub <ExternalLink size={12} /></a></div>
+        <span className="footer-copy">© 2026 PASTX · EARLY PREVIEW</span>
+      </footer>
     </div>
   );
 }
