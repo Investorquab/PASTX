@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getApiCapabilities, getChainStatus, getMarketCatalogue, getMarketCandles, getMarketQuote, type ChainStatus } from "./api";
 import type { MarketCandle, MarketInstrument, MarketQuote } from "@pastx/shared";
-import { calculateReferenceNotional, parsePreviewQuantity } from "./orderPreview";
+import { calculateReferenceNotional } from "./orderPreview";
 import {
   Activity,
   ArrowDownRight,
