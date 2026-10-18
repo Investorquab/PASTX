@@ -101,6 +101,30 @@ describe("TwelveDataAdapter", () => {
     expect(requests.map((url) => url.searchParams.get("mic_code"))).toEqual(["XNAS", "XNYS"]);
   });
 
+  it("keeps quote and candle caches isolated by country when MIC identity is unavailable", async () => {
+    const requested: URL[] = [];
+    const fetcher = vi.fn(async (input: URL | RequestInfo) => {
+      const url = new URL(String(input));
+      requested.push(url);
+      const country = url.searchParams.get("country");
+      const quote = url.pathname.endsWith("/quote");
+      const payload = quote
+        ? { symbol: "ABC", exchange: "NASDAQ", close: country === "United States" ? "10" : "20", change: "1", percent_change: "1", currency: "USD", timestamp: 1792033200 }
+        : { meta: { symbol: "ABC", exchange: "NASDAQ", interval: "1day", currency: "USD" }, values: [{ datetime: "2026-10-15", open: "10", high: "21", low: "9", close: country === "United States" ? "10" : "20", volume: "50" }] };
+      return new Response(JSON.stringify(payload), { status: 200, headers: { "content-type": "application/json" } });
+    }) as unknown as typeof fetch;
+    const adapter = new TwelveDataAdapter("test-key", fetcher);
+    const us = { symbol: "ABC", name: "ABC US", kind: "reference" as const, description: "test", currency: "USD", providerSymbol: "ABC", exchange: "NASDAQ", country: "United States" };
+    const ca = { ...us, name: "ABC Canada", country: "Canada" };
+
+    await expect(adapter.getQuote(us)).resolves.toMatchObject({ price: 10 });
+    await expect(adapter.getQuote(ca)).resolves.toMatchObject({ price: 20 });
+    await expect(adapter.getCandles(us, "1day", 1)).resolves.toMatchObject([{ close: 10 }]);
+    await expect(adapter.getCandles(ca, "1day", 1)).resolves.toMatchObject([{ close: 20 }]);
+    expect(fetcher).toHaveBeenCalledTimes(4);
+    expect(requested.map((url) => url.searchParams.get("country"))).toEqual(["United States", "Canada", "United States", "Canada"]);
+  });
+
   it("rejects provider quotes for a different symbol or currency", async () => {
     const wrongSymbol = new TwelveDataAdapter("test-key", fakeFetch({
       symbol: "NVDA", close: "247.96", change: "3.04", percent_change: "1.24",
