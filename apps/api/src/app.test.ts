@@ -341,12 +341,19 @@ describe("PASTX API", () => {
       expect(response.json().item.description).toContain("not a Portaldot-issued equity token");
     }finally{await app.close();}
   });
-  it("rejects an incomplete listing identity instead of silently falling back to a ticker match",async()=>{
+  it("rejects partial listing identity instead of silently falling back to a ticker match",async()=>{
     const app=await buildApp({logger:false});
     try{
-      const response=await app.inject({method:"GET",url:"/api/markets/AAPL?mic_code=XNYS"});
-      expect(response.statusCode).toBe(404);
-      expect(response.json().error.code).toBe("NOT_FOUND");
+      for(const url of [
+        "/api/markets/AAPL?mic_code=XNYS",
+        "/api/markets/AAPL?country=Canada",
+        "/api/markets/AAPL?currency=CAD",
+        "/api/markets/AAPL?country=Canada&currency=CAD"
+      ]){
+        const response=await app.inject({method:"GET",url});
+        expect(response.statusCode).toBe(404);
+        expect(response.json().error.code).toBe("NOT_FOUND");
+      }
     }finally{await app.close();}
   });
   it("forwards exchange identity to company logo lookup",async()=>{
