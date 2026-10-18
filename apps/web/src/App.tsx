@@ -153,7 +153,7 @@ function App() {
   }, []);
 
   const hasLiveQuotes = Object.keys(liveQuotes).length > 0;
-  const hasLiveCandles = Boolean(liveCandles && liveCandles.length > 1);
+  const hasLiveCandles = Boolean(orderSymbol === "AAPL" && liveCandles && liveCandles.length > 1);
   const hasAnyLiveData = hasLiveQuotes || hasLiveCandles;
   const selectedOrderInstrument = marketCatalogue.find((market) => market.symbol === orderSymbol) ?? marketCatalogue[0] ?? referenceMarkets[0];
   const selectedOrderQuote = liveQuotes[orderSymbol];
