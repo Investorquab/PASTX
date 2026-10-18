@@ -17,12 +17,13 @@ describe("TwelveDataAdapter", () => {
       {symbol:"MSFT",instrument_name:"Microsoft",exchange:"NASDAQ",mic_code:"XNAS",country:"United States",currency:"USD",instrument_type:"Common Stock"},
       {symbol:"QQQ",instrument_name:"Invesco QQQ",exchange:"NASDAQ",mic_code:"XNAS",country:"United States",currency:"USD",instrument_type:"ETF"},
       {symbol:"SHEL",instrument_name:"Shell plc",exchange:"NYSE",mic_code:"XNYS",country:"United States",currency:"USD",instrument_type:"American Depositary Receipt"},
+      {symbol:"SHEL",instrument_name:"Shell plc",exchange:"London Stock Exchange",mic_code:"XLON",country:"United Kingdom",currency:"GBP",instrument_type:"Common Stock"},
       {symbol:"MSFT",instrument_name:"Microsoft",exchange:"NASDAQ",mic_code:"XNAS",country:"United States",currency:"USD",instrument_type:"Common Stock"}
     ]}));
-    const items=await adapter.searchStocks("Microsoft",20);expect(items).toHaveLength(2);expect(items[0]).toMatchObject({symbol:"MSFT",exchange:"NASDAQ",micCode:"XNAS"});expect(items[1].symbol).toBe("SHEL");
+    const items=await adapter.searchStocks("Microsoft",20);expect(items).toHaveLength(3);expect(items[0]).toMatchObject({symbol:"MSFT",exchange:"NASDAQ",micCode:"XNAS"});expect(items.filter((item)=>item.symbol==="SHEL").map((item)=>item.micCode)).toEqual(["XNYS","XLON"]);
   });
   it("rejects too-short stock queries before network access",async()=>{const fetcher=vi.fn();const adapter=new TwelveDataAdapter("key",fetcher as unknown as typeof fetch);await expect(adapter.searchStocks("A")).rejects.toMatchObject({statusCode:400});expect(fetcher).not.toHaveBeenCalled();});
-  it("validates logo URL and symbol identity",async()=>{const adapter=new TwelveDataAdapter("key",fakeFetch({meta:{symbol:"MSFT",exchange:"NASDAQ"},url:"https://assets.example.test/msft.png"}));await expect(adapter.getLogo({symbol:"MSFT",name:"Microsoft",kind:"reference",description:"test",currency:"USD",providerSymbol:"MSFT",exchange:"NASDAQ",micCode:"XNAS"})).resolves.toBe("https://assets.example.test/msft.png");});
+  it("validates logo URL and symbol/listing identity",async()=>{const instrument={symbol:"MSFT",name:"Microsoft",kind:"reference" as const,description:"test",currency:"USD",providerSymbol:"MSFT",exchange:"NASDAQ",micCode:"XNAS"};const adapter=new TwelveDataAdapter("key",fakeFetch({meta:{symbol:"MSFT",exchange:"NASDAQ"},url:"https://assets.example.test/msft.png"}));await expect(adapter.getLogo(instrument)).resolves.toBe("https://assets.example.test/msft.png");const wrongVenue=new TwelveDataAdapter("key",fakeFetch({meta:{symbol:"MSFT",exchange:"NYSE"},url:"https://assets.example.test/msft.png"}));await expect(wrongVenue.getLogo(instrument)).rejects.toMatchObject({code:"PROVIDER_INVALID_RESPONSE"});});
 
   it("refuses to fetch quotes or candles for non-reference instruments", async () => {
     const fetcher = vi.fn();

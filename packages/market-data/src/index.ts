@@ -136,7 +136,11 @@ export class TwelveDataAdapter {
     return this.singleFlight(this.logoInflight,key,async()=>{
       const payload=asRecord(await this.request("/logo",{symbol,exchange:instrument.exchange as string,...(instrument.micCode?{mic_code:instrument.micCode}:{}),...(instrument.country?{country:instrument.country}:{})}));
       const meta=asRecord(payload?.meta),returned=typeof meta?.symbol==="string"?meta.symbol.trim().toUpperCase():"";
-      if(returned!==symbol)throw new MarketDataError("PROVIDER_INVALID_RESPONSE","Market data provider returned a logo for a different symbol.",502);
+      const responseExchange=typeof meta?.exchange==="string"?meta.exchange.trim().toUpperCase():"";
+      const responseMic=typeof meta?.mic_code==="string"?meta.mic_code.trim().toUpperCase():"";
+      const expectedExchange=instrument.exchange.trim().toUpperCase(),expectedMic=instrument.micCode?.trim().toUpperCase()??"";
+      const venueMatches=expectedMic&&responseMic?expectedMic===responseMic:responseExchange?expectedExchange.replace(/[^A-Z0-9]/g,"")===responseExchange.replace(/[^A-Z0-9]/g,""):true;
+      if(returned!==symbol||!venueMatches)throw new MarketDataError("PROVIDER_INVALID_RESPONSE","Market data provider returned a logo for a different listing.",502);
       const raw=typeof payload?.url==="string"?payload.url.trim():"";let logo:string|null=null;
       if(raw){try{const url=new URL(raw);if(url.protocol!=="https:"||url.username||url.password||!url.hostname||raw.length>2048)throw new Error("unsafe");logo=url.toString();}catch{throw new MarketDataError("PROVIDER_INVALID_RESPONSE","Market data provider returned an unsafe logo URL.",502);}}
       this.storeCache(this.logoCache,key,logo,86_400_000);return logo;

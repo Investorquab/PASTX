@@ -337,6 +337,20 @@ describe("PASTX API", () => {
     try{const response=await app.inject({method:"GET",url:"/api/markets/AMD/logo?exchange=NASDAQ&mic_code=XNAS&currency=USD&country=United%20States"});expect(response.json()).toEqual({url:null});expect(getLogo).toHaveBeenCalledWith(expect.objectContaining({symbol:"AMD",exchange:"NASDAQ",micCode:"XNAS",currency:"USD"}));}
     finally{await app.close();}
   });
+  it("forwards the selected listing identity to quote and candle providers",async()=>{
+    const getQuote=vi.fn().mockResolvedValue({symbol:"AMD",price:100,change:1,changePercent:1,currency:"USD",observedAt:"2026-10-18T05:00:00.000Z",source:"twelve_data",delayed:null});
+    const getCandles=vi.fn().mockResolvedValue([]);
+    const app=await buildApp({logger:false,marketDataApiKey:"configured",marketDataDisplayEnabled:true,marketData:{getQuote,getCandles} as unknown as TwelveDataAdapter});
+    try{
+      const query="exchange=NASDAQ&mic_code=XNAS&currency=USD&country=United%20States";
+      const quote=await app.inject({method:"GET",url:"/api/markets/AMD/quote?"+query});
+      expect(quote.statusCode).toBe(200);
+      expect(getQuote).toHaveBeenCalledWith(expect.objectContaining({symbol:"AMD",providerSymbol:"AMD",exchange:"NASDAQ",micCode:"XNAS",currency:"USD"}));
+      const candles=await app.inject({method:"GET",url:"/api/markets/AMD/candles?"+query+"&interval=1day&outputsize=1"});
+      expect(candles.statusCode).toBe(200);
+      expect(getCandles).toHaveBeenCalledWith(expect.objectContaining({symbol:"AMD",exchange:"NASDAQ",micCode:"XNAS",currency:"USD"}),"1day",1);
+    }finally{await app.close();}
+  });
 
   it("returns only explicitly classified reference catalogue entries", async () => {
     const app = await buildApp({ logger: false });
