@@ -17,12 +17,16 @@ Local development defaults to `http://localhost:4000`. All routes are prefixed w
 | GET | `/api/assets/onchain` | Explicit discovery status; remains unavailable until canonical chain/runtime verification is complete |
 | GET | `/api/assets/onchain/registry-status` | Reports whether registry signature, digest pin and metadata checks pass; does not enable discovery |
 | GET | `/api/assets/onchain/readiness` | Combines registry integrity, the live trusted-chain fingerprint result, and runtime-adapter readiness into a read-only blocker report |
-| GET | `/api/markets` | Supported reference instrument catalogue |
-| GET | `/api/markets/:symbol` | Instrument metadata |
-| GET | `/api/markets/:symbol/quote` | Normalized quote from Twelve Data |
-| GET | `/api/markets/:symbol/candles` | Normalized OHLCV candles from Twelve Data |
+| GET | `/api/markets` | Four featured reference instruments; not the full stock universe |
+| GET | `/api/markets/search?q=...&limit=...` | Bounded provider-backed listed-equity search with exchange/MIC identity |
+| GET | `/api/markets/:symbol` | Metadata for a featured catalogue instrument |
+| GET | `/api/markets/:symbol/logo?exchange=...&mic_code=...` | Validated HTTPS company-logo URL, or `null` for initials fallback |
+| GET | `/api/markets/:symbol/quote` | Normalized quote from Twelve Data for a selected listing |
+| GET | `/api/markets/:symbol/candles` | Normalized OHLCV candles from Twelve Data for a selected listing |
 
-Symbols are case-insensitive and limited to the explicit allow-listed catalogue (AAPL, NVDA, TSLA, MSFT). This prevents arbitrary provider proxying and uncontrolled symbol usage. The external Twelve Data adapter additionally accepts only instruments classified as `reference` with a non-empty explicit `providerSymbol` mapping; simulated and on-chain instruments cannot be sent to the stock-price provider.
+The four entries returned by `/api/markets` are quick-access defaults, not a cap on stock discovery. `/api/markets/search` accepts a trimmed query of 2–80 characters and a result limit from 1–20 (default 15). It requires the server-side `MARKET_DATA_API_KEY`, calls Twelve Data symbol search with a bounded result count, validates provider fields and equity instrument types, and de-duplicates only repeated listings. A ticker may legitimately appear more than once when its exchange/MIC identity differs. Search returns external listed-stock metadata only and does not imply that a Portaldot token exists or that quote/trading features are enabled. Search is metadata discovery and remains separate from the quote/candle display permission gate.
+
+Quote, candle and logo requests for discovered stocks must carry listing identity using query parameters such as `exchange=NASDAQ&mic_code=XNAS&country=United%20States&currency=USD`. The adapter sends venue identity to Twelve Data and validates provider metadata where returned. External provider access is limited to instruments classified as `reference`; simulated and on-chain instruments cannot be sent to the stock-price provider. Provider keys remain server-side.
 
 ## Capability contract
 
@@ -44,6 +48,12 @@ The capability endpoint does not perform network probes or expose provider crede
 
 ## Quotes
 
+For a discovered listing, request its full venue identity, for example:
+
+```text
+GET /api/markets/AMD/quote?exchange=NASDAQ&mic_code=XNAS&country=United%20States&currency=USD
+```
+
 A successful quote includes:
 - `symbol`: PASTX catalogue symbol;
 - `price`, `change`, `changePercent`;
@@ -52,7 +62,7 @@ A successful quote includes:
 - `source`: `twelve_data`;
 - `delayed`: currently `null` because the adapter does not claim delay status it cannot establish.
 
-The provider's API key is sent only by the server. It must never be added to the browser bundle or returned in API payloads. The adapter also rejects provider responses whose symbol does not match the requested catalogue instrument or whose currency differs from the instrument's configured currency.
+The provider's API key is sent only by the server. It must never be added to the browser bundle or returned in API payloads. The adapter rejects provider responses whose symbol, available venue metadata, or currency does not match the requested listing identity.
 
 ## Candles
 
@@ -76,7 +86,7 @@ Errors use `{ "error": { "code": "...", "message": "...", "requestId": "..." } }
 | `PROVIDER_INVALID_RESPONSE` | Provider payload cannot be normalized safely |
 | `INTERNAL_ERROR` | Unexpected server error |
 
-Live quote and candle endpoints return `MARKET_DATA_DISPLAY_DISABLED` unless `MARKET_DATA_DISPLAY_ENABLED=true` is explicitly configured after confirming the provider license permits client-facing display. The flag defaults to false. The API applies a global rate limit of 60 requests per minute per client; rate-limit failures use the same normalized error envelope with code `RATE_LIMITED` and a request ID. Security headers and an eight-second provider timeout are also applied. Successful normalized quotes are cached in memory for 15 seconds and candle series for 60 seconds, with a maximum of 128 cache keys per cache. Identical concurrent quote/candle cache misses are coalesced into one provider request for the same instrument mapping (and candle interval/output size). Failed requests are not cached and in-flight entries are cleared after completion. Identical concurrent quote/candle cache misses are coalesced into one provider request for the same instrument mapping (and candle interval/output size). Failed requests are not cached and in-flight entries are cleared after completion. Cache entries are process-local and are not durable or shared across replicas. Provider-facing errors remain generic. Provider-specific payloads and credentials are not returned.
+Live quote and candle endpoints return `MARKET_DATA_DISPLAY_DISABLED` unless `MARKET_DATA_DISPLAY_ENABLED=true` is explicitly configured after confirming the provider license permits client-facing display. The flag defaults to false. The API applies a global rate limit of 60 requests per minute per client; rate-limit failures use the same normalized error envelope with code `RATE_LIMITED` and a request ID. Security headers and an eight-second provider timeout are also applied. Successful normalized quotes are cached in memory for 15 seconds and candle series for 60 seconds, with a maximum of 128 cache keys per cache. Identical concurrent quote/candle cache misses are coalesced into one provider request for the same instrument mapping (and candle interval/output size). Failed requests are not cached and in-flight entries are cleared after completion. Cache entries are process-local and are not durable or shared across replicas. Provider-facing errors remain generic. Provider-specific payloads and credentials are not returned.
 
 ## Chain status semantics
 

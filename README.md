@@ -2,7 +2,7 @@
 
 **Portaldot Asset & Stock Trading Exchange** — a market-discovery application designed around the Portaldot ecosystem.
 
-> **Status: early engineering foundation.** The web terminal is a preview using labelled fixture data. The Fastify market API and Twelve Data adapter are implemented in source with automated tests. Live quote/candle routes are disabled by default. Do not enable client-facing display until the provider account terms permit it and CI passes. PASTX is not yet a functioning exchange; wallet, on-chain asset, and settlement integrations are not enabled.
+> **Status: early engineering foundation.** The Overview features four quick-access stock listings, while the Fastify API supports bounded, provider-backed stock discovery through Twelve Data when a server-side key is configured. Quote/candle display is disabled by default and additionally requires explicit permission configuration. The UI does not invent prices or synthetic chart series when provider data is unavailable. PASTX is not yet a functioning exchange; wallet, verified on-chain asset, order submission, and settlement integrations are not enabled.
 
 ## Product direction
 
@@ -56,6 +56,7 @@ Copy `.env.example` to `.env` for local API configuration. Set `MARKET_DATA_API_
 ```bash
 curl http://localhost:4000/api/health
 curl http://localhost:4000/api/markets
+curl "http://localhost:4000/api/markets/search?q=Microsoft&limit=15"
 curl http://localhost:4000/api/markets/AAPL
 curl http://localhost:4000/api/markets/AAPL/quote
 curl "http://localhost:4000/api/markets/AAPL/candles?interval=1day&outputsize=30"
