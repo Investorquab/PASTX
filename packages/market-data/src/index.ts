@@ -138,7 +138,7 @@ export class TwelveDataAdapter {
       const meta=asRecord(payload?.meta),returned=typeof meta?.symbol==="string"?meta.symbol.trim().toUpperCase():"";
       const responseExchange=typeof meta?.exchange==="string"?meta.exchange.trim().toUpperCase():"";
       const responseMic=typeof meta?.mic_code==="string"?meta.mic_code.trim().toUpperCase():"";
-      const expectedExchange=instrument.exchange.trim().toUpperCase(),expectedMic=instrument.micCode?.trim().toUpperCase()??"";
+      const expectedExchange=instrument.exchange?.trim().toUpperCase()??"",expectedMic=instrument.micCode?.trim().toUpperCase()??"";
       const venueMatches=expectedMic&&responseMic?expectedMic===responseMic:responseExchange?expectedExchange.replace(/[^A-Z0-9]/g,"")===responseExchange.replace(/[^A-Z0-9]/g,""):true;
       if(returned!==symbol||!venueMatches)throw new MarketDataError("PROVIDER_INVALID_RESPONSE","Market data provider returned a logo for a different listing.",502);
       const raw=typeof payload?.url==="string"?payload.url.trim():"";let logo:string|null=null;

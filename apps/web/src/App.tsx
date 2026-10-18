@@ -113,14 +113,14 @@ function App() {
 
   const chainStatusLabel = chainStatus
     ? ({
-        not_configured: "RPC not configured",
-        unreachable: "RPC unreachable",
-        wrong_network: "Wrong network",
-        verified: "Chain + block verified"
+        not_configured: t.rpcNotConfigured,
+        unreachable: t.rpcUnreachable,
+        wrong_network: t.wrongNetwork,
+        verified: t.chainBlockVerified
       } as const)[chainStatus.status]
     : chainStatusError
-      ? "API unavailable"
-      : "Checking RPC…";
+      ? t.apiUnavailable
+      : t.checkingRpc;
   const chainStatusDetail = chainStatus?.status === "verified"
     ? "Read-only chain and latest-block check (block " + chainStatus.blockNumber + "); settlement unverified"
     : chainStatus?.status === "wrong_network"
@@ -159,7 +159,7 @@ function App() {
         <div className="header-actions">
           <div className="network-status" title={chainStatusDetail} aria-label={"Network status: " + chainStatusLabel}>
             <span className={"network-dot " + networkTone} />
-            <span className="network-label">Network</span>
+            <span className="network-label">{t.networkStatus}</span>
             <strong>{chainStatusLabel}</strong>
           </div>
           <div className="notification-wrap">
@@ -294,7 +294,7 @@ function App() {
       <footer className="site-footer">
         <a className="footer-brand" href="#markets"><span className="brand-mark"><ChartCandlestick size={19} /></span><span>PAST<span>X</span><small>ASSET EXCHANGE</small></span></a>
         <span className="footer-tagline">Markets for the Portaldot ecosystem.</span>
-        <div className="footer-links"><a href="https://github.com/Investorquab/PASTX#readme" target="_blank" rel="noreferrer">Documentation <ExternalLink size={12} /></a><a href="https://github.com/Investorquab/PASTX" target="_blank" rel="noreferrer">GitHub <ExternalLink size={12} /></a></div>
+        <div className="footer-links"><a href="https://github.com/Investorquab/PASTX#readme" target="_blank" rel="noreferrer">{t.documentation} <ExternalLink size={12} /></a><a href="https://github.com/Investorquab/PASTX" target="_blank" rel="noreferrer">GitHub <ExternalLink size={12} /></a></div>
         <span className="footer-copy">© 2026 PASTX · EARLY PREVIEW</span>
       </footer>
     </div>
