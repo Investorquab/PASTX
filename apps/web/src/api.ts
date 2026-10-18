@@ -157,6 +157,32 @@ export async function getApiCapabilities(fetchImpl: typeof fetch = fetch): Promi
 }
 
 
+
+function marketIdentityQuery(i:MarketInstrument):string{const p=new URLSearchParams();if(i.exchange)p.set("exchange",i.exchange);if(i.micCode)p.set("mic_code",i.micCode);if(i.country)p.set("country",i.country);if(i.currency)p.set("currency",i.currency);const q=p.toString();return q?"?"+q:"";}
+function parseMarketInstrument(v:unknown):MarketInstrument|null{
+ if(typeof v!=="object"||v===null||Array.isArray(v))return null;const x=v as Record<string,unknown>;
+ if(typeof x.symbol!=="string"||!/^[A-Z0-9][A-Z0-9.-]{0,19}$/.test(x.symbol)||typeof x.name!=="string"||!x.name.trim()||x.kind!=="reference"||typeof x.description!=="string"||!x.description.trim()||typeof x.currency!=="string"||!/^[A-Z]{3}$/.test(x.currency)||
+ !(x.providerSymbol===undefined||(typeof x.providerSymbol==="string"&&x.providerSymbol.trim().toUpperCase()===x.symbol))||
+ !(x.exchange===undefined||(typeof x.exchange==="string"&&x.exchange.trim().length>0&&x.exchange.length<=100))||
+ !(x.micCode===undefined||(typeof x.micCode==="string"&&/^[A-Z0-9]{4}$/.test(x.micCode)))||
+ !(x.country===undefined||(typeof x.country==="string"&&x.country.length<=80))||
+ !(x.instrumentType===undefined||(typeof x.instrumentType==="string"&&x.instrumentType.trim().length>0)))return null;
+ return {symbol:x.symbol,name:x.name,kind:"reference",description:x.description,currency:x.currency,...(typeof x.providerSymbol==="string"?{providerSymbol:x.providerSymbol}:{}),...(typeof x.exchange==="string"?{exchange:x.exchange}:{}),...(typeof x.micCode==="string"?{micCode:x.micCode}:{}),...(typeof x.country==="string"?{country:x.country}:{}),...(typeof x.instrumentType==="string"?{instrumentType:x.instrumentType}:{})};
+}
+export async function getMarketSearch(query:string,limit=15,fetchImpl:typeof fetch=fetch):Promise<MarketInstrument[]>{
+ const q=query.trim();if(q.length<2||q.length>80||!Number.isInteger(limit)||limit<1||limit>20)throw new ApiClientError("Stock search needs 2–80 characters and a result limit from 1 to 20.");
+ const payload=await fetchJson(fetchImpl,"/api/markets/search?q="+encodeURIComponent(q)+"&limit="+limit);if(typeof payload!=="object"||payload===null)throw new ApiClientError("PASTX API returned invalid stock search.");
+ const root=payload as Record<string,unknown>;if(root.query!==q||!Array.isArray(root.items)||root.count!==root.items.length||root.classification!=="external listed-stock directory; not proof of a Portaldot-issued equity token")throw new ApiClientError("PASTX API returned invalid stock search.");
+ const seen=new Set<string>();const items=root.items.map((v):MarketInstrument|null=>{const i=parseMarketInstrument(v);if(!i||!i.exchange)return null;const key=i.symbol+":"+(i.micCode??i.exchange.toUpperCase());if(seen.has(key))return null;seen.add(key);return i;});
+ if(items.some((i)=>i===null))throw new ApiClientError("PASTX API returned malformed stock search results.");return items as MarketInstrument[];
+}
+export async function getMarketLogoUrl(i:MarketInstrument,fetchImpl:typeof fetch=fetch):Promise<string|null>{
+ if(!i.exchange)return null;const payload=await fetchJson(fetchImpl,"/api/markets/"+encodeURIComponent(i.symbol)+"/logo"+marketIdentityQuery(i));
+ if(typeof payload!=="object"||payload===null||!("url" in payload))throw new ApiClientError("PASTX API returned invalid company logo response.");
+ const raw=(payload as {url?:unknown}).url;if(raw===null)return null;if(typeof raw!=="string"||raw.length>2048)throw new ApiClientError("PASTX API returned invalid company logo URL.");
+ try{const u=new URL(raw);if(u.protocol!=="https:"||u.username||u.password||!u.hostname)throw new Error("unsafe");return u.toString();}catch{throw new ApiClientError("PASTX API returned unsafe company logo URL.");}
+}
+
 export async function getMarketCatalogue(fetchImpl: typeof fetch = fetch): Promise<MarketInstrument[]> {
   const payload = await fetchJson(fetchImpl, "/api/markets");
   if (typeof payload !== "object" || payload === null) throw new ApiClientError("PASTX API returned an invalid market catalogue.");
@@ -175,7 +201,7 @@ export async function getMarketCatalogue(fetchImpl: typeof fetch = fetch): Promi
     const item = value as Record<string, unknown>;
     if (
       typeof item.symbol !== "string" ||
-      !/^[A-Z][A-Z0-9.]{0,14}$/.test(item.symbol) ||
+      !/^[A-Z0-9][A-Z0-9.-]{0,19}$/.test(item.symbol) ||
       seen.has(item.symbol) ||
       typeof item.name !== "string" || !item.name.trim() ||
       (item.kind !== "reference" && item.kind !== "simulated" && item.kind !== "onchain") ||
@@ -184,14 +210,7 @@ export async function getMarketCatalogue(fetchImpl: typeof fetch = fetch): Promi
       !(item.providerSymbol === undefined || (typeof item.providerSymbol === "string" && item.providerSymbol.trim().length > 0))
     ) return null;
     seen.add(item.symbol);
-    return {
-      symbol: item.symbol,
-      name: item.name,
-      kind: item.kind,
-      description: item.description,
-      currency: item.currency,
-      ...(typeof item.providerSymbol === "string" ? { providerSymbol: item.providerSymbol } : {})
-    };
+    const parsed=parseMarketInstrument(item);if(!parsed)return null;return parsed;
   });
   if (items.some((item) => item === null) || items.length === 0) {
     throw new ApiClientError("PASTX API returned an invalid market catalogue.");
@@ -199,66 +218,22 @@ export async function getMarketCatalogue(fetchImpl: typeof fetch = fetch): Promi
   return items as MarketInstrument[];
 }
 
-export async function getMarketQuote(symbol: string, fetchImpl: typeof fetch = fetch): Promise<MarketQuote> {
-  const payload = await fetchJson(fetchImpl, `/api/markets/${encodeURIComponent(symbol)}/quote`);
-  if (typeof payload !== "object" || payload === null || !("item" in payload)) {
-    throw new ApiClientError("PASTX API returned an invalid market quote.");
-  }
-  const item = (payload as { item?: unknown }).item;
-  const requestedSymbol = symbol.trim().toUpperCase();
-  const expectedInstrument = MARKET_INSTRUMENTS.find((instrument) => instrument.symbol === requestedSymbol);
-  if (
-    !expectedInstrument ||
-    !isMarketQuote(item) ||
-    item.source !== "twelve_data" ||
-    item.symbol !== requestedSymbol ||
-    item.currency !== expectedInstrument.currency
-  ) {
-    throw new ApiClientError("PASTX API returned an invalid market quote.");
-  }
-  return item;
+export async function getMarketQuote(input:string|MarketInstrument,fetchImpl:typeof fetch=fetch):Promise<MarketQuote>{
+ const instrument=typeof input==="string"?MARKET_INSTRUMENTS.find((i)=>i.symbol===input.trim().toUpperCase()):input;
+ if(!instrument)throw new ApiClientError("Unsupported market instrument.");const symbol=instrument.symbol.trim().toUpperCase(),identity=typeof input==="string"?"":marketIdentityQuery(instrument);
+ const payload=await fetchJson(fetchImpl,"/api/markets/"+encodeURIComponent(symbol)+"/quote"+identity);
+ if(typeof payload!=="object"||payload===null||!("item" in payload))throw new ApiClientError("PASTX API returned an invalid market quote.");
+ const item=(payload as {item?:unknown}).item;if(!isMarketQuote(item)||item.source!=="twelve_data"||item.symbol!==symbol||item.currency!==instrument.currency)throw new ApiClientError("PASTX API returned an invalid market quote.");return item;
 }
 
-export async function getMarketCandles(
-  symbol: string,
-  interval: CandleInterval = "1day",
-  outputsize = 30,
-  fetchImpl: typeof fetch = fetch
-): Promise<MarketCandle[]> {
-  if (!isCandleInterval(interval)) throw new ApiClientError("Unsupported candle interval.");
-  if (!Number.isInteger(outputsize) || outputsize < 1 || outputsize > 500) {
-    throw new ApiClientError("Candle output size must be an integer between 1 and 500.");
-  }
-  const requestedSymbol = symbol.trim().toUpperCase();
-  const expectedInstrument = MARKET_INSTRUMENTS.find((instrument) => instrument.symbol === requestedSymbol);
-  if (!expectedInstrument) throw new ApiClientError("Unsupported market instrument.");
-  const payload = await fetchJson(fetchImpl, `/api/markets/${encodeURIComponent(requestedSymbol)}/candles?interval=${encodeURIComponent(interval)}&outputsize=${outputsize}`);
-  if (
-    typeof payload !== "object" || payload === null ||
-    !("items" in payload) || !Array.isArray((payload as { items?: unknown }).items) ||
-    !("symbol" in payload) || (payload as { symbol?: unknown }).symbol !== requestedSymbol ||
-    !("interval" in payload) || (payload as { interval?: unknown }).interval !== interval
-  ) {
-    throw new ApiClientError("PASTX API returned invalid candle data.");
-  }
-  const items = (payload as { items: unknown[] }).items;
-  const candles = items.map((item): MarketCandle | null => {
-    if (typeof item !== "object" || item === null) return null;
-    const candle = item as Record<string, unknown>;
-    const validDate = typeof candle.timestamp === "string" && Number.isFinite(Date.parse(candle.timestamp));
-    const nums = [candle.open, candle.high, candle.low, candle.close];
-    if (!validDate || !nums.every((value) => typeof value === "number" && Number.isFinite(value) && value > 0)) return null;
-    const open = candle.open as number;
-    const high = candle.high as number;
-    const low = candle.low as number;
-    const close = candle.close as number;
-    const volume = candle.volume;
-    if (high < Math.max(open, close, low) || low > Math.min(open, close, high)) return null;
-    if (!(volume === null || (typeof volume === "number" && Number.isFinite(volume) && volume >= 0))) return null;
-    return { timestamp: candle.timestamp as string, open, high, low, close, volume };
-  });
-  if (candles.some((item) => item === null)) throw new ApiClientError("PASTX API returned malformed candle data.");
-  return candles as MarketCandle[];
+export async function getMarketCandles(input:string|MarketInstrument,interval:CandleInterval="1day",outputsize=30,fetchImpl:typeof fetch=fetch):Promise<MarketCandle[]>{
+ if(!isCandleInterval(interval))throw new ApiClientError("Unsupported candle interval.");if(!Number.isInteger(outputsize)||outputsize<1||outputsize>500)throw new ApiClientError("Candle output size must be an integer between 1 and 500.");
+ const instrument=typeof input==="string"?MARKET_INSTRUMENTS.find((i)=>i.symbol===input.trim().toUpperCase()):input;if(!instrument)throw new ApiClientError("Unsupported market instrument.");
+ const symbol=instrument.symbol.trim().toUpperCase(),p=new URLSearchParams(marketIdentityQuery(instrument).replace(/^\?/,""));p.set("interval",interval);p.set("outputsize",String(outputsize));
+ const payload=await fetchJson(fetchImpl,"/api/markets/"+encodeURIComponent(symbol)+"/candles?"+p.toString());
+ if(typeof payload!=="object"||payload===null||!("items" in payload)||!Array.isArray((payload as {items?:unknown}).items)||!("symbol" in payload)||(payload as {symbol?:unknown}).symbol!==symbol||!("interval" in payload)||(payload as {interval?:unknown}).interval!==interval)throw new ApiClientError("PASTX API returned invalid candle data.");
+ const rows=(payload as {items:unknown[]}).items;const candles=rows.map((v):MarketCandle|null=>{if(typeof v!=="object"||v===null)return null;const c=v as Record<string,unknown>;if(typeof c.timestamp!=="string"||!Number.isFinite(Date.parse(c.timestamp)))return null;const nums=[c.open,c.high,c.low,c.close];if(!nums.every((n)=>typeof n==="number"&&Number.isFinite(n)&&n>0))return null;const open=c.open as number,high=c.high as number,low=c.low as number,close=c.close as number,volume=c.volume;if(high<Math.max(open,close,low)||low>Math.min(open,close,high))return null;if(!(volume===null||(typeof volume==="number"&&Number.isFinite(volume)&&volume>=0)))return null;return {timestamp:c.timestamp as string,open,high,low,close,volume};});
+ if(candles.some((c)=>c===null))throw new ApiClientError("PASTX API returned malformed candle data.");return candles as MarketCandle[];
 }
 
 async function fetchJson(fetchImpl: typeof fetch, url: string): Promise<unknown> {

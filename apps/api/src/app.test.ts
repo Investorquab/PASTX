@@ -321,6 +321,23 @@ describe("PASTX API", () => {
     }
   });
 
+  it("supports stock directory search without enabling real trade execution",async()=>{
+    const searchStocks=vi.fn().mockResolvedValue([{symbol:"AMD",name:"Advanced Micro Devices",kind:"reference",description:"Listed stock data",currency:"USD",providerSymbol:"AMD",exchange:"NASDAQ",micCode:"XNAS",country:"United States",instrumentType:"Common Stock"}]);
+    const app=await buildApp({logger:false,marketDataApiKey:"configured",marketDataDisplayEnabled:false,marketData:{searchStocks} as unknown as TwelveDataAdapter});
+    try{const response=await app.inject({method:"GET",url:"/api/markets/search?q=Advanced&limit=5"});expect(response.statusCode).toBe(200);expect(response.json()).toMatchObject({count:1,items:[{symbol:"AMD",exchange:"NASDAQ",micCode:"XNAS"}]});expect((await app.inject({method:"GET",url:"/api/health"})).json().tradingEnabled).toBe(false);}
+    finally{await app.close();}
+  });
+  it("validates stock search limits before provider access",async()=>{
+    const searchStocks=vi.fn();const app=await buildApp({logger:false,marketDataApiKey:"configured",marketData:{searchStocks} as unknown as TwelveDataAdapter});
+    try{expect((await app.inject({method:"GET",url:"/api/markets/search?q=A"})).statusCode).toBe(400);expect(searchStocks).not.toHaveBeenCalled();}
+    finally{await app.close();}
+  });
+  it("forwards exchange identity to company logo lookup",async()=>{
+    const getLogo=vi.fn().mockResolvedValue(null);const app=await buildApp({logger:false,marketDataApiKey:"configured",marketData:{getLogo} as unknown as TwelveDataAdapter});
+    try{const response=await app.inject({method:"GET",url:"/api/markets/AMD/logo?exchange=NASDAQ&mic_code=XNAS&currency=USD&country=United%20States"});expect(response.json()).toEqual({url:null});expect(getLogo).toHaveBeenCalledWith(expect.objectContaining({symbol:"AMD",exchange:"NASDAQ",micCode:"XNAS",currency:"USD"}));}
+    finally{await app.close();}
+  });
+
   it("returns only explicitly classified reference catalogue entries", async () => {
     const app = await buildApp({ logger: false });
     const response = await app.inject({ method: "GET", url: "/api/markets" });

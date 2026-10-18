@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { ApiClientError, getApiCapabilities, getApiHealth, getChainStatus, getMarketCatalogue, getMarketCandles, getMarketQuote } from "./api";
+import { ApiClientError, getApiCapabilities, getApiHealth, getChainStatus, getMarketCatalogue, getMarketCandles, getMarketLogoUrl, getMarketQuote, getMarketSearch } from "./api";
 
 describe("getChainStatus", () => {
   it("returns the read-only status object", async () => {
@@ -235,4 +235,11 @@ describe("market data API client", () => {
     }] }), { status: 200 });
     await expect(getMarketCandles("AAPL", "1day", 1, malformed as unknown as typeof fetch)).rejects.toBeInstanceOf(ApiClientError);
   });
+});
+
+
+describe("provider stock directory client",()=>{
+ const stock={symbol:"AMD",name:"Advanced Micro Devices",kind:"reference",description:"Listed stock",currency:"USD",providerSymbol:"AMD",exchange:"NASDAQ",micCode:"XNAS",country:"United States",instrumentType:"Common Stock"};
+ it("parses search results with an exchange identity",async()=>{const fetcher=async()=>new Response(JSON.stringify({query:"AMD",count:1,items:[stock],classification:"external listed-stock directory; not proof of a Portaldot-issued equity token"}),{status:200});await expect(getMarketSearch("AMD",15,fetcher as unknown as typeof fetch)).resolves.toMatchObject([{symbol:"AMD",exchange:"NASDAQ",micCode:"XNAS"}]);});
+ it("rejects unsafe logo URLs and supports no-logo fallback",async()=>{const bad=async()=>new Response(JSON.stringify({url:"javascript:alert(1)"}),{status:200});await expect(getMarketLogoUrl(stock,bad as unknown as typeof fetch)).rejects.toBeInstanceOf(ApiClientError);const none=async()=>new Response(JSON.stringify({url:null}),{status:200});await expect(getMarketLogoUrl(stock,none as unknown as typeof fetch)).resolves.toBeNull();});
 });

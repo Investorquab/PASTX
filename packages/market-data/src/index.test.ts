@@ -12,6 +12,18 @@ function fakeFetch(payload: unknown, status = 200): typeof fetch {
 }
 
 describe("TwelveDataAdapter", () => {
+  it("searches equities while excluding ETFs and duplicate venue identities",async()=>{
+    const adapter=new TwelveDataAdapter("test-key",fakeFetch({status:"ok",data:[
+      {symbol:"MSFT",instrument_name:"Microsoft",exchange:"NASDAQ",mic_code:"XNAS",country:"United States",currency:"USD",instrument_type:"Common Stock"},
+      {symbol:"QQQ",instrument_name:"Invesco QQQ",exchange:"NASDAQ",mic_code:"XNAS",country:"United States",currency:"USD",instrument_type:"ETF"},
+      {symbol:"SHEL",instrument_name:"Shell plc",exchange:"NYSE",mic_code:"XNYS",country:"United States",currency:"USD",instrument_type:"American Depositary Receipt"},
+      {symbol:"MSFT",instrument_name:"Microsoft",exchange:"NASDAQ",mic_code:"XNAS",country:"United States",currency:"USD",instrument_type:"Common Stock"}
+    ]}));
+    const items=await adapter.searchStocks("Microsoft",20);expect(items).toHaveLength(2);expect(items[0]).toMatchObject({symbol:"MSFT",exchange:"NASDAQ",micCode:"XNAS"});expect(items[1].symbol).toBe("SHEL");
+  });
+  it("rejects too-short stock queries before network access",async()=>{const fetcher=vi.fn();const adapter=new TwelveDataAdapter("key",fetcher as unknown as typeof fetch);await expect(adapter.searchStocks("A")).rejects.toMatchObject({statusCode:400});expect(fetcher).not.toHaveBeenCalled();});
+  it("validates logo URL and symbol identity",async()=>{const adapter=new TwelveDataAdapter("key",fakeFetch({meta:{symbol:"MSFT",exchange:"NASDAQ"},url:"https://assets.example.test/msft.png"}));await expect(adapter.getLogo({symbol:"MSFT",name:"Microsoft",kind:"reference",description:"test",currency:"USD",providerSymbol:"MSFT",exchange:"NASDAQ",micCode:"XNAS"})).resolves.toBe("https://assets.example.test/msft.png");});
+
   it("refuses to fetch quotes or candles for non-reference instruments", async () => {
     const fetcher = vi.fn();
     const adapter = new TwelveDataAdapter("test-key", fetcher as unknown as typeof fetch);

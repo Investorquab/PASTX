@@ -80,6 +80,18 @@ function findInstrument(symbol: string): MarketInstrument | undefined {
   return MARKET_INSTRUMENTS.find((instrument) => instrument.symbol === normalized);
 }
 
+type MarketIdentityQuery={exchange?:string;mic_code?:string;country?:string;currency?:string};
+function resolveMarketInstrument(rawSymbol:string,q:MarketIdentityQuery={}):MarketInstrument|undefined{
+ const symbol=rawSymbol.trim().toUpperCase();if(!/^[A-Z0-9][A-Z0-9.-]{0,19}$/.test(symbol))return undefined;
+ const known=findInstrument(symbol),exchange=q.exchange?.trim();if(!exchange)return known;
+ if(exchange.length>100||!/^[A-Za-z0-9][A-Za-z0-9 .&()'/_+-]{0,99}$/.test(exchange))return undefined;
+ const currency=(q.currency??known?.currency??"").trim().toUpperCase();if(!/^[A-Z]{3}$/.test(currency))return undefined;
+ const micCode=q.mic_code?.trim().toUpperCase();if(micCode&&!/^[A-Z0-9]{4}$/.test(micCode))return undefined;
+ const country=q.country?.trim();if(country&&(country.length>80||/[\u0000-\u001f]/.test(country)))return undefined;
+ return {...(known??{}),symbol,name:known?.name??symbol,kind:"reference",description:"Listed stock quote data from an external provider; not a Portaldot-issued equity token.",currency,providerSymbol:symbol,exchange,...(micCode?{micCode}:{}),...(country?{country}:{})};
+}
+
+
 export async function buildApp(options: AppOptions = {}): Promise<FastifyInstance> {
   const app = Fastify({ logger: options.logger ?? true, requestIdHeader: "x-request-id" });
   const marketData = options.marketData ?? new TwelveDataAdapter(options.marketDataApiKey ?? process.env.MARKET_DATA_API_KEY);
@@ -227,14 +239,34 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
     classification: "reference catalogue; not proof of tokenized equity or executable market"
   }));
 
+
+  app.get<{Querystring:{q?:string;limit?:string}}>("/api/markets/search",async(request,reply)=>{
+    const query=request.query.q?.trim()??"";
+    if(query.length<2||query.length>80)return reply.code(400).send(apiError("INVALID_INPUT","Search query must contain between 2 and 80 characters.",request.id));
+    const rawLimit=request.query.limit??"15";
+    if(!/^\d+$/.test(rawLimit))return reply.code(400).send(apiError("INVALID_INPUT","Search limit must be an integer between 1 and 20.",request.id));
+    const limit=Number(rawLimit);
+    if(!Number.isInteger(limit)||limit<1||limit>20)return reply.code(400).send(apiError("INVALID_INPUT","Search limit must be an integer between 1 and 20.",request.id));
+    if(!marketDataConfigured)return reply.code(503).send(apiError("PROVIDER_NOT_CONFIGURED","Stock directory provider is not configured.",request.id));
+    try{const items=await marketData.searchStocks(query,limit);return {query,count:items.length,items,classification:"external listed-stock directory; not proof of a Portaldot-issued equity token"};}
+    catch(error){if(error instanceof MarketDataError)return reply.code(error.statusCode).send(apiError(error.code,error.message,request.id));request.log.error({err:error},"Unexpected stock directory search error");return reply.code(500).send(apiError("INTERNAL_ERROR","Unable to search the stock directory.",request.id));}
+  });
+  app.get<{Params:{symbol:string};Querystring:MarketIdentityQuery}>("/api/markets/:symbol/logo",async(request,reply)=>{
+    const instrument=resolveMarketInstrument(request.params.symbol,request.query);
+    if(!instrument)return reply.code(400).send(apiError("INVALID_INPUT","A valid symbol and exchange identity are required for this logo.",request.id));
+    if(!marketDataConfigured)return {url:null};
+    try{return {url:await marketData.getLogo(instrument)};}
+    catch(error){if(error instanceof MarketDataError){if(error.code==="PROVIDER_UNAVAILABLE"||error.code==="PROVIDER_INVALID_RESPONSE")return {url:null};return reply.code(error.statusCode).send(apiError(error.code,error.message,request.id));}request.log.error({err:error},"Unexpected company logo lookup error");return {url:null};}
+  });
+
   app.get<{ Params: { symbol: string } }>("/api/markets/:symbol", async (request, reply) => {
     const instrument = findInstrument(request.params.symbol);
     if (!instrument) return reply.code(404).send(apiError("NOT_FOUND", "Market instrument was not found.", request.id));
     return { item: instrument };
   });
 
-  app.get<{ Params: { symbol: string } }>("/api/markets/:symbol/quote", async (request, reply) => {
-    const instrument = findInstrument(request.params.symbol);
+  app.get<{ Params: { symbol: string }; Querystring: MarketIdentityQuery }>("/api/markets/:symbol/quote", async (request, reply) => {
+    const instrument = resolveMarketInstrument(request.params.symbol,request.query);
     if (!instrument) return reply.code(404).send(apiError("NOT_FOUND", "Market instrument was not found.", request.id));
     if (!marketDataConfigured) return reply.code(503).send(apiError("PROVIDER_NOT_CONFIGURED", "Market data provider is not configured.", request.id));
     if (!marketDataDisplayEnabled) return reply.code(403).send(apiError("MARKET_DATA_DISPLAY_DISABLED", "Live market-data display is disabled until provider terms are verified.", request.id));
@@ -249,10 +281,10 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
     }
   });
 
-  app.get<{ Params: { symbol: string }; Querystring: { interval?: string; outputsize?: string } }>(
+  app.get<{ Params: { symbol: string }; Querystring: MarketIdentityQuery & { interval?: string; outputsize?: string } }>(
     "/api/markets/:symbol/candles",
     async (request, reply) => {
-      const instrument = findInstrument(request.params.symbol);
+      const instrument = resolveMarketInstrument(request.params.symbol,request.query);
       if (!instrument) return reply.code(404).send(apiError("NOT_FOUND", "Market instrument was not found.", request.id));
 
       const interval = request.query.interval ?? "1day";
