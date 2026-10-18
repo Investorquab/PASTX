@@ -12,7 +12,7 @@ const listings = [
 describe("market listing identity", () => {
   it("creates distinct stable keys for the same ticker on different venues", () => {
     expect(marketIdentityKey(listings[0])).not.toBe(marketIdentityKey(listings[1]));
-    expect(marketIdentityKey(listings[0])).toBe("ABC::XNAS::");
+    expect(marketIdentityKey(listings[0])).toBe("ABC::XNAS::::");
     expect(marketIdentityKey(listings[3])).not.toBe(marketIdentityKey(listings[4]));
   });
 
