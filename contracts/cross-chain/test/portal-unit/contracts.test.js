@@ -40,4 +40,28 @@ describe("PASTX PortalDOT escrow EVM unit model", function () {
     assert.equal(await escrow.totalReleased(), 4n);
     await assert.rejects(escrow.connect(relayer).releaseWithdrawal(withdrawalId, recipient.address, 4n));
   });
+
+  it("rolls back withdrawal accounting when the recipient rejects native value", async function () {
+    const [relayer, user, recipient] = await ethers.getSigners();
+    const factory = await ethers.getContractFactory("PortalDotTestnetEscrow");
+    const escrow = await factory.deploy(relayer.address, 97);
+    await escrow.waitForDeployment();
+
+    const amount = 11n;
+    await escrow.connect(user).deposit(recipient.address, { value: amount });
+    const withdrawalId = ethers.keccak256(ethers.toUtf8Bytes("recipient-rejects"));
+
+    // The escrow contract has no receive/fallback function, so sending native value to it fails.
+    await assert.rejects(
+      escrow.connect(relayer).releaseWithdrawal(withdrawalId, escrow.target, amount)
+    );
+    assert.equal(await escrow.processedWithdrawals(withdrawalId), false);
+    assert.equal(await escrow.totalReleased(), 0n);
+    assert.equal(await ethers.provider.getBalance(escrow.target), amount);
+
+    // The same ID remains usable after the reverted transfer and can be released to a valid recipient.
+    await escrow.connect(relayer).releaseWithdrawal(withdrawalId, recipient.address, amount);
+    assert.equal(await escrow.processedWithdrawals(withdrawalId), true);
+    assert.equal(await escrow.totalReleased(), amount);
+  });
 });
