@@ -353,3 +353,6 @@ a { color: inherit; }
 .cross-chain-disclaimer p{margin:5px 0 0;font-size:9px;line-height:1.8;color:#766b54}
 @media(max-width:850px){.cross-chain-intro{grid-template-columns:1fr;gap:19px}.cross-chain-flow{grid-template-columns:1fr;gap:10px}.cross-chain-flow-connector{flex-direction:row;padding:2px}.cross-chain-flow-connector svg{transform:rotate(90deg)}}
 @media(max-width:680px){.cross-chain-page{padding-bottom:24px}.cross-chain-intro{padding:20px 0}.cross-chain-intro h1{font-size:36px}.cross-chain-flow{padding:17px 0}.cross-chain-actions-grid{grid-template-columns:1fr}.cross-chain-market-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.cross-chain-action-card{padding:14px}.cross-chain-message{padding:11px}.cross-chain-toolbar{align-items:flex-start;flex-direction:column}.site-header .top-nav{overflow-x:auto;white-space:nowrap}.site-header .top-nav-item{flex:0 0 auto}}
+
+.cross-chain-return-eligible{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0;padding:11px;border:1px solid #e7e7e7;border-radius:7px;background:#fafafa;font-size:10px;color:#777}
+.cross-chain-return-eligible strong{color:#176347;font:11px var(--mono);text-align:right}
