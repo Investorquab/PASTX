@@ -1,6 +1,6 @@
 # PASTX Project Status and Handoff
 
-**Last updated:** 17 October 2026  
+**Last updated:** 19 October 2026  
 **Repository:** https://github.com/Investorquab/PASTX  
 **Default branch:** `main`
 
@@ -67,3 +67,14 @@ The expected EVM chain ID `420420777` is from a published **Portaldot V3 testnet
 ## Handoff rule
 
 Continue security, API, frontend, documentation and release-readiness work as a consolidated engineering pass, not a sequence of tiny feature/CI batches. Push one coherent revision once the changes are ready, then verify CI on that exact commit. Do not report green before that run passes.
+
+
+## Cross-chain prototype status — 19 October 2026
+
+The current feature branch now carries a separate `contracts/cross-chain` prototype for a PortalDOT V3 source escrow, BNB testnet gateway with `wtPOTv3` test representation and mock stock market, local unit tests, trusted relayer, testnet deployment scripts, and EVM/PVM compile workflow.
+
+**No contracts have been deployed and no cross-chain relay has executed.** The existing main web application remains read-only for chain activity and does not submit trades. The prototype has an explicit single-relayer trust assumption, process-memory scan cursors, mock owner-controlled prices, simulated liquidity, and an unresolved native tPOTv3 EVM amount/decimal validation gate. Do not use valuable funds.
+
+The official PortalDOT V3-to-BNB iBridge route for tPOTv3 and an official bStocks BNB-testnet market remain unverified in the public material reviewed. The prototype therefore models source-event relay and destination mint using a test representation; it does not prove official bridge support or real stock execution. Deployment requires manual operator validation and explicit testnet-only keys/addresses in the package's untracked `.env`.
+
+Before claiming progress, record the exact branch commit, local test/check/compile results and, only after actual testnet interactions, both chains' deployment/transaction evidence. A green local or CI compile/test is not live-network evidence.

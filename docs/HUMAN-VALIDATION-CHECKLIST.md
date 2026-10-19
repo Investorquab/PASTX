@@ -97,7 +97,29 @@ Before any on-chain asset discovery or execution is enabled, an operator must su
 
 The API's chain fingerprint and signed-registry checks are necessary safeguards, not proof that the runtime adapter or trading flow is implemented. Do not enable trading based only on a passing health endpoint or a matching chain ID.
 
-## 7. Report back
+## 7. Cross-chain prototype validation (testnet only)
+
+From the feature branch, review the isolated package guide before installation:
+
+~~~bash
+cd contracts/cross-chain
+npm install
+npm run check
+npm test
+npm run compile:bnb
+npm run compile:portal
+~~~
+
+Expected boundaries:
+- Local EVM tests exercise the source escrow model and BNB gateway; they do not prove live PortalDOT execution.
+- PVM compilation is not deployment evidence.
+- Deployment scripts hard-check chain IDs, but an operator must still verify RPC identity and the target contract runtime.
+- Start the relay in dry-run mode; execution is disabled unless `PASTX_RELAY_EXECUTE=true` and both testnet keys and deployed addresses are configured.
+- Before any small test deposit, independently verify how tPOTv3 native balance/value units map to EVM `msg.value` and the emitted escrow amount.
+- Capture the PortalDOT source transaction, BNB destination transaction, token balance, mock buy/sell events and return transaction if the complete test flow is run.
+- Treat `wtPOTv3` and `*-TEST` instruments as valueless test representations. Never enter mainnet keys/endpoints or claim the official iBridge route is working based on this prototype.
+
+## 8. Report back
 
 Attach the tested commit SHA and provide:
 - Results of **pnpm check**, **pnpm test**, and **pnpm build**.

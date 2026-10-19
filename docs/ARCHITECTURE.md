@@ -81,9 +81,17 @@ See [Settlement Design](SETTLEMENT-DESIGN.md).
 - Use a server-side market-data adapter to protect keys and normalize provider responses.
 - Use PostgreSQL only when there is a concrete need for durable records or indexed chain history.
 - Add Redis only if measured caching, rate limiting or job coordination needs justify it.
-- Defer cross-chain bridges, matching engines and authentication expansion until the core flow works.
+- Keep the cross-chain prototype isolated from the production application until chain/account/payment semantics and an official or intentionally trusted testnet route are independently verified.
+- Never present the single-relayer prototype as a production-secure bridge.
 
 
 ## Reference-only order intent domain
 
 The shared package owns deterministic order-preview validation so the web app does not maintain separate arithmetic. It accepts a known reference-catalogue symbol, a buy/sell side, bounded positive quantity, and positive finite reference price. The result is explicitly `executable: false`; it is not an order, balance check, authorization, or transaction. Live trading remains disabled.
+
+
+## Cross-chain prototype
+
+The testnet prototype lives in [`contracts/cross-chain`](../contracts/cross-chain/README.md). Its source escrow and BNB gateway are testnet-only contracts; the destination uses `wtPOTv3` and mock `*-TEST` stock instruments. A separate relayer observes source events and submits destination calls after a configurable confirmation depth.
+
+The contracts validate event identifiers and prevent replay, but the relayer is trusted and no cross-chain light-client proof is verified on-chain. Testnet amount scaling and PortalDOT EVM value semantics must be validated before any test deposit. This package is not integrated into the main UI, has not been deployed, and must not be used for valuable funds. The official PortalDOT V3-to-BNB iBridge route for tPOTv3 remains unverified.

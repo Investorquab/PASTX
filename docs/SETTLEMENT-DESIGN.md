@@ -74,3 +74,12 @@ For every integration claim, record:
 - limitations and reproduction steps.
 
 Never fabricate contract addresses, transaction hashes, testnet availability or success status. A local-node test is not proof of target V3 deployment.
+
+
+## Cross-chain prototype boundary
+
+The separate `contracts/cross-chain` package is a controlled testnet prototype, not an approved production route. The PortalDOT source contract emits a deposit request and locks test EVM native value. A single trusted relayer waits a configurable block depth and checks a source transaction receipt before submitting event fields to the BNB testnet gateway. The gateway recomputes the deposit identifier, checks the configured source chain/escrow, prevents duplicate deposit and source-log processing, and mints a 1:1 raw-unit `wtPOTv3` test representation.
+
+The BNB-side market contains only mock instruments (`AAPL-TEST`, `TSLA-TEST`, `NVDA-TEST`, `MSFT-TEST`) with owner-controlled demo prices and explicitly seeded test liquidity. It is not an official stock-token market, not linked to a live stock oracle, and does not imply ownership of underlying shares. Test BNB pays destination gas; `wtPOTv3` is not native BNB or USDT.
+
+No contract is deployed by compilation or local tests. Before a small real testnet deposit, verify the currently reachable PortalDOT V3 RPC, chain ID, wallet/H160 mapping, actual EVM native-balance/value units and resulting escrow balance. Before any mainnet use, verify an official/supported bridge or build a separately security-reviewed bridge with robust finality/message verification, replay controls, pause/recovery, monitoring and audits. A trusted single relayer is unacceptable for valuable production funds.

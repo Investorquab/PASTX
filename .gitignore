@@ -34,3 +34,12 @@ Thumbs.db
 playwright-report/
 test-results/
 artifacts/
+
+# Cross-chain prototype tooling outputs
+contracts/cross-chain/node_modules/
+contracts/cross-chain/artifacts/
+contracts/cross-chain/artifacts-*/
+contracts/cross-chain/cache/
+contracts/cross-chain/coverage/
+contracts/cross-chain/typechain-types/
+contracts/cross-chain/ignition/deployments/

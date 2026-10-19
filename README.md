@@ -24,7 +24,7 @@ External stock quotes are references only. They do not represent tokenized equit
 - `packages/chain-adapter`: read-only Portaldot EVM RPC chain-and-latest-block probe; no transaction writes.
 - `docs/`: architecture, API, settlement, security, tests and deployment notes.
 
-See [Architecture](docs/ARCHITECTURE.md), [API](docs/API.md), [Settlement Design](docs/SETTLEMENT-DESIGN.md), [Hackathon Requirements](docs/HACKATHON-REQUIREMENTS.md), [Project Status](docs/PROJECT-STATUS.md), and the [Human Validation Checklist](docs/HUMAN-VALIDATION-CHECKLIST.md).
+See [Architecture](docs/ARCHITECTURE.md), [API](docs/API.md), [Settlement Design](docs/SETTLEMENT-DESIGN.md), [Hackathon Requirements](docs/HACKATHON-REQUIREMENTS.md), [Project Status](docs/PROJECT-STATUS.md), the [Human Validation Checklist](docs/HUMAN-VALIDATION-CHECKLIST.md), and the [Cross-Chain Prototype Guide](contracts/cross-chain/README.md).
 
 ## Requirements
 
@@ -63,6 +63,22 @@ curl "http://localhost:4000/api/markets/AAPL/candles?interval=1day&outputsize=30
 ```
 
 The quote and candles routes require a valid provider key and provider access for the requested symbols. Current Twelve Data Basic terms describe free access as internal/non-display; verify licensing before exposing live data in a public client-facing app. See [Twelve Data business pricing](https://twelvedata.com/pricing-business).
+
+## Cross-chain prototype checks
+
+The isolated cross-chain package contains test-only PortalDOT V3 and BNB testnet contracts, a trusted relayer, local contract tests, and separate EVM/PVM compile targets. It has not been deployed. Do not enable trades in the main application based on these local tests.
+
+From `contracts/cross-chain`:
+
+```bash
+npm install
+npm run check
+npm test
+npm run compile:bnb
+npm run compile:portal
+```
+
+See the [prototype guide](contracts/cross-chain/README.md) for the deployment safety gates, dry-run relay and evidence checklist. Local EVM tests and PVM compilation are not proof of a live PortalDOT transaction.
 
 ## Quality checks
 
