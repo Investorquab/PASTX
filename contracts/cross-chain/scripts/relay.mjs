@@ -5,7 +5,9 @@ import {
   defineChain,
   getAddress,
   http,
-  parseAbi
+  parseAbi,
+  encodeAbiParameters,
+  keccak256
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
@@ -225,8 +227,29 @@ async function main() {
 
       for (const log of logs) {
         const args = log.args;
-        if (!args.withdrawalId || !args.portalRecipient || args.amount === undefined) continue;
-        if (log.transactionHash === null) throw new Error("Withdrawal event is missing transaction evidence.");
+        if (!args.withdrawalId || !args.sender || !args.portalRecipient || args.amount === undefined || args.nonce === undefined) {
+          throw new Error("Withdrawal event is missing required identity fields.");
+        }
+        if (log.transactionHash === null || log.logIndex === null) throw new Error("Withdrawal event is missing transaction evidence.");
+        if (args.sender === "0x0000000000000000000000000000000000000000" ||
+            args.portalRecipient === "0x0000000000000000000000000000000000000000" ||
+            args.amount === 0n) {
+          throw new Error("Withdrawal event contains an invalid sender, recipient, or amount.");
+        }
+        const computedWithdrawalId = keccak256(encodeAbiParameters(
+          [
+            { type: "uint256" },
+            { type: "address" },
+            { type: "address" },
+            { type: "address" },
+            { type: "uint256" },
+            { type: "uint256" }
+          ],
+          [BigInt(BSC_TESTNET_CHAIN_ID), bnbGatewayAddress, args.sender, args.portalRecipient, args.amount, args.nonce]
+        ));
+        if (computedWithdrawalId.toLowerCase() !== args.withdrawalId.toLowerCase()) {
+          throw new Error(`Withdrawal ${args.withdrawalId} does not match the gateway event fields.`);
+        }
         const receipt = await bnb.getTransactionReceipt({ hash: log.transactionHash });
         if (receipt.status !== "success") throw new Error(`BNB withdrawal request failed: ${log.transactionHash}`);
         const alreadyProcessed = await portal.readContract({
