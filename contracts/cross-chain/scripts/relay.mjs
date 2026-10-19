@@ -183,11 +183,11 @@ async function main() {
     return { portal, bnb: bnbBlock };
   }
 
-  async function saveCursors() {
+  async function saveCursors(portalCursor, bnbCursor) {
     const saved = {
       ...cursorIdentity,
-      nextPortalBlock: nextPortalBlock.toString(),
-      nextBnbBlock: nextBnbBlock.toString(),
+      nextPortalBlock: portalCursor.toString(),
+      nextBnbBlock: bnbCursor.toString(),
       updatedAt: new Date().toISOString()
     };
     const temporaryPath = `${cursorPath}.tmp`;
@@ -293,8 +293,8 @@ async function main() {
         }
         logJson(result);
       }
+      await saveCursors(toBlock + 1n, nextBnbBlock);
       nextPortalBlock = toBlock + 1n;
-      await saveCursors();
     }
   }
 
@@ -372,8 +372,8 @@ async function main() {
         }
         logJson(result);
       }
+      await saveCursors(nextPortalBlock, toBlock + 1n);
       nextBnbBlock = toBlock + 1n;
-      await saveCursors();
     }
   }
 
