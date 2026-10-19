@@ -1,4 +1,6 @@
 import "dotenv/config";
+import { readFile, rename, writeFile } from "node:fs/promises";
+import path from "node:path";
 import {
   createPublicClient,
   createWalletClient,
@@ -24,6 +26,7 @@ const pollMs = positiveInteger(process.env.PASTX_RELAY_POLL_MS || "5000", "PASTX
 const batchSize = positiveInteger(process.env.PASTX_RELAY_BATCH_SIZE || "100", "PASTX_RELAY_BATCH_SIZE", 1000);
 const portalStartBlock = requiredBlock("PASTX_PORTALDOT_SCAN_FROM_BLOCK");
 const bnbStartBlock = requiredBlock("PASTX_BNB_SCAN_FROM_BLOCK");
+const cursorPath = path.resolve(process.env.PASTX_RELAY_CURSOR_FILE || ".pastx-relay-cursor.json");
 
 const portalChain = defineChain({
   id: PORTALDOT_CHAIN_ID,
@@ -143,8 +146,58 @@ async function main() {
     warning: "Trusted single-relayer prototype. Never point this script at mainnet or use valuable funds."
   });
 
-  let nextPortalBlock = portalStartBlock;
-  let nextBnbBlock = bnbStartBlock;
+  const cursorIdentity = {
+    version: 1,
+    portalChainId: PORTALDOT_CHAIN_ID,
+    bnbChainId: BSC_TESTNET_CHAIN_ID,
+    portalEscrowAddress: portalEscrowAddress.toLowerCase(),
+    bnbGatewayAddress: bnbGatewayAddress.toLowerCase(),
+    portalStartBlock: portalStartBlock.toString(),
+    bnbStartBlock: bnbStartBlock.toString()
+  };
+
+  async function loadCursors() {
+    let saved;
+    try {
+      saved = JSON.parse(await readFile(cursorPath, "utf8"));
+    } catch (error) {
+      if (error && error.code === "ENOENT") {
+        return { portal: portalStartBlock, bnb: bnbStartBlock };
+      }
+      throw new Error(`Unable to read relay cursor checkpoint ${cursorPath}: ${error.message}`);
+    }
+
+    for (const [key, expected] of Object.entries(cursorIdentity)) {
+      if (saved[key] !== expected) {
+        throw new Error(`Relay cursor checkpoint identity mismatch for ${key}; do not reuse a cursor file across deployments or scan-start settings.`);
+      }
+    }
+    if (!/^\\d+$/.test(String(saved.nextPortalBlock)) || !/^\\d+$/.test(String(saved.nextBnbBlock))) {
+      throw new Error("Relay cursor checkpoint has invalid block cursors; inspect or restore it manually.");
+    }
+    const portal = BigInt(saved.nextPortalBlock);
+    const bnbBlock = BigInt(saved.nextBnbBlock);
+    if (portal < portalStartBlock || bnbBlock < bnbStartBlock) {
+      throw new Error("Relay cursor checkpoint precedes a configured scan start block.");
+    }
+    return { portal, bnb: bnbBlock };
+  }
+
+  async function saveCursors() {
+    const saved = {
+      ...cursorIdentity,
+      nextPortalBlock: nextPortalBlock.toString(),
+      nextBnbBlock: nextBnbBlock.toString(),
+      updatedAt: new Date().toISOString()
+    };
+    const temporaryPath = `${cursorPath}.tmp`;
+    await writeFile(temporaryPath, `${JSON.stringify(saved, null, 2)}\\n`, { encoding: "utf8", mode: 0o600 });
+    await rename(temporaryPath, cursorPath);
+  }
+
+  const cursors = await loadCursors();
+  let nextPortalBlock = cursors.portal;
+  let nextBnbBlock = cursors.bnb;
 
   async function scanDeposits() {
     const latest = await portal.getBlockNumber();
@@ -241,6 +294,7 @@ async function main() {
         logJson(result);
       }
       nextPortalBlock = toBlock + 1n;
+      await saveCursors();
     }
   }
 
@@ -319,6 +373,7 @@ async function main() {
         logJson(result);
       }
       nextBnbBlock = toBlock + 1n;
+      await saveCursors();
     }
   }
 
