@@ -160,9 +160,40 @@ async function main() {
 
       for (const log of logs) {
         const args = log.args;
-        if (!args.depositId || !args.sender || !args.destinationRecipient || args.amount === undefined || args.nonce === undefined) continue;
-        if (args.sourceChainId !== BigInt(PORTALDOT_CHAIN_ID) || args.destinationChainId !== BigInt(BSC_TESTNET_CHAIN_ID) || args.sender === "0x0000000000000000000000000000000000000000") {
-          throw new Error(`Deposit ${args.depositId} has unexpected chain metadata.`);
+        if (!args.depositId || !args.sender || !args.destinationRecipient || args.amount === undefined || args.nonce === undefined ||
+            args.sourceChainId === undefined || args.destinationChainId === undefined) {
+          throw new Error("Deposit event is missing required identity or chain fields.");
+        }
+        const zeroAddress = "0x0000000000000000000000000000000000000000";
+        if (args.sourceChainId !== BigInt(PORTALDOT_CHAIN_ID) ||
+            args.destinationChainId !== BigInt(BSC_TESTNET_CHAIN_ID) ||
+            args.sender.toLowerCase() === zeroAddress ||
+            args.destinationRecipient.toLowerCase() === zeroAddress ||
+            args.amount === 0n) {
+          throw new Error(`Deposit ${args.depositId} has invalid addresses, amount, or chain metadata.`);
+        }
+        const computedDepositId = keccak256(encodeAbiParameters(
+          [
+            { type: "uint256" },
+            { type: "address" },
+            { type: "address" },
+            { type: "address" },
+            { type: "uint256" },
+            { type: "uint256" },
+            { type: "uint256" }
+          ],
+          [
+            BigInt(PORTALDOT_CHAIN_ID),
+            portalEscrowAddress,
+            args.sender,
+            args.destinationRecipient,
+            BigInt(BSC_TESTNET_CHAIN_ID),
+            args.nonce,
+            args.amount
+          ]
+        ));
+        if (computedDepositId.toLowerCase() !== args.depositId.toLowerCase()) {
+          throw new Error(`Deposit ${args.depositId} does not match the escrow event fields.`);
         }
         if (log.transactionHash === null || log.logIndex === null) throw new Error("Source event is missing transaction evidence.");
         const receipt = await portal.getTransactionReceipt({ hash: log.transactionHash });
