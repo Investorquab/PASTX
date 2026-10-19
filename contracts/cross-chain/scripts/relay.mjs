@@ -1,6 +1,6 @@
 import "dotenv/config";
-import { readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { loadRelayCursors, saveRelayCursors } from "./relay-cursor.mjs";
 import {
   createPublicClient,
   createWalletClient,
@@ -156,46 +156,14 @@ async function main() {
     bnbStartBlock: bnbStartBlock.toString()
   };
 
-  async function loadCursors() {
-    let saved;
-    try {
-      saved = JSON.parse(await readFile(cursorPath, "utf8"));
-    } catch (error) {
-      if (error && error.code === "ENOENT") {
-        return { portal: portalStartBlock, bnb: bnbStartBlock };
-      }
-      throw new Error(`Unable to read relay cursor checkpoint ${cursorPath}: ${error.message}`);
-    }
-
-    for (const [key, expected] of Object.entries(cursorIdentity)) {
-      if (saved[key] !== expected) {
-        throw new Error(`Relay cursor checkpoint identity mismatch for ${key}; do not reuse a cursor file across deployments or scan-start settings.`);
-      }
-    }
-    if (!/^\d+$/.test(String(saved.nextPortalBlock)) || !/^\d+$/.test(String(saved.nextBnbBlock))) {
-      throw new Error("Relay cursor checkpoint has invalid block cursors; inspect or restore it manually.");
-    }
-    const portal = BigInt(saved.nextPortalBlock);
-    const bnbBlock = BigInt(saved.nextBnbBlock);
-    if (portal < portalStartBlock || bnbBlock < bnbStartBlock) {
-      throw new Error("Relay cursor checkpoint precedes a configured scan start block.");
-    }
-    return { portal, bnb: bnbBlock };
-  }
-
-  async function saveCursors(portalCursor, bnbCursor) {
-    const saved = {
-      ...cursorIdentity,
-      nextPortalBlock: portalCursor.toString(),
-      nextBnbBlock: bnbCursor.toString(),
-      updatedAt: new Date().toISOString()
-    };
-    const temporaryPath = `${cursorPath}.tmp`;
-    await writeFile(temporaryPath, `${JSON.stringify(saved, null, 2)}\n`, { encoding: "utf8", mode: 0o600 });
-    await rename(temporaryPath, cursorPath);
-  }
-
-  const cursors = await loadCursors();
+  // Dry runs advance only in memory, never the persistent checkpoint. Restarting
+  // with execution enabled will therefore still process events inspected read-only.
+  const cursors = await loadRelayCursors({
+    cursorPath,
+    identity: cursorIdentity,
+    portalStartBlock,
+    bnbStartBlock
+  });
   let nextPortalBlock = cursors.portal;
   let nextBnbBlock = cursors.bnb;
 
@@ -293,7 +261,7 @@ async function main() {
         }
         logJson(result);
       }
-      await saveCursors(toBlock + 1n, nextBnbBlock);
+      if (execute) await saveRelayCursors(cursorPath, cursorIdentity, toBlock + 1n, nextBnbBlock);
       nextPortalBlock = toBlock + 1n;
     }
   }
@@ -372,7 +340,7 @@ async function main() {
         }
         logJson(result);
       }
-      await saveCursors(nextPortalBlock, toBlock + 1n);
+      if (execute) await saveRelayCursors(cursorPath, cursorIdentity, nextPortalBlock, toBlock + 1n);
       nextBnbBlock = toBlock + 1n;
     }
   }

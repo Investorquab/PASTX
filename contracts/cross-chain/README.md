@@ -21,7 +21,7 @@ The configured relayer is trusted to attest that a source event exists. The cont
 
 Other limitations:
 - The source relay waits a configurable block-confirmation depth, not a verified PortalDOT finality proof.
-- Relay scan cursors are checkpointed locally in `.pastx-relay-cursor.json` after each completed block batch (or at `PASTX_RELAY_CURSOR_FILE`). The checkpoint is bound to the chain IDs, contract addresses and configured start blocks; mismatches stop startup rather than silently reusing another deployment’s progress. The file is local and git-ignored. Back it up securely, and only delete/reset it after reviewing the intended scan start blocks. If a process fails mid-batch, that batch is rescanned; on-chain replay checks make already-completed operations idempotent.
+- In execution mode, relay scan cursors are checkpointed locally in `.pastx-relay-cursor.json` after each completed block batch (or at `PASTX_RELAY_CURSOR_FILE`). The checkpoint is bound to chain IDs, contract addresses and configured start blocks; mismatches stop startup. Dry-run mode never writes checkpoints, so a later execution-enabled restart still scans events inspected in read-only mode. The file is local and git-ignored. Back it up securely, and only delete/reset it after reviewing the intended scan start blocks. If a process fails mid-batch, that batch is rescanned; on-chain replay checks make already-completed operations idempotent.
 - Source native EVM amount semantics and tPOTv3 decimals must be verified on the live V3 testnet before a small test deposit.
 - No official bStocks BNB-testnet deployment or liquidity was identified for this prototype.
 - Price changes are admin-controlled. There is no production price oracle, broker, issuer, custody provider, or real stock-ownership claim.
@@ -79,7 +79,7 @@ Start in read-only mode first:
 npm run relay
 ```
 
-The relayer checks the expected RPC chain IDs, source/destination contract configuration, relayer addresses when execution is enabled, source transaction receipts and configured confirmation depth. Dry-run mode logs candidate operations but submits no transactions.
+The relayer checks the expected RPC chain IDs, source/destination contract configuration, relayer addresses when execution is enabled, source transaction receipts and configured confirmation depth. Dry-run mode logs candidate operations but submits no transactions and does not persist scan checkpoints. Execution mode checkpoints completed batches to support restart recovery.
 
 Only after manual review of deployments, source and destination events, relayer addresses, amount semantics, and contract behavior should you set `PASTX_RELAY_EXECUTE=true` with the two testnet relayer keys in the local `.env`. Never enable execution for mainnet endpoints or valuable assets.
 

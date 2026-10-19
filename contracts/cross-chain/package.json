@@ -4,16 +4,17 @@
   "private": true,
   "description": "Testnet-only PortalDOT V3 to BNB Smart Chain proof-of-concept for PASTX",
   "scripts": {
-    "check": "node --check scripts/deploy-portal.js && node --check scripts/deploy-bnb.js && node --check scripts/relay.mjs",
+    "check": "node --check scripts/deploy-portal.js && node --check scripts/deploy-bnb.js && node --check scripts/relay.mjs && node --check scripts/relay-cursor.mjs",
     "compile:portal": "hardhat --config hardhat.portal.config.js compile",
     "compile:bnb": "hardhat --config hardhat.bnb.config.js compile",
     "test:bnb": "hardhat --config hardhat.bnb.config.js test",
     "test:portal-unit": "hardhat --config hardhat.portal-unit.config.js test",
-    "test": "npm run test:portal-unit && npm run test:bnb",
+    "test": "npm run test:relay-cursor && npm run test:portal-unit && npm run test:bnb",
     "build": "npm run check && npm test && npm run compile:bnb && npm run compile:portal",
     "deploy:portal": "hardhat --config hardhat.portal.config.js run scripts/deploy-portal.js --network portalV3Testnet",
     "deploy:bnb": "hardhat --config hardhat.bnb.config.js run scripts/deploy-bnb.js --network bscTestnet",
-    "relay": "node scripts/relay.mjs"
+    "relay": "node scripts/relay.mjs",
+    "test:relay-cursor": "node --test test/relay-cursor.test.mjs"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "6.1.0",
