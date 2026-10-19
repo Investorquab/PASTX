@@ -64,6 +64,12 @@ curl "http://localhost:4000/api/markets/AAPL/candles?interval=1day&outputsize=30
 
 The quote and candles routes require a valid provider key and provider access for the requested symbols. Current Twelve Data Basic terms describe free access as internal/non-display; verify licensing before exposing live data in a public client-facing app. See [Twelve Data business pricing](https://twelvedata.com/pricing-business).
 
+## Cross-chain demo UI
+
+The trade terminal includes a dedicated Cross-chain demo page for wallet connection, chain switching, source deposit, destination test-token balance, mock buy/sell, and withdrawal requests. It uses public Vite `VITE_PASTX_*` addresses. Source deposits are disabled unless `VITE_PASTX_SOURCE_VALUE_SEMANTICS_VERIFIED=true` is set after a deliberately small V3 test verifies native EVM value semantics.
+
+The page signs user transactions in the injected wallet; keys never go to the API. It does not bridge by itself: the separate trusted testnet relay is required. The destination uses `wtPOTv3` and mock stocks, not native BNB/USDT or official tokenized shares.
+
 ## Cross-chain prototype checks
 
 The isolated cross-chain package contains test-only PortalDOT V3 and BNB testnet contracts, a trusted relayer, local contract tests, and separate EVM/PVM compile targets. It has not been deployed. Do not enable trades in the main application based on these local tests.

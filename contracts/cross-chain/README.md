@@ -81,6 +81,20 @@ The relayer checks the expected RPC chain IDs, source/destination contract confi
 
 Only after manual review of deployments, source and destination events, relayer addresses, amount semantics, and contract behavior should you set `PASTX_RELAY_EXECUTE=true` with the two testnet relayer keys in the local `.env`. Never enable execution for mainnet endpoints or valuable assets.
 
+## Connect the PASTX demo UI
+
+After both contracts are deployed and verified, add their public addresses to the local root `.env`:
+
+```bash
+VITE_PASTX_PORTALDOT_ESCROW_ADDRESS=0x...
+VITE_PASTX_BNB_GATEWAY_ADDRESS=0x...
+VITE_PASTX_SOURCE_VALUE_SEMANTICS_VERIFIED=false
+```
+
+Keep the final setting false until a manual, deliberately small source deposit confirms the V3 EVM balance, wallet mapping, transaction value, emitted amount and escrow balance. Only then may the operator set it to true locally; restart Vite after environment changes.
+
+Connect an injected EVM wallet, switch to PortalDOT V3, initiate a test deposit, wait for the relay, switch to BNB testnet, refresh `wtPOTv3`, then trade mock stock and request a return. The UI does not custody keys, replace the relay, convert tPOTv3 into native tBNB/USDT, or use the official iBridge route.
+
 ## Explorer evidence to capture
 
 For each end-to-end demo, record:

@@ -7,9 +7,11 @@ import { AssetLogo } from "./AssetLogo";
 import { OverviewPage } from "./OverviewPage";
 import { textFor, type LanguageCode } from "./i18n";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { CrossChainDemoPage } from "./CrossChainDemoPage";
 import {
   Activity,
   ArrowDownRight,
+  ArrowDownUp,
   ArrowUpRight,
   Bell,
   ChartCandlestick,
@@ -58,7 +60,7 @@ function formatQuoteChange(quote: MarketQuote | undefined, fixtureChange: string
 }
 
 function App() {
-  const [activePage, setActivePage] = useState<"overview" | "app">("overview");
+  const [activePage, setActivePage] = useState<"overview" | "app" | "crosschain">("overview");
   const [language, setLanguage] = useState<LanguageCode>("en");
   const t = textFor(language);
   const [searchTerm,setSearchTerm]=useState("");
@@ -144,6 +146,10 @@ function App() {
       onOpenApp={(symbol,exchange,micCode,country,currency)=>{if(symbol){const m=findMarketByIdentity(marketCatalogue,{symbol,exchange,micCode,country,currency});if(m){setOrderSymbol(m.symbol);setOrderExchange(m.exchange??"");setOrderMicCode(m.micCode??"");setOrderCountry(m.country??"");setOrderCurrencyCode(m.currency);}}setActivePage("app");setMarketMenuOpen(false);}} />;
   }
 
+  if (activePage === "crosschain") {
+    return <CrossChainDemoPage language={language} onLanguageChange={setLanguage} onOpenOverview={() => setActivePage("overview")} onOpenTrade={() => setActivePage("app")} />;
+  }
+
   return (
     <div className="app-shell">
       <header className="site-header">
@@ -156,6 +162,7 @@ function App() {
           <button className="top-nav-item" type="button" onClick={() => setActivePage("overview")}><Compass size={15} /> {t.overview}</button><button className="top-nav-item active" type="button" onClick={() => setActivePage("app")}><ChartCandlestick size={15} /> {t.trade}</button>
           <a className="top-nav-item" href="#portfolio"><Layers3 size={15} /> {t.portfolio}</a>
           <a className="top-nav-item" href="#activity"><Activity size={15} /> {t.activity}</a>
+          <button className="top-nav-item" type="button" onClick={() => setActivePage("crosschain")}><ArrowDownUp size={15} /> Cross-chain demo</button>
         </nav>
 
         <div className="header-actions">
