@@ -9,11 +9,13 @@
 - replay protection and source-event identity checks in the destination gateway;
 - minting of a 1:1 raw-unit `wtPOTv3` test representation on BNB testnet;
 - buy/sell of mock stock positions priced in test units;
-- burn-and-request withdrawal back to PortalDOT V3, with releases limited by the source escrow balance and cumulative deposits.
+- burn-and-request withdrawal back to PortalDOT V3, with releases limited by the source escrow balance, cumulative deposits, and per-account bridge-backed principal.
 
 **Important:** `wtPOTv3` is a test representation, not native BNB, USDT, or a real-valued asset. Test BNB is needed for destination gas. The mock market is not the official bStocks market, and its symbols are `AAPL-TEST`, `TSLA-TEST`, `NVDA-TEST`, and `MSFT-TEST`. Prices are owner-controlled demo values, not a live oracle or executable real-world stock quotes. Seeded market liquidity is minted test value and is not redeemable.
 
 ## Trust and security model
+
+Withdrawal accounting tracks each account's bridge-backed balance separately from total fungible balance. Buying mock stock locks the portion of backed principal spent; selling restores no more than that position's remaining original backed cost basis, so mock price gains do not create extra redeemable credit. Token transfers carry backed credit with the transfer. This is an illustrative test-only accounting model, not an audited bridge-accounting design.
 
 The configured relayer is trusted to attest that a source event exists. The contracts do **not** independently verify a cross-chain light-client proof. A compromised relayer can mint unbacked test representations and release escrow, bounded by the prototype's test accounting. This package must never accept valuable mainnet funds.
 

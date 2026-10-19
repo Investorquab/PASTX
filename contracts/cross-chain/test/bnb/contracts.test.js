@@ -54,6 +54,7 @@ describe("PASTX BNB testnet gateway", function () {
     const ctx = await deployGateway();
     const deposit = await completeDeposit(ctx, { amount: 20n * UNIT });
     assert.equal(await ctx.gateway.balanceOf(ctx.user.address), deposit.amount);
+    assert.equal(await ctx.gateway.bridgeBackedBalanceOf(ctx.user.address), deposit.amount);
     assert.equal(await ctx.gateway.totalBridgedIn(), deposit.amount);
     assert.equal(await ctx.gateway.processedDepositIds(deposit.depositId), true);
     await assert.rejects(ctx.gateway.connect(ctx.relayer).completeDeposit(
@@ -109,12 +110,25 @@ describe("PASTX BNB testnet gateway", function () {
     assert.ok(event);
     assert.equal(event.args.amount, deposit.amount);
     assert.equal(await ctx.gateway.balanceOf(ctx.user.address), 0n);
+    assert.equal(await ctx.gateway.bridgeBackedBalanceOf(ctx.user.address), 0n);
     assert.equal(await ctx.gateway.totalWithdrawalRequested(), 10n * UNIT);
+  });
+
+
+  it("carries backed credit on transfers without making mock liquidity redeemable", async function () {
+    const ctx = await deployGateway();
+    await completeDeposit(ctx, { amount: 20n * UNIT });
+    await ctx.gateway.connect(ctx.user).transfer(ctx.owner.address, 7n * UNIT);
+    assert.equal(await ctx.gateway.bridgeBackedBalanceOf(ctx.user.address), 13n * UNIT);
+    assert.equal(await ctx.gateway.bridgeBackedBalanceOf(ctx.owner.address), 7n * UNIT);
+    assert.equal(await ctx.gateway.balanceOf(ctx.owner.address), 7n * UNIT);
   });
 
   it("executes test stock buy/sell against a seeded test reserve", async function () {
     const ctx = await deployGateway();
     const deposit = await completeDeposit(ctx, { amount: 1_000n * UNIT });
+    // Another account's deposit creates aggregate headroom; it must not make this account's mock profits withdrawable.
+    await completeDeposit(ctx, { recipient: ctx.owner.address, amount: 1_000n * UNIT, nonce: 1n });
     await ctx.gateway.connect(ctx.owner).seedTestMarketLiquidity(1_000n * UNIT);
 
     const initialBalance = await ctx.gateway.balanceOf(ctx.user.address);
@@ -127,7 +141,10 @@ describe("PASTX BNB testnet gateway", function () {
     await ctx.gateway.connect(ctx.user).sellStock(AAPL_TEST, oneShare);
     assert.equal(await ctx.gateway.stockPositions(ctx.user.address, AAPL_TEST), 0n);
     assert.equal(await ctx.gateway.balanceOf(ctx.user.address), initialBalance + 20n * UNIT);
+    assert.equal(await ctx.gateway.bridgeBackedBalanceOf(ctx.user.address), initialBalance);
+    // Even with 2,000 test units bridged across accounts, this user's 20-unit mock profit is not bridge-backed.
     await assert.rejects(ctx.gateway.connect(ctx.user).requestWithdrawal(initialBalance + 20n * UNIT, ctx.other.address));
+    await ctx.gateway.connect(ctx.user).requestWithdrawal(initialBalance, ctx.other.address);
   });
 
   it("rejects unknown stocks, overselling, and unsafe liquidity seeds", async function () {

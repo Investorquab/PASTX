@@ -24,16 +24,22 @@ contract BnbTestnetGateway {
     bool public testMarketLiquidityWasSeeded;
 
     mapping(address => uint256) public balanceOf;
+    /// @notice Portion of an account's fungible balance eligible for a return to PortalDOT.
+    /// @dev Mock liquidity and profit are not credited; this follows backed tokens through transfers.
+    mapping(address => uint256) public bridgeBackedBalanceOf;
     mapping(address => mapping(address => uint256)) public allowance;
     mapping(bytes32 => bool) public processedDepositIds;
     mapping(bytes32 => bool) public processedSourceEvents;
     mapping(bytes32 => uint256) public stockPricePerShareTestUnits;
     mapping(bytes32 => bool) public stockListed;
     mapping(address => mapping(bytes32 => uint256)) public stockPositions;
+    /// @notice Per-position principal paid using bridge-backed units; profits are never added to backing.
+    mapping(address => mapping(bytes32 => uint256)) public stockBackingBasis;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
     event DepositCompleted(bytes32 indexed depositId, address indexed recipient, uint256 amount, bytes32 indexed sourceTxHash, uint256 sourceLogIndex);
+    event BridgeBackedBalanceUpdated(address indexed account, uint256 availableAmount);
     event WithdrawalRequested(bytes32 indexed withdrawalId, address indexed sender, address indexed portalRecipient, uint256 amount, uint256 nonce);
     event StockListed(bytes32 indexed symbol, uint256 pricePerShareTestUnits);
     event TestStockPriceUpdated(bytes32 indexed symbol, uint256 oldPrice, uint256 newPrice);
@@ -51,6 +57,7 @@ contract BnbTestnetGateway {
     error DuplicateDeposit();
     error DuplicateSourceEvent();
     error DuplicateWithdrawalLimit();
+    error InsufficientBridgeBackedBalance();
     error InsufficientBalance();
     error InsufficientAllowance();
     error InvalidStock();
@@ -143,8 +150,10 @@ contract BnbTestnetGateway {
         totalBridgedIn += amount;
         totalSupply += amount;
         balanceOf[recipient] += amount;
+        bridgeBackedBalanceOf[recipient] += amount;
 
         emit Transfer(address(0), recipient, amount);
+        emit BridgeBackedBalanceUpdated(recipient, bridgeBackedBalanceOf[recipient]);
         emit DepositCompleted(depositId, recipient, amount, sourceTxHash, sourceLogIndex);
     }
 
@@ -152,15 +161,18 @@ contract BnbTestnetGateway {
         if (portalRecipient == address(0)) revert InvalidAddress();
         if (amount == 0) revert InvalidAmount();
         if (balanceOf[msg.sender] < amount) revert InsufficientBalance();
+        if (bridgeBackedBalanceOf[msg.sender] < amount) revert InsufficientBridgeBackedBalance();
         if (totalWithdrawalRequested + amount > totalBridgedIn) revert DuplicateWithdrawalLimit();
 
         uint256 nonce = nextWithdrawalNonce++;
         withdrawalId = keccak256(abi.encode(block.chainid, address(this), msg.sender, portalRecipient, amount, nonce));
 
         balanceOf[msg.sender] -= amount;
+        bridgeBackedBalanceOf[msg.sender] -= amount;
         totalSupply -= amount;
         totalWithdrawalRequested += amount;
         emit Transfer(msg.sender, address(0), amount);
+        emit BridgeBackedBalanceUpdated(msg.sender, bridgeBackedBalanceOf[msg.sender]);
         emit WithdrawalRequested(withdrawalId, msg.sender, portalRecipient, amount, nonce);
     }
 
@@ -202,8 +214,14 @@ contract BnbTestnetGateway {
 
         balanceOf[msg.sender] -= paymentAmount;
         balanceOf[address(this)] += paymentAmount;
+        uint256 backedPayment = paymentAmount < bridgeBackedBalanceOf[msg.sender]
+            ? paymentAmount
+            : bridgeBackedBalanceOf[msg.sender];
+        bridgeBackedBalanceOf[msg.sender] -= backedPayment;
+        stockBackingBasis[msg.sender][stockSymbol] += backedPayment;
         stockPositions[msg.sender][stockSymbol] += shareUnits;
         emit Transfer(msg.sender, address(this), paymentAmount);
+        emit BridgeBackedBalanceUpdated(msg.sender, bridgeBackedBalanceOf[msg.sender]);
         emit TradeExecuted(msg.sender, stockSymbol, true, shareUnits, paymentAmount, price);
     }
 
@@ -219,10 +237,20 @@ contract BnbTestnetGateway {
         if (payoutAmount == 0) revert InvalidAmount();
         if (balanceOf[address(this)] < payoutAmount) revert InsufficientMarketLiquidity();
 
+        uint256 positionBasis = stockBackingBasis[msg.sender][stockSymbol];
+        uint256 releasedBasis = shareUnits == position
+            ? positionBasis
+            : (positionBasis * shareUnits) / position;
         stockPositions[msg.sender][stockSymbol] = position - shareUnits;
+        stockBackingBasis[msg.sender][stockSymbol] = positionBasis - releasedBasis;
+        // Restore only original backed principal, capped by the actual sale payout. Gains stay unbacked.
+        uint256 restoredBacking = payoutAmount < releasedBasis ? payoutAmount : releasedBasis;
+        bridgeBackedBalanceOf[msg.sender] += restoredBacking;
+
         balanceOf[address(this)] -= payoutAmount;
         balanceOf[msg.sender] += payoutAmount;
         emit Transfer(address(this), msg.sender, payoutAmount);
+        emit BridgeBackedBalanceUpdated(msg.sender, bridgeBackedBalanceOf[msg.sender]);
         emit TradeExecuted(msg.sender, stockSymbol, false, shareUnits, payoutAmount, price);
     }
 
@@ -237,6 +265,15 @@ contract BnbTestnetGateway {
         if (balanceOf[from] < amount) revert InsufficientBalance();
         balanceOf[from] -= amount;
         balanceOf[to] += amount;
+        uint256 backedAmount = amount < bridgeBackedBalanceOf[from]
+            ? amount
+            : bridgeBackedBalanceOf[from];
+        bridgeBackedBalanceOf[from] -= backedAmount;
+        bridgeBackedBalanceOf[to] += backedAmount;
         emit Transfer(from, to, amount);
+        if (backedAmount > 0) {
+            emit BridgeBackedBalanceUpdated(from, bridgeBackedBalanceOf[from]);
+            emit BridgeBackedBalanceUpdated(to, bridgeBackedBalanceOf[to]);
+        }
     }
 }

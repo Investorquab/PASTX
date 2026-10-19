@@ -83,3 +83,8 @@ The separate `contracts/cross-chain` package is a controlled testnet prototype, 
 The BNB-side market contains only mock instruments (`AAPL-TEST`, `TSLA-TEST`, `NVDA-TEST`, `MSFT-TEST`) with owner-controlled demo prices and explicitly seeded test liquidity. It is not an official stock-token market, not linked to a live stock oracle, and does not imply ownership of underlying shares. Test BNB pays destination gas; `wtPOTv3` is not native BNB or USDT.
 
 No contract is deployed by compilation or local tests. Before a small real testnet deposit, verify the currently reachable PortalDOT V3 RPC, chain ID, wallet/H160 mapping, actual EVM native-balance/value units and resulting escrow balance. Before any mainnet use, verify an official/supported bridge or build a separately security-reviewed bridge with robust finality/message verification, replay controls, pause/recovery, monitoring and audits. A trusted single relayer is unacceptable for valuable production funds.
+
+
+## Prototype withdrawal-accounting constraint
+
+The BNB testnet gateway maintains a separate bridge-backed balance ledger. Deposits create backed credit; token transfers move the associated credit; a buy moves backed credit into per-position principal basis; a sale restores no more than the amount of that backed basis released (and never more than the actual sale payout). Mock price gains therefore do not create new returnable backing credit. Withdrawal requests require the caller's bridge-backed balance and remain capped by aggregate bridged deposits. This reduces cross-account subsidy in the demo but is still a test-only ledger and does not replace audit, independent proof verification, a production bridge or recovery controls.
