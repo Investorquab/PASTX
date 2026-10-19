@@ -46,7 +46,7 @@ export function CrossChainDemoPage({language,onLanguageChange,onOpenOverview,onO
  const [account,setAccount]=useState<Address|null>(null),[chainId,setChainId]=useState<number|null>(null);
  const [nativeBalance,setNativeBalance]=useState("—"),[wrappedBalance,setWrappedBalance]=useState("—");
  const [stock,setStock]=useState<Stock>("AAPL-TEST"),[price,setPrice]=useState("—"),[position,setPosition]=useState("—");
- const [depositAmount,setDepositAmount]=useState("1"),[shareQty,setShareQty]=useState("0.1"),[withdrawAmount,setWithdrawAmount]=useState("0.1");
+ const [depositAmount,setDepositAmount]=useState("1"),[shareQty,setShareQty]=useState("0.001"),[withdrawAmount,setWithdrawAmount]=useState("0.1");
  const [message,setMessage]=useState("Connect an EVM-compatible wallet to begin."),[tone,setTone]=useState<"info"|"success"|"error">("info");
  const [lastTx,setLastTx]=useState<{chainId:number;hash:Hash}|null>(null),[busy,setBusy]=useState(false),[refreshing,setRefreshing]=useState(false);
  const isPortal=chainId===PORTAL_ID,isBnb=chainId===BNB_ID,stockKey=useMemo(()=>bytes32(stock),[stock]);
