@@ -172,7 +172,7 @@ async function main() {
         throw new Error(`Relay cursor checkpoint identity mismatch for ${key}; do not reuse a cursor file across deployments or scan-start settings.`);
       }
     }
-    if (!/^\\d+$/.test(String(saved.nextPortalBlock)) || !/^\\d+$/.test(String(saved.nextBnbBlock))) {
+    if (!/^\d+$/.test(String(saved.nextPortalBlock)) || !/^\d+$/.test(String(saved.nextBnbBlock))) {
       throw new Error("Relay cursor checkpoint has invalid block cursors; inspect or restore it manually.");
     }
     const portal = BigInt(saved.nextPortalBlock);
@@ -191,7 +191,7 @@ async function main() {
       updatedAt: new Date().toISOString()
     };
     const temporaryPath = `${cursorPath}.tmp`;
-    await writeFile(temporaryPath, `${JSON.stringify(saved, null, 2)}\\n`, { encoding: "utf8", mode: 0o600 });
+    await writeFile(temporaryPath, `${JSON.stringify(saved, null, 2)}\n`, { encoding: "utf8", mode: 0o600 });
     await rename(temporaryPath, cursorPath);
   }
 
