@@ -147,6 +147,51 @@ describe("PASTX BNB testnet gateway", function () {
     await ctx.gateway.connect(ctx.user).requestWithdrawal(initialBalance, ctx.other.address);
   });
 
+  it("restores only proportional backed principal after partial sales at a loss", async function () {
+    const ctx = await deployGateway();
+    const original = 1_000n * UNIT;
+    await completeDeposit(ctx, { amount: original });
+    await ctx.gateway.connect(ctx.owner).seedTestMarketLiquidity(1_000n * UNIT);
+
+    const twoShares = 2n * 1_000_000n;
+    await ctx.gateway.connect(ctx.user).buyStock(AAPL_TEST, twoShares);
+    assert.equal(await ctx.gateway.bridgeBackedBalanceOf(ctx.user.address), original - 400n * UNIT);
+    assert.equal(await ctx.gateway.stockBackingBasis(ctx.user.address, AAPL_TEST), 400n * UNIT);
+
+    await ctx.gateway.connect(ctx.owner).setStockPrice(AAPL_TEST, 150n * UNIT);
+    await ctx.gateway.connect(ctx.user).sellStock(AAPL_TEST, 1_000_000n);
+    assert.equal(await ctx.gateway.stockPositions(ctx.user.address, AAPL_TEST), 1_000_000n);
+    assert.equal(await ctx.gateway.stockBackingBasis(ctx.user.address, AAPL_TEST), 200n * UNIT);
+    assert.equal(await ctx.gateway.bridgeBackedBalanceOf(ctx.user.address), original - 250n * UNIT);
+
+    await ctx.gateway.connect(ctx.user).sellStock(AAPL_TEST, 1_000_000n);
+    assert.equal(await ctx.gateway.stockPositions(ctx.user.address, AAPL_TEST), 0n);
+    assert.equal(await ctx.gateway.stockBackingBasis(ctx.user.address, AAPL_TEST), 0n);
+    // The 100-unit loss reduces returnable principal; selling at a loss cannot restore the lost backing.
+    assert.equal(await ctx.gateway.bridgeBackedBalanceOf(ctx.user.address), original - 100n * UNIT);
+    await assert.rejects(ctx.gateway.connect(ctx.user).requestWithdrawal(original, ctx.other.address));
+  });
+
+  it("keeps backing isolated between accounts when one account realizes mock gains", async function () {
+    const ctx = await deployGateway();
+    const userDeposit = 500n * UNIT;
+    const otherDeposit = 700n * UNIT;
+    await completeDeposit(ctx, { amount: userDeposit, nonce: 11n });
+    await completeDeposit(ctx, { recipient: ctx.owner.address, amount: otherDeposit, nonce: 12n });
+    await ctx.gateway.connect(ctx.owner).seedTestMarketLiquidity(1_000n * UNIT);
+
+    await ctx.gateway.connect(ctx.user).buyStock(AAPL_TEST, 1_000_000n);
+    await ctx.gateway.connect(ctx.owner).setStockPrice(AAPL_TEST, 260n * UNIT);
+    await ctx.gateway.connect(ctx.user).sellStock(AAPL_TEST, 1_000_000n);
+
+    assert.equal(await ctx.gateway.balanceOf(ctx.user.address), userDeposit + 60n * UNIT);
+    assert.equal(await ctx.gateway.bridgeBackedBalanceOf(ctx.user.address), userDeposit);
+    assert.equal(await ctx.gateway.bridgeBackedBalanceOf(ctx.owner.address), otherDeposit);
+    await assert.rejects(ctx.gateway.connect(ctx.user).requestWithdrawal(userDeposit + 1n, ctx.other.address));
+    await ctx.gateway.connect(ctx.user).requestWithdrawal(userDeposit, ctx.other.address);
+    assert.equal(await ctx.gateway.bridgeBackedBalanceOf(ctx.owner.address), otherDeposit);
+  });
+
   it("rejects unknown stocks, overselling, and unsafe liquidity seeds", async function () {
     const ctx = await deployGateway();
     const unknownStock = ethers.encodeBytes32String("UNKNOWN");
