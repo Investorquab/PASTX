@@ -269,11 +269,18 @@ async function main() {
   }
 
   while (true) {
+    // The two directions are independent: a stuck deposit must not starve withdrawals,
+    // and a stuck withdrawal must not starve deposits. Each scan retains its own cursor
+    // on failure so the failing batch is retried on the next poll.
     try {
       await scanDeposits();
+    } catch (error) {
+      console.error("Deposit relay scan failed; its cursor remains at the unprocessed batch for safe retry:", error);
+    }
+    try {
       await scanWithdrawals();
     } catch (error) {
-      console.error("Relay poll failed; cursors remain at the unprocessed batch for safe retry:", error);
+      console.error("Withdrawal relay scan failed; its cursor remains at the unprocessed batch for safe retry:", error);
     }
     await new Promise((resolve) => setTimeout(resolve, pollMs));
   }
