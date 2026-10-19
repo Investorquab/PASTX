@@ -21,7 +21,7 @@ The configured relayer is trusted to attest that a source event exists. The cont
 
 Other limitations:
 - The source relay waits a configurable block-confirmation depth, not a verified PortalDOT finality proof.
-- Scan cursors are held in process memory. On restart the operator should choose a reviewed start block; destination contract replay protection prevents the same recorded deposit from minting twice.
+- Relay scan cursors are checkpointed locally in `.pastx-relay-cursor.json` after each completed block batch (or at `PASTX_RELAY_CURSOR_FILE`). The checkpoint is bound to the chain IDs, contract addresses and configured start blocks; mismatches stop startup rather than silently reusing another deployment’s progress. The file is local and git-ignored. Back it up securely, and only delete/reset it after reviewing the intended scan start blocks. If a process fails mid-batch, that batch is rescanned; on-chain replay checks make already-completed operations idempotent.
 - Source native EVM amount semantics and tPOTv3 decimals must be verified on the live V3 testnet before a small test deposit.
 - No official bStocks BNB-testnet deployment or liquidity was identified for this prototype.
 - Price changes are admin-controlled. There is no production price oracle, broker, issuer, custody provider, or real stock-ownership claim.
