@@ -5,7 +5,9 @@ const ecosystemLinks = [
   { label: "Portaldot official website", href: "https://www.portaldot.io", note: "Project and ecosystem" },
   { label: "Portaldot GitHub", href: "https://github.com/portaldotVolunteer/Portaldot", note: "Protocol source code" },
   { label: "Developer documentation", href: "https://portaldot-dev.readthedocs.io/en/latest/", note: "Build and integrate" },
-  { label: "Portaldot node console", href: "https://node-console.portaldot.dev/", note: "Testnet network tools" }
+  { label: "Portaldot node console", href: "https://node-console.portaldot.dev/", note: "Testnet network tools" },
+  { label: "Portaldot explorer", href: "https://portalscan.portaldot.io/", note: "Inspect network activity" },
+  { label: "Portaldot on X", href: "https://x.com/PortaldotL0", note: "Official ecosystem updates" }
 ];
 
 export function LandingPage() {
