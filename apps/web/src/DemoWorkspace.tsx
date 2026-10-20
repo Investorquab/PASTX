@@ -1,6 +1,6 @@
 import {useCallback,useEffect,useState} from "react";
 import {createPublicClient,createWalletClient,custom,formatEther,formatUnits,http,isAddress,parseUnits,stringToHex,type Address} from "viem";
-import {Activity,ArrowLeftRight,BarChart3,Bell,CheckCircle2,CircleDot,ExternalLink,GitCompareArrows,Layers3,LayoutDashboard,RefreshCw,Search,ShieldCheck,Wallet,X} from "lucide-react";
+import {Activity,ArrowLeftRight,ArrowRight,BarChart3,Bell,CheckCircle2,CircleDot,ExternalLink,GitCompareArrows,Layers3,LayoutDashboard,RefreshCw,Search,ShieldCheck,Wallet,X} from "lucide-react";
 import {LanguageSwitcher} from "./LanguageSwitcher";
 import {textFor,type LanguageCode} from "./i18n";
 type K="portal"|"bnb";type Listing={key:K;sym:string;name:string;stock:Address|null;payment:Address|null;price:bigint|null;enabled:boolean;balance:bigint;configured:boolean};type RouteNetwork="portal"|"external";
