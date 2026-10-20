@@ -5,9 +5,9 @@ Testnet-only synthetic market contracts, separate from the existing trusted-rela
 - `PastxDemoToken`: capped pUSD demo token; not USDC/USDT and not redeemable.
 - `PastxFaucet`: per-wallet cooldown; deployer must authorize the faucet as a token minter.
 - `PastxStockToken`: transferable synthetic shares, not equity ownership.
-- `PastxMarket`: owner-listed assets, fixed demo prices, native-token or pUSD market buys/sells, escrowed limit buys/sells, permissionless execution when the price condition is met, and owner-only cancellation.
+- `PastxMarket`: owner-listed assets, fixed demo prices, and native-token or pUSD market buys/sells.
 
-Sell orders require enough native/pUSD reserves. Native tPOTv3 on Portaldot uses 14 decimals; native tBNB and pUSD use 18 decimals. Prices are owner-set, not oracle-driven. This is a fixed-price test market, not a brokerage or order book. Limit orders need a later execution transaction.
+The current contract is a fixed-price test market, not a live exchange, broker or matching engine. It only supports market buys and sells; it does not provide a live order book. A sell requires sufficient native/pUSD reserves for payout. Native tPOTv3 on Portaldot uses 14 decimals in the current adapter model; native tBNB and pUSD use 18 decimals. Prices are owner-set and are not oracle-driven.
 
 ## Local validation
 ```bash
