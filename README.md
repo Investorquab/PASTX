@@ -33,9 +33,8 @@ Empty addresses mean not configured. Never put private keys or server API keys i
 
 ## Checks
 ```bash
-pnpm --filter pastx-cross-chain-testnet-prototype test
-pnpm --filter pastx-cross-chain-testnet-prototype compile:bnb
-pnpm --filter pastx-cross-chain-testnet-prototype compile:portal
+cd contracts/cross-chain && npm install && npm test && npm run compile:bnb && npm run compile:portal
+cd ../..
 pnpm check
 pnpm test
 pnpm build
