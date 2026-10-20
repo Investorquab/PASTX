@@ -48,6 +48,9 @@ export function LandingPage() {
             <div className="hero-actions"><a className="button button-green" href="/demo">Explore the demo <ArrowRight size={16} /></a><a className="text-link" href="#testnet">See what is available <ArrowDownRight size={15} /></a></div>
             <p className="hero-caveat">This is a testnet product preview. Current stock tokens are synthetic and do not represent real equity ownership.</p>
           </div>
+          <div className="hero-art-wrap" aria-hidden="true">
+            <img src="/pastx-market-hero.svg" alt="" width="760" height="610" decoding="async" />
+          </div>
         </section>
         <section className="product-status-strip" aria-label="PASTX product principles" data-reveal>
           <div><span className="status-number">01</span><strong>Portaldot is home</strong><small>Built around the Portaldot ecosystem</small></div>
