@@ -78,3 +78,10 @@ The current feature branch now carries a separate `contracts/cross-chain` protot
 The official PortalDOT V3-to-BNB iBridge route for tPOTv3 and an official bStocks BNB-testnet market remain unverified in the public material reviewed. The prototype therefore models source-event relay and destination mint using a test representation; it does not prove official bridge support or real stock execution. Deployment requires manual operator validation and explicit testnet-only keys/addresses in the package's untracked `.env`.
 
 Before claiming progress, record the exact branch commit, local test/check/compile results and, only after actual testnet interactions, both chains' deployment/transaction evidence. A green local or CI compile/test is not live-network evidence.
+
+
+## Test-market implementation branch update — 20 October 2026
+
+The active feature branch now includes source for a capped pUSD demo token, a cooldown faucet, transferable synthetic stock tokens, and a fixed-price market with native-token/pUSD market orders and escrowed limit orders. A landing page and wallet-connected testnet workspace have been added. The workspace reads on-chain balances/listings only when addresses are configured and labels iBridge routes as simulation-only.
+
+This is source-code work, **not deployment evidence**. No market, stock, token or faucet contract has been deployed by this change. BNB EVM unit tests do not establish Portaldot PolkaVM compatibility. The Portaldot market must be compiled and validated against the testnet runtime, then deployed only after explicit human approval. BNB deployment remains subject to hackathon organizer approval. Limit-order execution is permissionless once the price condition is met; it still requires a later transaction. Market sell liquidity must be sufficient for payout. pUSD and stock tokens are synthetic test assets with no real-world monetary or equity rights.
