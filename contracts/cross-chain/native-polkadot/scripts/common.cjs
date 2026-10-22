@@ -206,34 +206,70 @@ async function connectNative(options = {}) {
 
 async function dryRunConstructor(context, artifacts, args, salt) {
   const code = new CodePromise(context.api, artifacts.metadata, artifacts.wasm);
-  const method = code.query.new;
-  if (typeof method !== "function") {
+  if (typeof code.tx?.new !== "function") {
     fail("Solang metadata does not expose the expected 'new' constructor for " + artifacts.metadata.contract.name + ".");
   }
-  const query = await method(
-    context.signer.address,
+
+  // CodePromise exposes constructor extrinsics under tx, not query. Build a
+  // draft extrinsic to ABI-encode constructor args, then use the Contracts
+  // runtime API to perform a read-only instantiation dry-run.
+  const saltBytes = Uint8Array.from(Buffer.from(salt, "utf8"));
+  const draftTx = code.tx.new(
     {
       value: 0,
       gasLimit: maxBlockWeight(context.api),
       storageDepositLimit: null,
-      salt: Uint8Array.from(Buffer.from(salt, "utf8"))
+      salt: saltBytes
     },
     ...args
   );
-  if (!query.result?.isOk) {
-    fail("Constructor dry-run failed for " + artifacts.metadata.contract.name + ": " +
-      (query.result?.asErr?.toString?.() || query.result?.toString?.() || "unknown contract execution error"));
+  const callArgs = draftTx.method?.args;
+  if (!callArgs || callArgs.length < 6) {
+    fail("Could not read the encoded instantiate_with_code arguments from Polkadot.js for " + artifacts.metadata.contract.name + ".");
   }
+
+  const instantiate = context.api.call?.contractsApi?.instantiate;
+  if (typeof instantiate !== "function") {
+    fail("The endpoint does not expose api.call.contractsApi.instantiate; cannot safely dry-run a native constructor.");
+  }
+
+  let uploadCode;
+  try {
+    uploadCode = context.api.registry.createType(
+      "PalletContractsPrimitivesCode",
+      { upload: "0x" + artifacts.wasm.toString("hex") }
+    );
+  } catch (error) {
+    fail("Unable to encode native upload code for constructor dry-run: " + error.message);
+  }
+
+  // instantiate_with_code arguments are [value, gas_limit, storage_limit,
+  // code, data, salt]. Use ABI-encoded data from CodePromise, but invoke the
+  // non-state-changing Contracts runtime API for the quote.
+  const query = await instantiate(
+    context.signer.address,
+    0,
+    maxBlockWeight(context.api),
+    null,
+    uploadCode,
+    callArgs[4],
+    callArgs[5]
+  );
+
+  if (!query?.result?.isOk) {
+    const result = query?.result;
+    let detail = result?.asErr?.toString?.() || result?.toString?.() || "unknown contract execution error";
+    if (query?.debugMessage && query.debugMessage.toString()) {
+      detail += "; debug: " + query.debugMessage.toString();
+    }
+    fail("Constructor dry-run failed for " + artifacts.metadata.contract.name + ": " + detail);
+  }
+
   const gasLimit = bufferedWeight(context.api, query.gasRequired, 125n);
   const storageCharge = getStorageCharge(query.storageDeposit);
   const storageDepositLimit = storageCharge === 0n ? 0n : (storageCharge * 125n + 99n) / 100n;
   const tx = code.tx.new(
-    {
-      value: 0,
-      gasLimit,
-      storageDepositLimit,
-      salt: Uint8Array.from(Buffer.from(salt, "utf8"))
-    },
+    { value: 0, gasLimit, storageDepositLimit, salt: saltBytes },
     ...args
   );
   const payment = await tx.paymentInfo(context.signer);
