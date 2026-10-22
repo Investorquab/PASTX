@@ -4,8 +4,9 @@
   "private": true,
   "description": "Testnet-only Portaldot V3 EVM market and separate Portaldot-to-BNB prototype",
   "scripts": {
-    "check": "node --check scripts/assert-portal-evm-artifacts.js && node --check scripts/deploy-portal.js && node --check scripts/deploy-bnb.js && node --check scripts/deploy-market-portal.js && node --check scripts/deploy-market-bnb.js && node --check scripts/preflight-market-portal.js && node --check scripts/verify-market-portal.js && node --check scripts/portal-network.js && node --check scripts/relay.mjs && node --check scripts/relay-cursor.mjs",
+    "check": "node --check scripts/compile-native-polkadot.cjs && node --check scripts/assert-portal-evm-artifacts.js && node --check scripts/deploy-portal.js && node --check scripts/deploy-bnb.js && node --check scripts/deploy-market-portal.js && node --check scripts/deploy-market-bnb.js && node --check scripts/preflight-market-portal.js && node --check scripts/verify-market-portal.js && node --check scripts/portal-network.js && node --check scripts/relay.mjs && node --check scripts/relay-cursor.mjs",
     "compile:portal": "hardhat --config hardhat.portal.config.js compile && node scripts/assert-portal-evm-artifacts.js",
+    "compile:native:portal": "node scripts/compile-native-polkadot.cjs",
     "compile:bnb": "hardhat --config hardhat.bnb.config.js compile",
     "test:bnb": "hardhat --config hardhat.bnb.config.js test",
     "test:portal-unit": "hardhat --config hardhat.portal-unit.config.js test",
