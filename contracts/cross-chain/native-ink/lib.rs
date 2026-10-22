@@ -14,6 +14,12 @@ mod pastx_budget_market {
         holdings: Mapping<(AccountId, u8), u32>,
     }
 
+    impl Default for PastxBudgetMarket {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
     impl PastxBudgetMarket {
         #[ink(constructor)]
         pub fn new() -> Self {
@@ -33,7 +39,7 @@ mod pastx_budget_market {
         /// Read a trader's demo share position for one stock ID.
         #[ink(message)]
         pub fn holdings_of(&self, trader: AccountId, stock_id: u8) -> u32 {
-            self.holdings.get(&(trader, stock_id)).unwrap_or(0)
+            self.holdings.get((trader, stock_id)).unwrap_or(0)
         }
 
         /// Record a buy (is_buy = true) or sell (is_buy = false).
@@ -48,7 +54,7 @@ mod pastx_budget_market {
 
             let trader = self.env().caller();
             let key = (trader, stock_id);
-            let current: u32 = self.holdings.get(&key).unwrap_or(0);
+            let current: u32 = self.holdings.get(key).unwrap_or(0);
 
             let next = if is_buy {
                 match current.checked_add(quantity) {
@@ -56,16 +62,16 @@ mod pastx_budget_market {
                     None => return false,
                 }
             } else {
-                if current < quantity {
-                    return false;
+                match current.checked_sub(quantity) {
+                    Some(value) => value,
+                    None => return false,
                 }
-                current - quantity
             };
 
             if next == 0 {
-                self.holdings.remove(&key);
+                self.holdings.remove(key);
             } else {
-                self.holdings.insert(&key, &next);
+                self.holdings.insert(key, &next);
             }
 
             true
