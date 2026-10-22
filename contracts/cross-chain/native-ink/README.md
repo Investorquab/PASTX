@@ -6,7 +6,7 @@ This directory contains a size-optimized, single-contract native Substrate proto
 
 - **pUSD:** whole-unit integer accounting (no fractional pUSD) for the budget-constrained native version. This is an app-only demo credit ledger, not an ERC-20 token; it has no real-world value, no redemption, and is not USDC. The separate EVM route retains its 18-decimal ERC-20 design.
 - **Initial supply:** 0 pUSD.
-- **Global supply cap:** 1,000,000 pUSD (including pUSD held by users and the market reserve).
+- **Global supply cap:** 1,000,000 pUSD total, enforced as exactly 1,000 successful faucet claims of 1,000 pUSD each. There is no admin mint.
 - **Faucet:** a successful claim mints 1,000 pUSD. The first claim is immediate; the same account can claim again after 3,600,000 milliseconds (one hour), while the global cap still has room.
 - **Transfer/allowance interface:** deliberately omitted to keep this native deployment small. This route is an in-app pUSD ledger exposed through the ink! ABI, not a standalone ERC-20 contract; standard ERC-20 wallets and `approve/transferFrom` integrations will not work against it.
 - **Synthetic listings:** pAAPL = 200 pUSD, pNVDA = 180 pUSD, pTSLA = 250 pUSD, pMSFT = 400 pUSD per whole demo share. These are fixed demonstration prices, not live market or oracle prices.
@@ -36,12 +36,14 @@ Always use all three files from the **same successful workflow artifact**. After
 4. From `contracts/cross-chain`, run:
 
 ```powershell
-npm run preflight:native:ink
+npm run preflight:native:portal
 ```
 
 This checks network/account pins, free and reserved balance, bundle consistency, runtime storage deposit, estimated transaction fee, and a read-only constructor simulation. It submits no transaction. Do not deploy if the new artifact fails the size gate, the preflight fails, the signer is not the expected wallet, or the network identity is not independently verified.
 
-The old 4,750-byte paper-ledger build and its previous 383.368 tPOT runtime quote described the earlier contract without pUSD/faucet behavior. **Neither number is valid for the combined contract now that the source has changed.** The fresh workflow artifact and fresh live preflight are authoritative.
+The latest successful bundle workflow for this contract version produced a **4,918-byte** WASM and a static code-deposit estimate of **295.23 tPOT** using the previously observed rate (0.06 tPOT/byte plus 0.15 tPOT/code item). This is below the 300 tPOT static code target, but is **not** the live total-deposit quote. A prior 383.368 tPOT runtime quote belonged to the earlier paper-only artifact and is stale. Only a fresh read-only preflight against the exact current artifact can decide affordability.
+
+The frontend adapter is available at `/native-demo`. Configure the public `VITE_PASTX_NATIVE_CONTRACT_ADDRESS` and `VITE_PASTX_NATIVE_EXPECTED_GENESIS_HASH` in the app environment only after the finalized contract address and official testnet genesis identity are verified. The page previews storage-deposit growth and fee estimates before asking the extension to sign. A first write for a user may require refundable native tPOT storage deposit; pUSD cannot pay this amount.
 
 The explicit budget-constrained entry points are:
 ```powershell
