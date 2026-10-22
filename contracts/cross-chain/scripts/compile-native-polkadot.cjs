@@ -4,10 +4,18 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
+const { retainContractEntrypoints } = require(path.join(
+  __dirname,
+  "..",
+  "native-polkadot",
+  "scripts",
+  "wasm-exports.cjs"
+));
 
 const packageRoot = path.resolve(__dirname, "..");
 const sourceRoot = path.join(packageRoot, "contracts", "native-polkadot");
 const artifactRoot = path.join(packageRoot, "artifacts", "native-polkadot");
+const cryptoModulePath = path.join(packageRoot, "native-polkadot", "node_modules", "@polkadot", "util-crypto");
 const contractNames = [
   "PastxDemoToken",
   "PastxMarket",
@@ -25,6 +33,12 @@ function fail(message) {
 }
 
 if (!fs.existsSync(sourceRoot)) fail("Native source directory not found: " + sourceRoot);
+if (!fs.existsSync(cryptoModulePath)) {
+  fail("Native build dependencies are missing. Run npm run install:native:portal first so the rewritten WASM code hash can be calculated correctly.");
+}
+const { blake2AsHex } = require(cryptoModulePath);
+if (typeof blake2AsHex !== "function") fail("@polkadot/util-crypto does not expose blake2AsHex.");
+
 const sources = contractNames.map(name => path.join(sourceRoot, name + ".sol"));
 for (const file of sources) {
   if (!fs.existsSync(file)) fail("Required source missing: " + file);
@@ -62,16 +76,56 @@ for (const name of contractNames) {
     fail("Expected both " + name + ".wasm and " + name + ".contract in " + artifactRoot);
   }
 
-  const wasm = fs.readFileSync(wasmPath);
+  let wasm = fs.readFileSync(wasmPath);
   if (wasm.length < 8 || wasm[0] !== 0x00 || wasm[1] !== 0x61 || wasm[2] !== 0x73 || wasm[3] !== 0x6d) {
     fail(name + ".wasm does not have the WebAssembly magic header.");
   }
+
+  const beforeExports = WebAssembly.Module.exports(new WebAssembly.Module(wasm)).map(entry => entry.name);
+  let normalized;
+  try {
+    normalized = retainContractEntrypoints(wasm);
+  } catch (error) {
+    fail(name + ".wasm is not compatible with the Substrate Contracts export convention: " + error.message);
+  }
+  wasm = normalized.wasm;
+  fs.writeFileSync(wasmPath, wasm);
 
   const metadata = JSON.parse(fs.readFileSync(bundlePath, "utf8"));
   if (!metadata.contract || !metadata.spec) {
     fail(name + ".contract is missing the expected contract/spec metadata.");
   }
-  console.log("NATIVE_WASM_OK " + name + " (" + wasm.length + " bytes)");
+  if (!metadata.source || typeof metadata.source.wasm !== "string") {
+    fail(name + ".contract is missing source.wasm, so the compiled bundle cannot be kept in sync safely.");
+  }
+
+  // A .contract bundle embeds the WASM bytecode as source.wasm. Keep it byte
+  // for byte consistent with the normalized deployable module and update its
+  // Substrate Blake2-256 code hash after changing only the export table.
+  metadata.source.wasm = wasm.toString("hex");
+  metadata.source.hash = blake2AsHex(wasm, 256);
+  fs.writeFileSync(bundlePath, JSON.stringify(metadata, null, 2) + "\n", "utf8");
+
+  const verifiedBundle = JSON.parse(fs.readFileSync(bundlePath, "utf8"));
+  const bundledWasm = Buffer.from(verifiedBundle.source.wasm.replace(/^0x/i, ""), "hex");
+  if (!bundledWasm.equals(wasm)) fail(name + ".contract source.wasm does not match the normalized .wasm file.");
+  const exports = WebAssembly.Module.exports(new WebAssembly.Module(wasm));
+  const exportNames = exports.map(entry => entry.name).sort();
+  if (
+    exportNames.length !== 2 ||
+    exportNames[0] !== "call" ||
+    exportNames[1] !== "deploy" ||
+    exports.some(entry => entry.kind !== "function")
+  ) {
+    fail(name + ".wasm must export exactly the deploy and call functions.");
+  }
+
+  if (normalized.removed.length > 0) {
+    console.log("NATIVE_EXPORTS_NORMALIZED " + name + ": removed " + normalized.removed.join(", "));
+  }
+  console.log("NATIVE_WASM_OK " + name + " (" + wasm.length + " bytes; exports: deploy, call)");
+  console.log("NATIVE_CODE_HASH_OK " + name + " (" + metadata.source.hash + ")");
+  if (beforeExports.length < 2) fail(name + ".wasm has fewer than the required contract exports.");
 }
 
-console.log("NATIVE_COMPILE_OK: all four core PASTX contracts compiled to WASM.");
+console.log("NATIVE_COMPILE_OK: all four core PASTX contracts compiled, normalized, and bundled for Substrate Contracts.");
