@@ -55,7 +55,7 @@ for (const file of sources) {
 fs.rmSync(artifactRoot, { recursive: true, force: true });
 fs.mkdirSync(artifactRoot, { recursive: true });
 
-const args = ["compile", "--target", "polkadot", "-o", artifactRoot, ...sources];
+const args = ["compile", "--target", "polkadot", "--release", "-o", artifactRoot, ...sources];
 console.log("Compiler: " + compiler);
 console.log("Target: native Substrate Contracts pallet (Polkadot/SCALE)");
 console.log("Source contracts: " + contractNames.join(", "));
