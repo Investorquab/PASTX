@@ -1,4 +1,4 @@
-name: PASTX Compact Native Market Size Check
+name: PASTX Compact Native Market Contract Bundle
 
 on:
   push:
@@ -8,12 +8,10 @@ on:
     paths:
       - ".github/workflows/native-ink-size-check.yml"
       - "contracts/cross-chain/native-ink/**"
-      - "contracts/cross-chain/native-polkadot/scripts/wasm-exports.cjs"
   pull_request:
     paths:
       - ".github/workflows/native-ink-size-check.yml"
       - "contracts/cross-chain/native-ink/**"
-      - "contracts/cross-chain/native-polkadot/scripts/wasm-exports.cjs"
   workflow_dispatch:
 
 permissions:
@@ -21,9 +19,9 @@ permissions:
 
 jobs:
   compact-market:
-    name: Build and measure compact ink! market
+    name: Test, build and measure deployable ink! bundle
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: contracts/cross-chain/native-ink
@@ -42,20 +40,31 @@ jobs:
           workspaces: |
             contracts/cross-chain/native-ink -> target
 
-      - name: Install Binaryen WASM optimizer
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes binaryen
-          wasm-opt --version
+      - name: Install cargo-contract v5 for the Substrate Contracts pallet
+        run: cargo install cargo-contract --locked --version 5.0.3 --jobs 2
 
-      - name: Run native market unit tests
+      - name: Record compiler toolchain
+        run: |
+          rustc --version
+          cargo --version
+          cargo contract --version
+
+      - name: Run compact market unit tests
         run: cargo test
 
-      - name: Compile optimized no-std WASM
-        run: |
-          cargo build --release --target wasm32-unknown-unknown --no-default-features
-          mkdir -p target/ink
-          wasm-opt -Oz --strip-debug target/wasm32-unknown-unknown/release/pastx_budget_market.wasm -o target/ink/pastx_budget_market.wasm
+      - name: Build the real ink! contract bundle
+        run: cargo contract build --release
 
-      - name: Measure code deposit against Portaldot testnet constants
+      - name: Validate bundle and measure code deposit
         run: node scripts/check-size.cjs
+
+      - name: Upload deployable bundle for review (not deployed)
+        uses: actions/upload-artifact@v4
+        with:
+          name: pastx-compact-native-market-${{ github.sha }}
+          path: |
+            contracts/cross-chain/native-ink/target/ink/pastx_budget_market.contract
+            contracts/cross-chain/native-ink/target/ink/pastx_budget_market.wasm
+            contracts/cross-chain/native-ink/target/ink/pastx_budget_market.json
+          if-no-files-found: error
+          retention-days: 14
