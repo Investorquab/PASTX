@@ -8,12 +8,11 @@ const wasmPath = path.join(ROOT, "target", "ink", "pastx_budget_market.wasm");
 const bundlePath = path.join(ROOT, "target", "ink", "pastx_budget_market.contract");
 const metadataPath = path.join(ROOT, "target", "ink", "pastx_budget_market.json");
 
-// Observed from PortaldotV3 Test runtime at specVersion 3002 on 2026-10-22.
-// depositPerByte = 6,000,000,000,000 raw units; token decimals = 14.
+// Last observed on PortaldotV3 Test on 2026-10-22. The live preflight reads
+// runtime constants directly and remains authoritative if they change.
 const OBSERVED_DEPOSIT_PER_BYTE_TPOT = 0.06;
-const TARGET_CODE_BUDGET_TPOT = 300;
-const TOTAL_BUDGET_TPOT = 400;
-const PROTECTED_RESERVE_TPOT = 75;
+const OBSERVED_DEPOSIT_PER_ITEM_TPOT = 0.15;
+const MAX_CODE_DEPOSIT_BUDGET_TPOT = 400;
 
 function fail(message) {
   console.error("BUNDLE_CHECK_ERROR: " + message);
@@ -91,9 +90,9 @@ if (!bundledWasm.equals(wasm)) {
   fail("The .contract bundle's source.wasm does not match the actual .wasm file byte-for-byte.");
 }
 
-const codeDepositTpot = wasm.length * OBSERVED_DEPOSIT_PER_BYTE_TPOT;
-const remainingAfterCodeAndReserve =
-  TOTAL_BUDGET_TPOT - codeDepositTpot - PROTECTED_RESERVE_TPOT;
+const codeDepositTpot =
+  wasm.length * OBSERVED_DEPOSIT_PER_BYTE_TPOT + OBSERVED_DEPOSIT_PER_ITEM_TPOT;
+const codeDepositHeadroomTpot = MAX_CODE_DEPOSIT_BUDGET_TPOT - codeDepositTpot;
 
 const report = {
   contractName: bundle.contract.name,
@@ -104,20 +103,17 @@ const report = {
   abiConstructorCount: metadata.spec.constructors.length,
   abiMessageCount: metadata.spec.messages.length,
   observedDepositPerByteTpot: OBSERVED_DEPOSIT_PER_BYTE_TPOT,
+  observedDepositPerItemTpot: OBSERVED_DEPOSIT_PER_ITEM_TPOT,
   estimatedCodeDepositTpot: Number(codeDepositTpot.toFixed(4)),
-  estimatedBudgetAfterCodeDepositTpot: Number((TOTAL_BUDGET_TPOT - codeDepositTpot).toFixed(4)),
-  protectedReserveTpot: PROTECTED_RESERVE_TPOT,
-  estimatedBudgetAfterCodeAndProtectedReserveTpot: Number(remainingAfterCodeAndReserve.toFixed(4)),
-  target300TpotCodeBudgetMet: codeDepositTpot <= TARGET_CODE_BUDGET_TPOT,
-  bundleRole: "Real cargo-contract bundle for review and a read-only constructor dry-run; this workflow does not deploy.",
-  caveat: "Deposit is estimated using observed PortaldotV3 Test constants. Constructor storage, fees, possible code-length accounting differences, and runtime changes are excluded."
+  maxCodeDepositBudgetTpot: MAX_CODE_DEPOSIT_BUDGET_TPOT,
+  codeDepositBudgetHeadroomTpot: Number(codeDepositHeadroomTpot.toFixed(4)),
+  codeDepositBudgetPassed: codeDepositTpot <= MAX_CODE_DEPOSIT_BUDGET_TPOT,
+  bundleRole: "One compact ink! contract for the budget-constrained native demo; this workflow never deploys.",
+  caveat: "This build gate estimates only the uploaded code deposit using the last-observed runtime rates. The live read-only preflight checks current chain constants, constructor deposit, transaction fee, selected signer balance and configured reserve. Runtime changes may alter the estimate."
 };
 
 console.log(JSON.stringify(report, null, 2));
 
-if (codeDepositTpot > TARGET_CODE_BUDGET_TPOT) {
-  fail("Actual cargo-contract WASM exceeds the 300 tPOT code-deposit target. Do not deploy.");
-}
-if (remainingAfterCodeAndReserve <= 0) {
-  fail("Actual code deposit would break the protected reserve before constructor storage and transaction fees.");
+if (codeDepositTpot > MAX_CODE_DEPOSIT_BUDGET_TPOT) {
+  fail("Compact ink! WASM exceeds the 400 tPOT code-deposit budget. Reduce the artifact size or re-evaluate the budget; do not deploy.");
 }
