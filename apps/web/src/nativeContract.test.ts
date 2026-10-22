@@ -22,7 +22,7 @@ describe("native PASTX contract command codec", () => {
     expect(() => decodeNativeCommand("0x")).toThrow(/malformed/i);
     expect(() => decodeNativeCommand("0x01")).toThrow(/language-level/i);
     expect(() => decodeNativeCommand("0x0001")).toThrow(/incomplete/i);
-    expect(() => encodeNativeCommand(4 as 0, 0, 0)).toThrow(/unsupported/i);
+    expect(() => encodeNativeCommand(4 as unknown as 0, 0, 0)).toThrow(/unsupported/i);
   });
 
   it("formats the native token's 14-decimal base units", () => {
