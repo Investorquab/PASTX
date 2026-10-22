@@ -10,8 +10,8 @@ This directory contains a size-optimized, single-contract native Substrate proto
 - **Faucet:** a successful claim mints 1,000 pUSD. The first claim is immediate; the same account can claim again after 3,600,000 milliseconds (one hour), while the global cap still has room.
 - **Transfer/allowance interface:** deliberately omitted to keep this native deployment small. This route is an in-app pUSD ledger exposed through the ink! ABI, not a standalone ERC-20 contract; standard ERC-20 wallets and `approve/transferFrom` integrations will not work against it.
 - **Synthetic listings:** pAAPL = 200 pUSD, pNVDA = 180 pUSD, pTSLA = 250 pUSD, pMSFT = 400 pUSD per whole demo share. These are fixed demonstration prices, not live market or oracle prices.
-- **Buy:** requires enough pUSD, moves pUSD from the user's balance into the market reserve, and records synthetic shares.
-- **Sell:** requires enough shares and enough pUSD in the market reserve. It pays from that reserve; it does not mint pUSD. With a new deployment, the reserve starts at zero, so sells can only be paid after buys have funded it.
+- **Buy:** requires enough pUSD, deducts the fixed price, and records synthetic shares.
+- **Sell:** requires enough shares and credits the same fixed price back. Because quotes never change and share positions cannot be transferred, a sale converts the caller's committed pUSD back from the position; it does not mint new pUSD or depend on a shared liquidity pool.
 - **Share positions:** these are paper records, not equity and not separate transferable stock-token contracts.
 - **Native tPOT:** still required for transaction fees and any runtime storage deposits. First-time users may also need native balance to pay for their contract-storage growth; the faucet gives demo pUSD, not tPOT.
 
