@@ -4,8 +4,8 @@
   "private": true,
   "description": "Testnet-only Portaldot V3 market and Portaldot-to-BNB cross-chain prototype",
   "scripts": {
-    "check": "node --check scripts/deploy-portal.js && node --check scripts/deploy-bnb.js && node --check scripts/deploy-market-portal.js && node --check scripts/deploy-market-bnb.js && node --check scripts/preflight-market-portal.js && node --check scripts/verify-market-portal.js && node --check scripts/portal-network.js && node --check scripts/relay.mjs && node --check scripts/relay-cursor.mjs",
-    "compile:portal": "hardhat --config hardhat.portal.config.js compile",
+    "check": "node --check scripts/assert-portal-pvm-artifacts.js && node --check scripts/deploy-portal.js && node --check scripts/deploy-bnb.js && node --check scripts/deploy-market-portal.js && node --check scripts/deploy-market-bnb.js && node --check scripts/preflight-market-portal.js && node --check scripts/verify-market-portal.js && node --check scripts/portal-network.js && node --check scripts/relay.mjs && node --check scripts/relay-cursor.mjs",
+    "compile:portal": "hardhat --config hardhat.portal.config.js compile && node scripts/assert-portal-pvm-artifacts.js",
     "compile:bnb": "hardhat --config hardhat.bnb.config.js compile",
     "test:bnb": "hardhat --config hardhat.bnb.config.js test",
     "test:portal-unit": "hardhat --config hardhat.portal-unit.config.js test",

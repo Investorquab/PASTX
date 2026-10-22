@@ -4,7 +4,9 @@ Core target: Portaldot V3 testnet. This package also contains the separate exper
 
 ## Language and compiler target
 
-The market contracts use Solidity 0.8.28 and are compiled for Portaldot V3 PolkaVM using Hardhat, @parity/hardhat-polkadot and @parity/resolc. Sources are in contracts/portal/. BNB-only EVM sources are in contracts/bnb/ and are a separate target. A BNB build or local EVM test is not proof of successful Portaldot execution.
+The market contracts use Solidity 0.8.28 and are compiled for Portaldot V3 PolkaVM using Hardhat, @parity/hardhat-polkadot and @parity/resolc. Sources are in contracts/portal/. BNB-only EVM sources are in contracts/bnb/ and are a separate target. A BNB build or local EVM test is not proof of Portaldot execution.
+
+The PortalDOT compile command includes a bytecode-target assertion. It must fail unless the required Portaldot contract artifacts begin with the PolkaVM bytecode marker (0x50564d00). This guards against the plugin silently falling back to normal EVM bytecode.
 
 ## Seven contracts in the core demo
 
@@ -27,27 +29,37 @@ npm run compile:bnb
 npm run compile:portal
 ~~~
 
-The PolkaVM compile step and local EVM tests are both required; neither proves live testnet behavior by itself.
+The PolkaVM compile step checks its output prefix as part of the command. Both the PolkaVM build and local EVM tests are required; neither proves live testnet behavior by itself.
 
 ## Preflight and deploy
 
-Confirm the current official Portaldot V3 testnet RPC endpoint and expected chain ID 420420777. The default RPC is https://test-evm-rpc-v3.portaldot.dev. Copy .env.example to .env and configure a funded, testnet-only PORTALDOT_DEPLOYER_PRIVATE_KEY locally. Never commit or paste that key into chat.
+Confirm the current official Portaldot V3 testnet RPC endpoint and expected chain ID 420420777. The default RPC is https://test-evm-rpc-v3.portaldot.dev. Copy .env.example to .env and configure exactly one funded, testnet-only deployer signer locally.
 
-Run read-only preflight:
+The deployer may be configured using either:
+- PORTALDOT_DEPLOYER_PRIVATE_KEY for a raw EVM private key; or
+- PORTALDOT_DEPLOYER_MNEMONIC for the recovery phrase of a SubWallet EVM account.
+
+For mnemonic mode, the tool derives the EVM account at m/44'/60'/0'/0/0, matching SubWallet's documented default EVM path. Before any deployment transaction, the preflight compares the derived address with Hardhat's signer and checks the EVM account's on-chain native tPOTv3 balance. Confirm that the printed/public 0x address matches the EVM account shown by SubWallet. A native Portaldot address beginning with 5 is a different address type and is the one requested for the hackathon's native-token distribution; don't assume it is the same as the EVM deployer.
+
+Never paste your seed phrase or private key into chat, source files, or command arguments. The .env file is gitignored and must remain local. Do not put a recovery phrase in .env.example.
+
+Run the read-only preflight first:
 
 ~~~bash
 npm run preflight:market:portal
 ~~~
 
-After verifying endpoint identity, deploy with one command:
+The preflight rejects the wrong Hardhat network name or chain ID, signer mismatch, an unusable RPC, or a deployer EVM account with no native tPOTv3 balance. If it fails, no deployment transaction is sent.
+
+After verifying endpoint identity and the signer, deploy with one command:
 
 ~~~bash
 npm run deploy:market:portal
 ~~~
 
-The script rejects the wrong Hardhat network name or chain ID, checks the signer and native balance, persists transaction hashes and confirmations as it proceeds, and verifies bytecode, pUSD metadata/cap, faucet roles/settings, four pUSD listings and synthetic-token authorities. It revokes the deployer's direct minter permission after authorizing the faucet.
+The core market setup is 13 separate blockchain transactions, not one atomic transaction. The script records transaction hashes and confirmations as it proceeds, then verifies bytecode, pUSD metadata/cap, faucet roles/settings, four pUSD listings and synthetic-token authorities. It revokes the deployer's direct minter permission after authorizing the faucet.
 
-This is 13 separate blockchain transactions, not one atomic transaction. On a partial failure, inspect deployments/portal-v3-testnet/latest.json before proceeding; do not rerun blindly.
+On a partial failure, inspect deployments/portal-v3-testnet/latest.json before proceeding; do not rerun blindly.
 
 ## Generated outputs
 
