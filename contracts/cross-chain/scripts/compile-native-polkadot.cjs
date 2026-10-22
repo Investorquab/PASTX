@@ -29,7 +29,11 @@ const sources = contractNames.map(name => path.join(sourceRoot, name + ".sol"));
 for (const file of sources) {
   if (!fs.existsSync(file)) fail("Required source missing: " + file);
   const source = fs.readFileSync(file, "utf8");
-  if (/block\.chainid|\.code\.length/.test(source)) {
+  // Documentation comments may mention EVM-only features without invoking them.
+  const executableSource = source
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/.*$/gm, "");
+  if (/\bblock\s*\.\s*chainid\b|\.\s*code\s*\.\s*length\b/.test(executableSource)) {
     fail(path.basename(file) + " contains an EVM-only builtin not allowed in the native target.");
   }
 }
