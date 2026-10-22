@@ -5,13 +5,13 @@
   "description": "Native Substrate contracts for the PASTX Portaldot V3 testnet demo",
   "scripts": {
     "compile": "node ../scripts/compile-native-polkadot.cjs",
-    "check": "node --check ../scripts/compile-native-polkadot.cjs"
+    "check": "node --check ../scripts/compile-native-polkadot.cjs && node --check scripts/common.cjs && node --check scripts/preflight.cjs && node --check scripts/deploy-market.cjs && node --check scripts/verify-market.cjs"
   },
   "dependencies": {
-    "@polkadot/api": "^17.0.2",
-    "@polkadot/api-contract": "^17.0.2",
-    "@polkadot/keyring": "^14.0.3",
-    "@polkadot/util-crypto": "^14.0.3",
-    "dotenv": "^17.2.3"
+    "@polkadot/api": "17.0.2",
+    "@polkadot/api-contract": "17.0.2",
+    "@polkadot/keyring": "14.0.3",
+    "@polkadot/util-crypto": "14.0.3",
+    "dotenv": "17.2.3"
   }
 }

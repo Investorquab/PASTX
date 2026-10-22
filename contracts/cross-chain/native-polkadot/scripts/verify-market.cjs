@@ -8,13 +8,30 @@ const {
   connectNative,
   contractFiles,
   formatUnits,
+  maxBlockWeight,
   outputError,
   saveJson,
   fail
 } = require("./common.cjs");
 
-function sameAddress(a, b) {
-  return String(a).toLowerCase() === String(b).toLowerCase();
+function sameAddress(api, a, b) {
+  try {
+    return api.registry.createType("AccountId32", a).toHex() ===
+      api.registry.createType("AccountId32", b).toHex();
+  } catch {
+    return String(a) === String(b);
+  }
+}
+
+function listingParts(row) {
+  if (Array.isArray(row)) return row;
+  if (!row || typeof row !== "object") return null;
+  return [
+    row.stockToken ?? row.stock_token,
+    row.paymentToken_ ?? row.paymentToken ?? row.payment_token,
+    row.pricePerShare ?? row.price_per_share,
+    row.enabled
+  ];
 }
 
 async function read(contract, context, method, ...args) {
@@ -22,10 +39,7 @@ async function read(contract, context, method, ...args) {
   if (typeof query !== "function") fail("Missing contract query method: " + method);
   const result = await query(
     context.signer.address,
-    { value: 0, gasLimit: context.api.registry.createType("WeightV2", {
-      refTime: 1000000000000n,
-      proofSize: 10000000n
-    }), storageDepositLimit: null },
+    { value: 0, gasLimit: maxBlockWeight(context.api), storageDepositLimit: null },
     ...args
   );
   if (!result.result?.isOk) fail("Query failed: " + method);
@@ -71,10 +85,10 @@ async function main() {
     if (String(await read(token, context, "symbol")) !== "pUSD") fail("pUSD symbol check failed.");
     if (BigInt(await read(token, context, "decimals")) !== 18n) fail("pUSD decimals check failed.");
     if (BigInt(await read(token, context, "cap")) !== 1000000n * (10n ** 18n)) fail("pUSD cap check failed.");
-    if (!sameAddress(await read(market, context, "paymentToken"), manifest.contracts.PastxDemoToken.address)) {
+    if (!sameAddress(context.api, await read(market, context, "paymentToken"), manifest.contracts.PastxDemoToken.address)) {
       fail("Market payment-token binding check failed.");
     }
-    if (!sameAddress(await read(faucet, context, "token"), manifest.contracts.PastxDemoToken.address)) {
+    if (!sameAddress(context.api, await read(faucet, context, "token"), manifest.contracts.PastxDemoToken.address)) {
       fail("Faucet binding check failed.");
     }
     if (BigInt(await read(faucet, context, "claimAmount")) !== 1000n * (10n ** 18n)) fail("Faucet claim amount check failed.");
@@ -93,7 +107,7 @@ async function main() {
       if (!saved) fail("Missing stock manifest entry: " + stock.key);
       const tokenContract = new ContractPromise(context.api, contractFiles("PastxStockToken").metadata, saved.address);
       if (String(await read(tokenContract, context, "symbol")) !== stock.symbol) fail(stock.key + " symbol check failed.");
-      if (!sameAddress(await read(tokenContract, context, "market"), manifest.contracts.PastxMarket.address)) {
+      if (!sameAddress(context.api, await read(tokenContract, context, "market"), manifest.contracts.PastxMarket.address)) {
         fail(stock.key + " market check failed.");
       }
       const row = await read(market, context, "getListing", bytes32FromText(stock.key));

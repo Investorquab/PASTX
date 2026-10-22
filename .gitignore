@@ -43,3 +43,5 @@ contracts/cross-chain/cache/
 contracts/cross-chain/coverage/
 contracts/cross-chain/typechain-types/
 contracts/cross-chain/ignition/deployments/
+
+contracts/cross-chain/deployments/

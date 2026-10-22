@@ -283,7 +283,8 @@ function reserveAmount(decimals) {
 
 function checkBudget(context, quote, step) {
   const reserve = reserveAmount(context.decimals);
-  const needed = quote.fee + quote.storageCharge + reserve;
+  const storageBudget = quote.storageDepositLimit ?? quote.storageCharge;
+  const needed = quote.fee + storageBudget + reserve;
   if (context.spendable < needed) {
     fail(
       step + " is not safely funded. Spendable balance: " +

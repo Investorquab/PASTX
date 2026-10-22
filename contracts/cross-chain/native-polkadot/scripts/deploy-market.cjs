@@ -16,6 +16,7 @@ const {
   dryRunMessage,
   formatUnits,
   getAccountState,
+  maxBlockWeight,
   outputError,
   parseUnits,
   reserveAmount,
@@ -115,7 +116,7 @@ async function submitFinalized(api, signer, tx) {
   });
 }
 
-async function checkAndSubmitConstructor(context, name, args, salt, manifest, saveManifest) {
+async function checkAndSubmitConstructor(context, name, args, salt, manifest, saveManifest, manifestKey = name) {
   const artifacts = contractFiles(name);
   const quote = await dryRunConstructor(context, artifacts, args, salt);
   const budget = checkBudget(context, quote, "Deploy " + name);
@@ -172,7 +173,7 @@ async function checkAndSubmitConstructor(context, name, args, salt, manifest, sa
     blockHash: receipt.blockHash,
     blockNumber: receipt.blockNumber
   };
-  manifest.contracts[name] = entry;
+  manifest.contracts[manifestKey] = entry;
   manifest.activeStep = null;
   await saveManifest();
   console.log("DEPLOYED " + name + ": " + receipt.contractAddress);
@@ -221,18 +222,31 @@ async function checkAndSubmitMessage(context, contract, method, args, label, man
 async function query(contract, context, method, ...args) {
   const result = await contract.query[method](
     context.signer.address,
-    { value: 0, gasLimit: context.api.registry.createType("WeightV2", {
-      refTime: 1000000000000n,
-      proofSize: 10000000n
-    }), storageDepositLimit: null },
+    { value: 0, gasLimit: maxBlockWeight(context.api), storageDepositLimit: null },
     ...args
   );
   if (!result.result?.isOk) fail("Post-deploy verification call failed: " + method);
   return result.output?.toJSON();
 }
 
-function safeEqualsAddress(a, b) {
-  return String(a).toLowerCase() === String(b).toLowerCase();
+function safeEqualsAddress(api, a, b) {
+  try {
+    return api.registry.createType("AccountId32", a).toHex() ===
+      api.registry.createType("AccountId32", b).toHex();
+  } catch {
+    return String(a) === String(b);
+  }
+}
+
+function listingParts(row) {
+  if (Array.isArray(row)) return row;
+  if (!row || typeof row !== "object") return null;
+  return [
+    row.stockToken ?? row.stock_token,
+    row.paymentToken_ ?? row.paymentToken ?? row.payment_token,
+    row.pricePerShare ?? row.price_per_share,
+    row.enabled
+  ];
 }
 
 async function verifyCore(context, manifest, token, market, faucet) {
@@ -242,10 +256,10 @@ async function verifyCore(context, manifest, token, market, faucet) {
   if (String(await query(token, context, "symbol")) !== "pUSD") fail("pUSD symbol verification failed.");
   if (BigInt(await query(token, context, "decimals")) !== 18n) fail("pUSD decimals verification failed.");
   if (BigInt(await query(token, context, "cap")) !== cap) fail("pUSD cap verification failed.");
-  if (!safeEqualsAddress(await query(market, context, "paymentToken"), manifest.contracts.PastxDemoToken.address)) {
+  if (!safeEqualsAddress(context.api, await query(market, context, "paymentToken"), manifest.contracts.PastxDemoToken.address)) {
     fail("Market payment-token binding verification failed.");
   }
-  if (!safeEqualsAddress(await query(faucet, context, "token"), manifest.contracts.PastxDemoToken.address)) {
+  if (!safeEqualsAddress(context.api, await query(faucet, context, "token"), manifest.contracts.PastxDemoToken.address)) {
     fail("Faucet token binding verification failed.");
   }
   if (BigInt(await query(faucet, context, "claimAmount")) !== claim) fail("Faucet amount verification failed.");
@@ -263,7 +277,7 @@ async function verifyCore(context, manifest, token, market, faucet) {
     const stockInfo = manifest.stocks[stock.key];
     const stockContract = new ContractPromise(context.api, contractFiles("PastxStockToken").metadata, stockInfo.address);
     if (String(await query(stockContract, context, "symbol")) !== stock.symbol) fail(stock.key + " symbol verification failed.");
-    if (!safeEqualsAddress(await query(stockContract, context, "market"), manifest.contracts.PastxMarket.address)) {
+    if (!safeEqualsAddress(context.api, await query(stockContract, context, "market"), manifest.contracts.PastxMarket.address)) {
       fail(stock.key + " market authority verification failed.");
     }
     const row = await query(market, context, "getListing", bytes32FromText(stock.key));
@@ -422,7 +436,7 @@ async function main() {
         context, "PastxStockToken",
         [stock.name, stock.symbol, manifest.contracts.PastxMarket.address],
         saltFor(runId, stock.key),
-        manifest, saveManifest
+        manifest, saveManifest, "PastxStockToken:" + stock.key
       );
       const address = manifest.transactions[manifest.transactions.length - 1].contractAddress;
       manifest.stocks[stock.key] = {
