@@ -23,7 +23,9 @@ async function main() {
     );
     const budget = checkBudget(context, quote, "First contract (pUSD) deployment estimate");
     console.log(JSON.stringify({
-      status: "native-preflight-passed-for-first-contract",
+      status: context.genesisPinned ? "native-preflight-passed-for-first-contract" : "native-preflight-passed-awaiting-genesis-pin",
+      deploymentAllowed: context.genesisPinned,
+      genesisPinned: context.genesisPinned,
       chain: context.chain,
       genesisHash: context.genesisHash,
       runtimeSpecVersion: context.specVersion,
@@ -39,7 +41,8 @@ async function main() {
       },
       estimatedExtrinsicFee: formatUnits(quote.fee, context.decimals, 8) + " " + context.symbol,
       estimatedStorageDeposit: formatUnits(quote.storageCharge, context.decimals, 8) + " " + context.symbol,
-      balanceRemainingAfterFirstStepEstimate: formatUnits(context.spendable - quote.fee - quote.storageCharge, context.decimals, 6) + " " + context.symbol,
+      storageDepositLimitCap: formatUnits(quote.storageDepositLimit, context.decimals, 8) + " " + context.symbol,
+      balanceRemainingAfterFirstStepEstimate: formatUnits(context.spendable - quote.fee - quote.storageDepositLimit, context.decimals, 6) + " " + context.symbol,
       scopeNotice: "This dry-runs only the first contract. Later contracts depend on addresses created during deployment and will be dry-run and balance-checked immediately before each transaction.",
       transactionsSent: false,
       mnemonicPrinted: false,
