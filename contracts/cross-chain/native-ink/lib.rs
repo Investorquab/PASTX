@@ -14,16 +14,6 @@ mod pastx_budget_market {
         holdings: Mapping<(AccountId, u8), u32>,
     }
 
-    #[ink(event)]
-    pub struct DemoTradeRecorded {
-        #[ink(topic)]
-        trader: AccountId,
-        stock_id: u8,
-        bought: bool,
-        quantity: u32,
-        reference_price: u32,
-    }
-
     impl PastxBudgetMarket {
         #[ink(constructor)]
         pub fn new() -> Self {
@@ -52,8 +42,7 @@ mod pastx_budget_market {
         /// and no real asset is represented by the listing.
         #[ink(message)]
         pub fn trade(&mut self, stock_id: u8, is_buy: bool, quantity: u32) -> bool {
-            let reference_price = Self::price_for(stock_id);
-            if reference_price == 0 || quantity == 0 {
+            if Self::price_for(stock_id) == 0 || quantity == 0 {
                 return false;
             }
 
@@ -79,13 +68,6 @@ mod pastx_budget_market {
                 self.holdings.insert(&key, &next);
             }
 
-            self.env().emit_event(DemoTradeRecorded {
-                trader,
-                stock_id,
-                bought: is_buy,
-                quantity,
-                reference_price,
-            });
             true
         }
     }
