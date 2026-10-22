@@ -8,6 +8,17 @@ The market contracts use Solidity 0.8.28 and are compiled to standard EVM byteco
 
 The Portaldot compile command includes a bytecode-target assertion. It fails for empty or malformed bytecode and for the PolkaVM marker (0x50564d00), because this build intentionally targets standard Solidity EVM bytecode, consistent with the deployed code observed at the two PotKit addresses through Portaldot's official EVM RPC.
 
+## Native Substrate routes and the budget distinction
+
+There are **two different native contract architectures** in this repository. Do not interchange their preflight commands or cost estimates.
+
+- **Budget-constrained native demo (default):** `npm run preflight:native:portal` or `npm run preflight:native:ink` reads the compact ink! artifact in `native-ink/`. It deploys as **one contract** with four synthetic stock IDs and a paper-share ledger. It does not deploy a separate pUSD token, faucet, or per-stock token contracts; it does not custody or transfer tPOT.
+- **Full four-contract Solang route:** `npm run preflight:native:solang-market` builds and preflights `PastxDemoToken`, `PastxMarket`, `PastxFaucet`, and `PastxStockToken`. The observed WASM-size-based code-deposit estimate for the four unique code blobs was **6,539.46 tPOT**, before instance storage, fees, and reserve. This route is not viable with a 441 tPOT wallet balance; its larger estimate is caused by a different architecture, not the compact contract suddenly becoming that expensive.
+
+The last successful read-only compact-contract preflight reported about **383.368 tPOT** in storage deposit, **0.490195 tPOT** in estimated transaction fees, and a **1 tPOT** configured reserve: about **384.858 tPOT** required against a then-reported 441 tPOT balance. These values are a previous observation, not a guarantee; the runtime preflight must be rerun immediately before deployment.
+
+Use `npm run deploy:native:portal` only for the compact single-contract route, after you have confirmed the native `5...` signer matches SubWallet, verified the genesis hash against official Portaldot V3 testnet details, pinned both values in the local `.env`, and received a passing live preflight. The alternative full Solang deployment remains explicitly named `npm run deploy:native:solang-market`. Neither path should be represented as deployed until its finalized transaction and on-chain contract address are verified.
+
 ## Seven contracts in the core demo
 
 - PastxDemoToken: capped pUSD, 18 decimals, 1,000,000-token cap.
