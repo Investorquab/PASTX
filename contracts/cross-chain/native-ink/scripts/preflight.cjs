@@ -246,11 +246,15 @@ async function main() {
 
     const gasLimit = bufferedWeight(api, query.gasRequired);
     const charge = storageCharge(query.storageDeposit);
-    const depositLimit = charge === 0n ? 0n : (charge * 125n + 99n) / 100n;
+    // The runtime's storageDeposit may include the uploaded code deposit. Avoid double-counting it when it is already at least the code-size estimate; otherwise conservatively add the code estimate and the returned charge.
+    const totalStorageDeposit = charge >= estimatedCodeDeposit
+      ? charge
+      : estimatedCodeDeposit + charge;
+    const depositLimit = totalStorageDeposit === 0n ? 0n : (totalStorageDeposit * 125n + 99n) / 100n;
     const tx = code.tx.new({ value: 0, gasLimit, storageDepositLimit: depositLimit, salt });
     const payment = await tx.paymentInfo(signer);
     const fee = bigint(payment.partialFee);
-    const totalBeforeReserve = estimatedCodeDeposit + charge + fee;
+    const totalBeforeReserve = totalStorageDeposit + fee;
     const finalReport = {
       status: "read-only-constructor-dry-run-passed",
       transactionsSent: false,
@@ -259,12 +263,13 @@ async function main() {
         refTime: bigint(query.gasRequired.refTime).toString(),
         proofSize: bigint(query.gasRequired.proofSize).toString()
       },
-      estimatedStorageCharge: formatUnits(charge, decimals) + " " + symbol,
+      runtimeDryRunStorageDeposit: formatUnits(charge, decimals) + " " + symbol,
+      estimatedCombinedStorageDeposit: formatUnits(totalStorageDeposit, decimals) + " " + symbol,
       storageDepositLimitWithBuffer: formatUnits(depositLimit, decimals) + " " + symbol,
       estimatedTransactionFee: formatUnits(fee, decimals) + " " + symbol,
       estimatedCodeDeposit: formatUnits(estimatedCodeDeposit, decimals) + " " + symbol,
       configuredProtectedReserve: formatUnits(keepReserve, decimals) + " " + symbol,
-      estimatedTotalIncludingCodeStorageAndFee: formatUnits(totalBeforeReserve, decimals) + " " + symbol,
+      estimatedTotalStorageAndFee: formatUnits(totalBeforeReserve, decimals) + " " + symbol,
       estimatedBalanceAfterCostsAndReserve: formatUnits(spendable - totalBeforeReserve - keepReserve, decimals) + " " + symbol,
       genesisHash: genesisHash.toHex(),
       note: "This is a read-only estimate. Deployment still requires a separate explicitly run and reviewed transaction workflow."
