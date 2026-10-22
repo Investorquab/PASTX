@@ -43,8 +43,8 @@ try {
 
 const wasm = normalized.wasm;
 fs.writeFileSync(wasmPath, wasm);
-const module = new WebAssembly.Module(wasm);
-const exports = WebAssembly.Module.exports(module);
+const wasmModule = new WebAssembly.Module(wasm);
+const exports = WebAssembly.Module.exports(wasmModule);
 const exportNames = exports.map((entry) => entry.name).sort();
 
 const deposit = wasm.length * OBSERVED_DEPOSIT_PER_BYTE;
