@@ -4,7 +4,7 @@ This directory contains a size-optimized, single-contract native Substrate proto
 
 ## Exact on-chain behavior
 
-- **pUSD:** 18-decimal fixed-point accounting, matching the EVM demo token's scale. This is test currency only: it has no real-world value, no redemption, and is not USDC.
+- **pUSD:** whole-unit integer accounting (no fractional pUSD) for the budget-constrained native version. This is an app-only demo credit ledger, not an ERC-20 token; it has no real-world value, no redemption, and is not USDC. The separate EVM route retains its 18-decimal ERC-20 design.
 - **Initial supply:** 0 pUSD.
 - **Global supply cap:** 1,000,000 pUSD (including pUSD held by users and the market reserve).
 - **Faucet:** a successful claim mints 1,000 pUSD. The first claim is immediate; the same account can claim again after 3,600,000 milliseconds (one hour), while the global cap still has room.
