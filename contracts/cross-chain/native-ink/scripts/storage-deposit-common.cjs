@@ -193,7 +193,47 @@ async function connectAndPrepare({ requirePinnedNetwork = false } = {}) {
     if (!fs.existsSync(artifactPath)) throw new Error(`Compiled ink! artifact not found: ${artifactPath}. Build the native-ink contract first.`);
     const artifact = JSON.parse(fs.readFileSync(artifactPath, 'utf8'));
     const wasm = artifact.source?.wasm;
-    if (typeof wasm !== 'string' || !wasm.startsWith('0x0061736d')) throw new Error('Artifact does not contain valid WebAssembly bytecode.');
+    if (typeof wasm !== 'string' || !/^0x(?:[0-9a-fA-F]{2})+$/.test(wasm) || !wasm.startsWith('0x0061736d')) {
+      throw new Error('Artifact does not contain valid WebAssembly bytecode.');
+    }
+
+    // Never quote or deploy a mixed set of files from different workflow builds.
+    // The read-only runtime quote is only meaningful for the exact WASM that will
+    // be submitted, and the standalone ABI must describe the same contract.
+    const artifactDir = path.dirname(artifactPath);
+    const standaloneWasmPath = path.join(artifactDir, 'pastx_budget_market.wasm');
+    const standaloneMetadataPath = path.join(artifactDir, 'pastx_budget_market.json');
+    if (!fs.existsSync(standaloneWasmPath) || !fs.existsSync(standaloneMetadataPath)) {
+      throw new Error(
+        'The compact ink! artifact set is incomplete. Extract all three files (.contract, .wasm, .json) ' +
+        'from the same successful PASTX Compact Native Market Contract Bundle workflow run into ' +
+        artifactDir + '. No transaction submitted.'
+      );
+    }
+    const standaloneWasm = fs.readFileSync(standaloneWasmPath);
+    const embeddedWasm = Buffer.from(wasm.slice(2), 'hex');
+    if (!standaloneWasm.equals(embeddedWasm)) {
+      throw new Error(
+        'Stale/mixed native ink! artifacts: the WASM embedded in .contract does not match ' +
+        'pastx_budget_market.wasm. Download and extract all three files from the same successful workflow run. ' +
+        'No transaction submitted.'
+      );
+    }
+    let standaloneMetadata;
+    try {
+      standaloneMetadata = JSON.parse(fs.readFileSync(standaloneMetadataPath, 'utf8'));
+    } catch (error) {
+      throw new Error('Invalid standalone native ink! ABI metadata: ' + error.message + '. No transaction submitted.');
+    }
+    if (
+      standaloneMetadata.source?.hash !== artifact.source?.hash ||
+      standaloneMetadata.contract?.name !== artifact.contract?.name
+    ) {
+      throw new Error(
+        'Stale/mixed native ink! artifacts: standalone ABI metadata and .contract are from different builds. ' +
+        'Download and extract all three files from the same successful workflow run. No transaction submitted.'
+      );
+    }
     const constructor = (artifact.spec?.constructors || []).find((item) => item.label === 'new') || (artifact.spec?.constructors || []).find((item) => item.default);
     if (!constructor?.selector) throw new Error('Artifact has no readable default/new constructor selector.');
 
