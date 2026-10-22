@@ -45,8 +45,23 @@ jobs:
           workspaces: |
             contracts/cross-chain/native-ink -> target
 
+      - name: Restore cached cargo-contract binary
+        id: cargo-contract-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cargo/bin/cargo-contract
+          key: cargo-contract-${{ runner.os }}-${{ runner.arch }}-v5.0.3-rust-1.85.1
+
       - name: Install cargo-contract v5 for the Substrate Contracts pallet
+        if: steps.cargo-contract-cache.outputs.cache-hit != 'true'
         run: cargo install cargo-contract --locked --version 5.0.3 --jobs 2
+
+      - name: Save cargo-contract binary for later runs
+        if: success() && steps.cargo-contract-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cargo/bin/cargo-contract
+          key: cargo-contract-${{ runner.os }}-${{ runner.arch }}-v5.0.3-rust-1.85.1
 
       - name: Record compiler toolchain
         run: |

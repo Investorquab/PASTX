@@ -15,7 +15,6 @@ ink = { version = "5.1.1", default-features = false, features = ["std"] }
 
 [lib]
 path = "lib.rs"
-crate-type = ["cdylib"]
 
 [features]
 default = ["std"]
