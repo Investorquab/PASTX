@@ -4,9 +4,9 @@ Core target: Portaldot V3 testnet. This package also contains the separate exper
 
 ## Language and compiler target
 
-The market contracts use Solidity 0.8.28 and are compiled for Portaldot V3 PolkaVM using Hardhat, @parity/hardhat-polkadot and @parity/resolc. Sources are in contracts/portal/. BNB-only EVM sources are in contracts/bnb/ and are a separate target. A BNB build or local EVM test is not proof of Portaldot execution.
+The market contracts use Solidity 0.8.28 and are compiled to standard EVM bytecode with Hardhat and solc for Portaldot V3's documented EVM execution path. Sources are in contracts/portal/. BNB-only EVM sources are in contracts/bnb/ and are a separate network target. A standard EVM build or local EVM test is not proof of successful execution on the live Portaldot testnet.
 
-The PortalDOT compile command includes a bytecode-target assertion. It must fail unless the required Portaldot contract artifacts begin with the PolkaVM bytecode marker (0x50564d00). This guards against the plugin silently falling back to normal EVM bytecode.
+The Portaldot compile command includes a bytecode-target assertion. It fails for empty or malformed bytecode and for the PolkaVM marker (0x50564d00), because this build intentionally targets standard Solidity EVM bytecode, consistent with the deployed code observed at the two PotKit addresses through Portaldot's official EVM RPC.
 
 ## Seven contracts in the core demo
 
@@ -29,11 +29,11 @@ npm run compile:bnb
 npm run compile:portal
 ~~~
 
-The PolkaVM compile step checks its output prefix as part of the command. Both the PolkaVM build and local EVM tests are required; neither proves live testnet behavior by itself.
+The standard EVM compile step checks that the generated contract artifacts are EVM bytecode. Local EVM tests are also required; neither proves live testnet behavior by itself.
 
 ## Preflight and deploy
 
-Confirm the current official Portaldot V3 testnet RPC endpoint and expected chain ID 420420777. The default RPC is https://test-evm-rpc-v3.portaldot.dev. Copy .env.example to .env and configure exactly one funded, testnet-only deployer signer locally.
+Confirm the current official Portaldot V3 EVM RPC endpoint and expected chain ID 420420777. The default RPC is https://test-evm-rpc-v3.portaldot.dev. Copy .env.example to .env and configure exactly one funded, testnet-only EVM deployer signer locally.
 
 The deployer may be configured using either:
 - PORTALDOT_DEPLOYER_PRIVATE_KEY for a raw EVM private key; or

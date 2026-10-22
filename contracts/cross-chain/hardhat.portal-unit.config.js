@@ -1,4 +1,4 @@
-// Local EVM unit tests only. This does not emulate PortalDOT's PolkaVM runtime.
+// Local EVM unit tests only. They do not prove behavior on the live Portaldot V3 EVM RPC.
 require("@nomicfoundation/hardhat-toolbox");
 
 module.exports = {

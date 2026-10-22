@@ -2,7 +2,6 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const ARTIFACT_ROOT = path.resolve(__dirname, "..", "artifacts", "portal");
-const PVM_PREFIX = "0x50564d00";
 const REQUIRED_CONTRACTS = [
   "PastxDemoToken",
   "PastxFaucet",
@@ -22,16 +21,19 @@ function findJsonFiles(directory) {
   return found;
 }
 
-function artifactBytecode(artifact) {
-  if (typeof artifact.bytecode === "string") return artifact.bytecode;
-  if (artifact.bytecode && typeof artifact.bytecode.object === "string") return artifact.bytecode.object;
+function getBytecode(artifact) {
+  if (typeof artifact.bytecode === "string") return artifact.bytecode.toLowerCase();
+  if (artifact.bytecode && typeof artifact.bytecode.object === "string") {
+    const object = artifact.bytecode.object;
+    return (object.startsWith("0x") ? object : "0x" + object).toLowerCase();
+  }
   return "";
 }
 
 function main() {
   const files = findJsonFiles(ARTIFACT_ROOT);
   if (!files.length) {
-    throw new Error("No PortalDOT artifacts found. Run compile:portal first; expected artifacts under " + ARTIFACT_ROOT);
+    throw new Error("No Portaldot EVM artifacts found. Run compile:portal first; expected artifacts under " + ARTIFACT_ROOT);
   }
 
   const artifacts = files.map(file => {
@@ -44,23 +46,24 @@ function main() {
 
   for (const contractName of REQUIRED_CONTRACTS) {
     const matches = artifacts.filter(({ artifact }) => artifact.contractName === contractName);
-    if (!matches.length) throw new Error("Required PortalDOT contract artifact missing: " + contractName);
+    if (!matches.length) throw new Error("Required Portaldot contract artifact missing: " + contractName);
 
     for (const { file, artifact } of matches) {
-      const bytecode = artifactBytecode(artifact).toLowerCase();
-      if (!bytecode.startsWith(PVM_PREFIX)) {
-        const actualPrefix = bytecode ? bytecode.slice(0, 10) : "(empty bytecode)";
-        throw new Error(
-          contractName + " was not compiled to PolkaVM bytecode. Expected prefix " +
-          PVM_PREFIX + ", got " + actualPrefix + " in " + file +
-          ". Check that hardhat.portal.config.js uses polkadot: true."
-        );
+      const bytecode = getBytecode(artifact);
+      if (!/^0x[0-9a-f]+$/.test(bytecode) || bytecode === "0x") {
+        throw new Error(contractName + " has empty or malformed EVM bytecode in " + file);
       }
-      console.log("POLKAVM_OK " + contractName + " " + file);
+      if (bytecode.startsWith("0x50564d00")) {
+        throw new Error(contractName + " contains PolkaVM bytecode, but this build targets standard EVM. Check hardhat.portal.config.js.");
+      }
+      if (!bytecode.startsWith("0x60")) {
+        throw new Error(contractName + " does not have the expected standard Solidity EVM bytecode prefix (0x60...) in " + file + "; found " + bytecode.slice(0, 10));
+      }
+      console.log("EVM_BYTECODE_OK " + contractName + " " + file + " (" + bytecode.slice(0, 10) + ")");
     }
   }
 
-  console.log("PortalDOT compiler target verified: all required artifacts use PolkaVM bytecode.");
+  console.log("Portaldot EVM target verified: all required artifacts contain standard Solidity EVM bytecode.");
 }
 
 try {

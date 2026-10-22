@@ -1,9 +1,12 @@
 require("@nomicfoundation/hardhat-toolbox");
-require("@parity/hardhat-polkadot");
 require("dotenv").config();
 
 const privateKey = (process.env.PORTALDOT_DEPLOYER_PRIVATE_KEY || "").trim();
-const mnemonic = (process.env.PORTALDOT_DEPLOYER_MNEMONIC || "").trim().split(/\s+/).filter(Boolean).join(" ");
+const mnemonic = (process.env.PORTALDOT_DEPLOYER_MNEMONIC || "")
+  .trim()
+  .split(/\s+/)
+  .filter(Boolean)
+  .join(" ");
 
 if (privateKey && mnemonic) {
   throw new Error("Set only one signer source: PORTALDOT_DEPLOYER_PRIVATE_KEY or PORTALDOT_DEPLOYER_MNEMONIC.");
@@ -21,27 +24,22 @@ const accounts = mnemonic
     : [];
 
 module.exports = {
-  solidity: "0.8.28",
-  resolc: {
-    compilerSource: "npm",
-    settings: {
-      optimizer: { enabled: true, parameters: "z", fallbackOz: true, runs: 200 },
-      standardJson: true
-    }
+  solidity: {
+    version: "0.8.28",
+    settings: { optimizer: { enabled: true, runs: 200 } }
   },
   defaultNetwork: "hardhat",
   networks: {
-    hardhat: { chainId: 420420777, polkadot: true },
+    hardhat: { chainId: 420420777 },
     portalV3Testnet: {
       url: process.env.PORTALDOT_V3_EVM_RPC_URL || "https://test-evm-rpc-v3.portaldot.dev",
       chainId: 420420777,
-      accounts,
-      polkadot: true
+      accounts
     }
   },
   paths: {
     sources: "./contracts/portal",
-    tests: "./test/portal-pvm",
+    tests: "./test/portal-unit",
     cache: "./cache/portal",
     artifacts: "./artifacts/portal"
   }
