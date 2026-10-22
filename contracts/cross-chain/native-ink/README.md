@@ -17,6 +17,17 @@ This directory contains a size-optimized, single-contract native Substrate proto
 
 This is a demo market, not a brokerage, production order book, live stock-price feed, or custody system. The contract has no admin mint method and no owner override; the hard cap, claim amount/cooldown, and demo prices are fixed in code.
 
+## Native ABI used by the app
+
+The compact contract exposes one message, `command(action, stock_id, quantity)`, to keep the contract under the static size budget. The frontend encodes the ink! selector and SCALE arguments directly:
+
+- `action = 0`: read the connected account's pUSD balance, selected synthetic share count, and fixed quote using a dry-run only.
+- `action = 1`: claim 1,000 pUSD (quantity must be zero).
+- `action = 2`: buy whole synthetic shares at the fixed quote.
+- `action = 3`: sell whole synthetic shares at the same fixed quote.
+
+The native UI remains separate from the EVM demo because this address is SS58/native Substrate and uses the `contracts` pallet, not EVM `0x` addresses, ERC-20 calls, or `viem`. Each write is simulated first and reviewed with its storage-deposit estimate and transaction fee before wallet signing. A successful build does not prove the app's live RPC and extension behavior; verify those on testnet after the live preflight and before spending deployment funds.
+
 ## Build artifact and tests
 
 The GitHub Actions workflow **PASTX Compact Native Market Contract Bundle** runs ink! unit tests, installs pinned cargo-contract v5.0.3, builds the release contract, validates the generated `.contract` bundle, measures the code-deposit estimate, and uploads the outputs for 14 days. It never deploys.
