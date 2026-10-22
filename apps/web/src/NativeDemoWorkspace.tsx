@@ -204,7 +204,6 @@ export function NativeDemoWorkspace() {
       ]);
       setPortfolio(query.result);
       setFreeBalance(BigInt((info as any).data.free.toString()));
-      setMessage("");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not read the native portfolio.");
     } finally {
@@ -447,7 +446,7 @@ export function NativeDemoWorkspace() {
               <div><span>pUSD balance</span><strong>{portfolio ? formatWhole(portfolio.balance) : "—"}</strong><small>Whole-unit app credits</small></div>
               <div><span>{stock.symbol} shares</span><strong>{portfolio ? formatWhole(portfolio.shares) : "—"}</strong><small>Non-transferable demo positions</small></div>
               <div><span>Free native balance</span><strong>{formatNative(freeBalance)}</strong><small>Gas and storage deposits</small></div>
-              <div><span>Global faucet remaining</span><strong>Not exposed</strong><small>Maximum 1,000 successful claims total</small></div>
+              <div><span>Global faucet cap</span><strong>1,000,000 pUSD</strong><small>1,000 successful claims of 1,000 each</small></div>
             </div>
             <button className="native-button native-button-green native-full-button" type="button" disabled={!canWrite} onClick={() => void prepareAction(1)}>
               Claim 1,000 pUSD
