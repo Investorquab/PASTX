@@ -44,30 +44,6 @@ mod pastx_budget_market {
             }
         }
 
-        /// pUSD decimal places. Balances/supply/claim amount use 18-decimal raw units.
-        #[ink(message)]
-        pub fn decimals(&self) -> u8 {
-            18
-        }
-
-        /// Amount minted by each successful faucet claim, in 18-decimal raw units.
-        #[ink(message)]
-        pub fn claim_amount(&self) -> u128 {
-            CLAIM_AMOUNT
-        }
-
-        /// Hard cap of all pUSD, including balances and the market reserve.
-        #[ink(message)]
-        pub fn total_cap(&self) -> u128 {
-            PUSD_CAP
-        }
-
-        /// Faucet cooldown in milliseconds.
-        #[ink(message)]
-        pub fn claim_cooldown_ms(&self) -> u64 {
-            CLAIM_COOLDOWN_MS
-        }
-
         #[ink(message)]
         pub fn total_supply(&self) -> u128 {
             self.total_supply
@@ -119,44 +95,12 @@ mod pastx_budget_market {
             true
         }
 
-        /// Transfer pUSD between demo accounts. Amount is in 18-decimal raw units.
-        #[ink(message)]
-        pub fn transfer(&mut self, to: AccountId, amount: u128) -> bool {
-            if amount == 0 {
-                return false;
-            }
-            let from = self.env().caller();
-            let from_balance: u128 = self.balances.get(from).unwrap_or(0);
-            if from_balance < amount {
-                return false;
-            }
-            if from == to {
-                return true;
-            }
-            let to_balance: u128 = self.balances.get(to).unwrap_or(0);
-            let Some(next_to_balance) = to_balance.checked_add(amount) else {
-                return false;
-            };
-            let Some(next_from_balance) = from_balance.checked_sub(amount) else {
-                return false;
-            };
-            self.balances.insert(from, &next_from_balance);
-            self.balances.insert(to, &next_to_balance);
-            true
-        }
-
         /// Returns the fixed demo quote in whole pUSD:
         /// 0 = pAAPL (200), 1 = pNVDA (180), 2 = pTSLA (250), 3 = pMSFT (400).
         /// Returns zero for unknown IDs. Quotes are not live-market data.
         #[ink(message)]
         pub fn quote(&self, stock_id: u8) -> u32 {
             Self::price_for(stock_id)
-        }
-
-        /// Returns the same quote as an 18-decimal pUSD amount.
-        #[ink(message)]
-        pub fn quote_pusd_raw(&self, stock_id: u8) -> u128 {
-            (Self::price_for(stock_id) as u128).checked_mul(PUSD_UNIT).unwrap_or(0)
         }
 
         /// Read a trader's paper-share position for one stock ID.
@@ -230,11 +174,6 @@ mod pastx_budget_market {
             }
         }
 
-        /// pUSD held by the synthetic market to settle sells.
-        #[ink(message)]
-        pub fn market_reserve(&self) -> u128 {
-            self.market_reserve
-        }
     }
 
     impl PastxBudgetMarket {
@@ -307,20 +246,6 @@ mod pastx_budget_market {
         }
 
         #[ink::test]
-        fn transfers_preserve_supply_and_reject_overspending() {
-            let mut market = PastxBudgetMarket::new();
-            let alice = account(0);
-            let bob = account(1);
-            ink::env::test::set_caller::<ink::env::DefaultEnvironment>(alice);
-            assert!(market.claim());
-            assert!(!market.transfer(bob, CLAIM_AMOUNT + 1));
-            assert!(market.transfer(bob, 125 * PUSD_UNIT));
-            assert_eq!(market.balance_of(alice), 875 * PUSD_UNIT);
-            assert_eq!(market.balance_of(bob), 125 * PUSD_UNIT);
-            assert_eq!(market.total_supply(), CLAIM_AMOUNT);
-        }
-
-        #[ink::test]
         fn trades_use_pusd_reserves_and_do_not_mint_tokens() {
             let mut market = PastxBudgetMarket::new();
             let alice = account(0);
@@ -332,12 +257,12 @@ mod pastx_budget_market {
             assert!(market.trade(0, true, 7));
             assert_eq!(market.holdings_of(alice, 0), 7);
             assert_eq!(market.balance_of(alice), 600 * PUSD_UNIT);
-            assert_eq!(market.market_reserve(), 1_400 * PUSD_UNIT);
+            assert_eq!(market.market_reserve, 1_400 * PUSD_UNIT);
 
             assert!(market.trade(0, false, 2));
             assert_eq!(market.holdings_of(alice, 0), 5);
             assert_eq!(market.balance_of(alice), 1_000 * PUSD_UNIT);
-            assert_eq!(market.market_reserve(), 1_000 * PUSD_UNIT);
+            assert_eq!(market.market_reserve, 1_000 * PUSD_UNIT);
             assert_eq!(market.total_supply(), 2 * CLAIM_AMOUNT);
         }
 
@@ -359,16 +284,12 @@ mod pastx_budget_market {
         #[ink::test]
         fn fixed_quotes_match_the_existing_market_demo() {
             let market = PastxBudgetMarket::new();
-            assert_eq!(market.decimals(), 18);
             assert_eq!(market.quote(0), 200);
             assert_eq!(market.quote(1), 180);
             assert_eq!(market.quote(2), 250);
             assert_eq!(market.quote(3), 400);
             assert_eq!(market.quote(4), 0);
-            assert_eq!(market.quote_pusd_raw(0), 200 * PUSD_UNIT);
-            assert_eq!(market.claim_amount(), 1_000 * PUSD_UNIT);
-            assert_eq!(market.total_cap(), 1_000_000 * PUSD_UNIT);
-            assert_eq!(market.claim_cooldown_ms(), 3_600_000);
+            assert_eq!(market.total_supply(), 0);
         }
     }
 }
