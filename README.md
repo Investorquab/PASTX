@@ -10,6 +10,7 @@
 - Transaction activity with explorer links for confirmed transactions recorded in the current browser session.
 - Transfers for supported native test tokens and pUSD when contracts are deployed and configured.
 - An iBridge route-preview experience. It is a local simulation; no cross-chain transaction is submitted.
+- A separate `/native-demo` workspace for the native ink! contract path. It requires the deployed native contract address and verified testnet genesis hash; it is not ready for transactions until those are configured.
 - The earlier external reference-market terminal remains separate at `/research`. Reference stock quotes are not PASTX execution prices.
 
 ## Product roadmap
@@ -34,7 +35,7 @@ pnpm install
 pnpm dev
 ```
 
-Landing page: `http://localhost:5173`; demo workspace: `http://localhost:5173/demo`; reference terminal: `http://localhost:5173/research`; API: `http://localhost:4000`.
+Landing page: `http://localhost:5173`; demo workspace: `http://localhost:5173/demo`; native Substrate contract demo: `http://localhost:5173/native-demo`; reference terminal: `http://localhost:5173/research`; API: `http://localhost:4000`.
 
 ## Checks
 
