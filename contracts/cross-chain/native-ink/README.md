@@ -8,7 +8,7 @@ This directory contains a size-optimized, single-contract native Substrate proto
 - **Initial supply:** 0 pUSD.
 - **Global supply cap:** 1,000,000 pUSD (including pUSD held by users and the market reserve).
 - **Faucet:** a successful claim mints 1,000 pUSD. The first claim is immediate; the same account can claim again after 3,600,000 milliseconds (one hour), while the global cap still has room.
-- **Transfers:** users can transfer their existing pUSD balances. Transfers do not change total supply.
+- **Transfer/allowance interface:** deliberately omitted to keep this native deployment small. This route is an in-app pUSD ledger exposed through the ink! ABI, not a standalone ERC-20 contract; standard ERC-20 wallets and `approve/transferFrom` integrations will not work against it.
 - **Synthetic listings:** pAAPL = 200 pUSD, pNVDA = 180 pUSD, pTSLA = 250 pUSD, pMSFT = 400 pUSD per whole demo share. These are fixed demonstration prices, not live market or oracle prices.
 - **Buy:** requires enough pUSD, moves pUSD from the user's balance into the market reserve, and records synthetic shares.
 - **Sell:** requires enough shares and enough pUSD in the market reserve. It pays from that reserve; it does not mint pUSD. With a new deployment, the reserve starts at zero, so sells can only be paid after buys have funded it.
