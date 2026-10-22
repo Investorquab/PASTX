@@ -88,8 +88,13 @@ mod pastx_budget_market {
             let marker: u64 = self.last_claim_at_plus_one.get(trader).unwrap_or(0);
 
             if marker != 0 {
-                let last_claim = marker - 1;
-                if now < last_claim || now - last_claim < CLAIM_COOLDOWN_MS {
+                let Some(last_claim) = marker.checked_sub(1) else {
+                    return false;
+                };
+                let Some(elapsed) = now.checked_sub(last_claim) else {
+                    return false;
+                };
+                if elapsed < CLAIM_COOLDOWN_MS {
                     return false;
                 }
             }
@@ -132,7 +137,10 @@ mod pastx_budget_market {
             let Some(next_to_balance) = to_balance.checked_add(amount) else {
                 return false;
             };
-            self.balances.insert(from, &(from_balance - amount));
+            let Some(next_from_balance) = from_balance.checked_sub(amount) else {
+                return false;
+            };
+            self.balances.insert(from, &next_from_balance);
             self.balances.insert(to, &next_to_balance);
             true
         }
@@ -148,7 +156,7 @@ mod pastx_budget_market {
         /// Returns the same quote as an 18-decimal pUSD amount.
         #[ink(message)]
         pub fn quote_pusd_raw(&self, stock_id: u8) -> u128 {
-            (Self::price_for(stock_id) as u128) * PUSD_UNIT
+            (Self::price_for(stock_id) as u128).checked_mul(PUSD_UNIT).unwrap_or(0)
         }
 
         /// Read a trader's paper-share position for one stock ID.
@@ -191,7 +199,9 @@ mod pastx_budget_market {
                 let Some(next_reserve) = self.market_reserve.checked_add(cost) else {
                     return false;
                 };
-                let next_balance = current_balance - cost;
+                let Some(next_balance) = current_balance.checked_sub(cost) else {
+                    return false;
+                };
                 self.market_reserve = next_reserve;
                 self.balances.insert(trader, &next_balance);
                 self.holdings.insert(holdings_key, &next_holdings);
@@ -206,7 +216,10 @@ mod pastx_budget_market {
                 let Some(next_balance) = current_balance.checked_add(cost) else {
                     return false;
                 };
-                self.market_reserve -= cost;
+                let Some(next_reserve) = self.market_reserve.checked_sub(cost) else {
+                    return false;
+                };
+                self.market_reserve = next_reserve;
                 self.balances.insert(trader, &next_balance);
                 if next_holdings == 0 {
                     self.holdings.remove(holdings_key);
