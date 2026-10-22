@@ -5,7 +5,8 @@
   "description": "Native Substrate contracts for the PASTX Portaldot V3 testnet demo",
   "scripts": {
     "compile": "node ../scripts/compile-native-polkadot.cjs",
-    "check": "node --check ../scripts/compile-native-polkadot.cjs && node --check scripts/common.cjs && node --check scripts/preflight.cjs && node --check scripts/deploy-market.cjs && node --check scripts/verify-market.cjs"
+    "check": "node --check ../scripts/compile-native-polkadot.cjs && node --check scripts/common.cjs && node --check scripts/preflight.cjs && node --check scripts/deploy-market.cjs && node --check scripts/verify-market.cjs",
+    "test": "node --test test/*.test.cjs"
   },
   "dependencies": {
     "@polkadot/api": "17.0.2",

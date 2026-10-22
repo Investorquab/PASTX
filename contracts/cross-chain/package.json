@@ -20,10 +20,10 @@
     "deploy:market:bnb": "hardhat --config hardhat.bnb.config.js run scripts/deploy-market-bnb.js --network bscTestnet",
     "relay": "node scripts/relay.mjs",
     "test:relay-cursor": "node --test test/relay-cursor.test.mjs",
-    "install:native:portal": "npm --prefix native-polkadot install --no-audit --no-fund",
-    "preflight:native:portal": "npm --prefix native-polkadot install --no-audit --no-fund && npm run compile:native:portal && node native-polkadot/scripts/preflight.cjs",
-    "deploy:native:portal": "npm --prefix native-polkadot install --no-audit --no-fund && npm run compile:native:portal && node native-polkadot/scripts/deploy-market.cjs",
-    "verify:native:portal": "npm --prefix native-polkadot install --no-audit --no-fund && npm run compile:native:portal && node native-polkadot/scripts/verify-market.cjs"
+    "install:native:portal": "npm --prefix native-polkadot install --no-audit --no-fund --no-package-lock",
+    "preflight:native:portal": "npm --prefix native-polkadot install --no-audit --no-fund --no-package-lock && npm run compile:native:portal && node native-polkadot/scripts/preflight.cjs",
+    "deploy:native:portal": "npm --prefix native-polkadot install --no-audit --no-fund --no-package-lock && npm run compile:native:portal && node native-polkadot/scripts/deploy-market.cjs",
+    "verify:native:portal": "npm --prefix native-polkadot install --no-audit --no-fund --no-package-lock && npm run compile:native:portal && node native-polkadot/scripts/verify-market.cjs"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "6.1.0",
