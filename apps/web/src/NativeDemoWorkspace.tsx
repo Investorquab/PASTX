@@ -7,7 +7,6 @@ import "./native-demo.css";
 const RPC_URL = import.meta.env.VITE_PASTX_NATIVE_WS_RPC_URL?.trim() || "wss://test-node-v3.portaldot.dev";
 const CONTRACT_ADDRESS = import.meta.env.VITE_PASTX_NATIVE_CONTRACT_ADDRESS?.trim() || "";
 const EXPECTED_GENESIS = import.meta.env.VITE_PASTX_NATIVE_EXPECTED_GENESIS_HASH?.trim().toLowerCase() || "";
-const NATIVE_UNIT = 100_000_000_000_000n;
 const STOCKS = [
   { id: 0, symbol: "pAAPL", name: "Apple Demo", price: 200 },
   { id: 1, symbol: "pNVDA", name: "NVIDIA Demo", price: 180 },
