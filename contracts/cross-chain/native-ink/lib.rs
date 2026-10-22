@@ -8,13 +8,11 @@ mod pastx_budget_market {
     const MAX_CLAIMS: u16 = 1_000;
     const CLAIM_COOLDOWN_MS: u64 = 3_600_000;
 
-    /// One-contract, testnet-only PASTX demo with whole-unit pUSD accounting.
+    /// Compact one-contract PASTX native demo.
     ///
-    /// This is an in-app credit ledger, not an ERC-20 token. It has no external
-    /// token transfer/allowance interface, no redemption, and no real money.
-    /// Stock holdings are synthetic paper positions, not equity or stock tokens.
-    /// Prices are fixed: buying converts pUSD into positions; selling converts
-    /// those positions back to pUSD at exactly the same price, so trades do not mint.
+    /// pUSD is an app-only whole-unit credit ledger, not ERC-20 and not real
+    /// money. Listings are synthetic fixed-price paper shares, not equity.
+    /// Command modes: 0=read only in a dry-run query, 1=claim, 2=buy, 3=sell.
     #[ink(storage)]
     pub struct PastxBudgetMarket {
         accounts: Mapping<AccountId, (u32, u64)>,
@@ -38,95 +36,77 @@ mod pastx_budget_market {
             }
         }
 
-        /// Read pUSD balance, synthetic shares, and fixed quote for one listing.
-        /// IDs: 0=AAPL, 1=NVDA, 2=TSLA, 3=MSFT.
+        /// Returns (success, pUSD balance, paper shares for stock_id, quote).
+        ///
+        /// IDs and fixed quotes: 0=AAPL/200 pUSD, 1=NVDA/180, 2=TSLA/250,
+        /// 3=MSFT/400. Unknown IDs return a zero quote.
+        ///
+        /// Modes:
+        /// 0: simulation-only portfolio read. Do not submit as a transaction.
+        /// 1: claim 1,000 pUSD, first claim immediately and then once/hour per
+        ///    account. Only 1,000 claims can ever succeed globally (1M pUSD).
+        /// 2: buy whole shares at fixed price using existing pUSD balance.
+        /// 3: sell shares held by the caller at that same fixed price.
+        ///
+        /// pUSD cannot be externally transferred and has no redemption value.
+        /// Buying debits pUSD; selling credits only for shares actually held.
         #[ink(message)]
-        pub fn portfolio_of(&self, trader: AccountId, stock_id: u8) -> (u32, u32, u32) {
-            (
-                self.accounts.get(trader).unwrap_or((0, 0)).0,
-                self.holdings.get((trader, stock_id)).unwrap_or(0),
-                Self::price_for(stock_id),
-            )
-        }
-
-        /// Claim 1,000 whole pUSD. First claim is immediate; the same account
-        /// can claim again after one hour. At most 1,000 claims can ever succeed,
-        /// so total pUSD issued by the faucet is capped at 1,000,000.
-        #[ink(message)]
-        pub fn claim(&mut self) -> bool {
+        pub fn command(
+            &mut self,
+            action: u8,
+            stock_id: u8,
+            quantity: u32,
+        ) -> (bool, u32, u32, u32) {
             let trader = self.env().caller();
-            let now = self.env().block_timestamp();
+            let price = Self::price_for(stock_id);
             let (balance, next_claim_at): (u32, u64) =
                 self.accounts.get(trader).unwrap_or((0, 0));
-            if next_claim_at != 0 && now < next_claim_at {
-                return false;
-            }
-            if self.remaining_claims == 0 {
-                return false;
-            }
-            let Some(next_claim_count) = self.remaining_claims.checked_sub(1) else {
-                return false;
-            };
-            let Some(next_claim_at) = now.checked_add(CLAIM_COOLDOWN_MS) else {
-                return false;
-            };
-            let Some(next_balance) = balance.checked_add(CLAIM_AMOUNT) else {
-                return false;
-            };
+            let current_shares: u32 = self.holdings.get((trader, stock_id)).unwrap_or(0);
 
-            self.remaining_claims = next_claim_count;
-            self.accounts.insert(trader, &(next_balance, next_claim_at));
-            true
-        }
+            if action == 0 {
+                return (true, balance, current_shares, price);
+            }
 
-        /// Buy (is_buy = true) or sell (is_buy = false) whole synthetic shares.
-        /// A buy deducts the fixed pUSD price and adds a position. A sell requires
-        /// the position and returns the exact same fixed-price amount. Since each
-        /// user can only sell the positions they bought and prices never change,
-        /// a sale restores previously committed pUSD; it does not mint new supply.
-        #[ink(message)]
-        pub fn trade(&mut self, stock_id: u8, is_buy: bool, quantity: u32) -> bool {
-            let price = Self::price_for(stock_id);
-            if price == 0 || quantity == 0 {
-                return false;
+            if action == 1 {
+                let now = self.env().block_timestamp();
+                if (next_claim_at != 0 && now < next_claim_at) || self.remaining_claims == 0 {
+                    return (false, balance, current_shares, price);
+                }
+                let (Some(next_balance), Some(next_claim_at), Some(remaining)) = (
+                    balance.checked_add(CLAIM_AMOUNT),
+                    now.checked_add(CLAIM_COOLDOWN_MS),
+                    self.remaining_claims.checked_sub(1),
+                ) else {
+                    return (false, balance, current_shares, price);
+                };
+                self.accounts.insert(trader, &(next_balance, next_claim_at));
+                self.remaining_claims = remaining;
+                return (true, next_balance, current_shares, price);
+            }
+
+            if (action != 2 && action != 3) || price == 0 || quantity == 0 {
+                return (false, balance, current_shares, price);
             }
             let Some(cost) = price.checked_mul(quantity) else {
-                return false;
+                return (false, balance, current_shares, price);
             };
 
-            let trader = self.env().caller();
-            let key = (trader, stock_id);
-            let current_holdings: u32 = self.holdings.get(key).unwrap_or(0);
-            let (current_balance, next_claim_at): (u32, u64) = self.accounts.get(trader).unwrap_or((0, 0));
-
-            if is_buy {
-                let Some(next_holdings) = current_holdings.checked_add(quantity) else {
-                    return false;
-                };
-                if current_balance < cost {
-                    return false;
-                }
-                let Some(next_balance) = current_balance.checked_sub(cost) else {
-                    return false;
-                };
-                self.accounts.insert(trader, &(next_balance, next_claim_at));
-                self.holdings.insert(key, &next_holdings);
-                true
+            let (next_shares, next_balance) = if action == 2 {
+                (current_shares.checked_add(quantity), balance.checked_sub(cost))
             } else {
-                let Some(next_holdings) = current_holdings.checked_sub(quantity) else {
-                    return false;
-                };
-                let Some(next_balance) = current_balance.checked_add(cost) else {
-                    return false;
-                };
-                self.accounts.insert(trader, &(next_balance, next_claim_at));
-                if next_holdings == 0 {
-                    self.holdings.remove(key);
-                } else {
-                    self.holdings.insert(key, &next_holdings);
-                }
-                true
+                (current_shares.checked_sub(quantity), balance.checked_add(cost))
+            };
+            let (Some(next_shares), Some(next_balance)) = (next_shares, next_balance) else {
+                return (false, balance, current_shares, price);
+            };
+
+            self.accounts.insert(trader, &(next_balance, next_claim_at));
+            if next_shares == 0 {
+                self.holdings.remove((trader, stock_id));
+            } else {
+                self.holdings.insert((trader, stock_id), &next_shares);
             }
+            (true, next_balance, next_shares, price)
         }
     }
 
@@ -166,34 +146,30 @@ mod pastx_budget_market {
             ink::env::test::set_caller::<ink::env::DefaultEnvironment>(alice);
             set_time(10_000);
 
-            assert!(market.claim());
-            assert_eq!(market.portfolio_of(alice, 0).0, CLAIM_AMOUNT);
-            assert_eq!(market.remaining_claims, MAX_CLAIMS - 1);
-            assert!(!market.claim());
-
+            assert_eq!(market.command(1, 0, 0), (true, 1_000, 0, 200));
+            assert_eq!(market.command(1, 0, 0), (false, 1_000, 0, 200));
             set_time(10_000 + CLAIM_COOLDOWN_MS - 1);
-            assert!(!market.claim());
+            assert_eq!(market.command(1, 0, 0), (false, 1_000, 0, 200));
             set_time(10_000 + CLAIM_COOLDOWN_MS);
-            assert!(market.claim());
-            assert_eq!(market.portfolio_of(alice, 0).0, 2 * CLAIM_AMOUNT);
+            assert_eq!(market.command(1, 0, 0), (true, 2_000, 0, 200));
             assert_eq!(market.remaining_claims, MAX_CLAIMS - 2);
         }
 
         #[ink::test]
-        fn global_cap_allows_exactly_1000_total_claims() {
+        fn global_cap_allows_exactly_one_thousand_claims() {
             let mut market = PastxBudgetMarket::new();
             let alice = account(0);
             ink::env::test::set_caller::<ink::env::DefaultEnvironment>(alice);
 
             for claim_index in 0..1_000u64 {
                 set_time(claim_index * CLAIM_COOLDOWN_MS);
-                assert!(market.claim());
+                assert!(market.command(1, 0, 0).0);
             }
             assert_eq!(market.remaining_claims, 0);
             set_time(1_000 * CLAIM_COOLDOWN_MS);
-            assert!(!market.claim());
+            assert!(!market.command(1, 0, 0).0);
             ink::env::test::set_caller::<ink::env::DefaultEnvironment>(account(1));
-            assert!(!market.claim());
+            assert!(!market.command(1, 0, 0).0);
             assert_eq!(market.remaining_claims, 0);
         }
 
@@ -202,15 +178,10 @@ mod pastx_budget_market {
             let mut market = PastxBudgetMarket::new();
             let alice = account(0);
             ink::env::test::set_caller::<ink::env::DefaultEnvironment>(alice);
-            assert!(market.claim());
+            assert!(market.command(1, 0, 0).0);
 
-            assert!(market.trade(0, true, 3));
-            assert_eq!(market.portfolio_of(alice, 0).1, 3);
-            assert_eq!(market.portfolio_of(alice, 0).0, 400);
-
-            assert!(market.trade(0, false, 2));
-            assert_eq!(market.portfolio_of(alice, 0).1, 1);
-            assert_eq!(market.portfolio_of(alice, 0).0, 800);
+            assert_eq!(market.command(2, 0, 3), (true, 400, 3, 200));
+            assert_eq!(market.command(3, 0, 2), (true, 800, 1, 200));
             assert_eq!(market.remaining_claims, MAX_CLAIMS - 1);
         }
 
@@ -219,25 +190,33 @@ mod pastx_budget_market {
             let mut market = PastxBudgetMarket::new();
             let alice = account(0);
             ink::env::test::set_caller::<ink::env::DefaultEnvironment>(alice);
-            assert!(market.claim());
-            assert!(!market.trade(0, true, 6));
-            assert!(!market.trade(0, false, 1));
-            assert!(!market.trade(9, true, 1));
-            assert!(!market.trade(0, true, 0));
-            assert_eq!(market.portfolio_of(alice, 0).0, CLAIM_AMOUNT);
-            assert_eq!(market.portfolio_of(alice, 0).1, 0);
+            assert!(market.command(1, 0, 0).0);
+            assert!(!market.command(2, 0, 6).0);
+            assert!(!market.command(3, 0, 1).0);
+            assert!(!market.command(2, 9, 1).0);
+            assert!(!market.command(2, 0, 0).0);
+            assert_eq!(market.command(0, 0, 0), (true, CLAIM_AMOUNT, 0, 200));
             assert_eq!(market.remaining_claims, MAX_CLAIMS - 1);
         }
 
         #[ink::test]
-        fn portfolio_reports_balance_shares_and_fixed_price() {
-            let market = PastxBudgetMarket::new();
+        fn portfolio_mode_is_read_only_and_returns_fixed_quotes() {
+            let mut market = PastxBudgetMarket::new();
             let alice = account(0);
-            assert_eq!(market.portfolio_of(alice, 0), (0, 0, 200));
-            assert_eq!(market.portfolio_of(alice, 1), (0, 0, 180));
-            assert_eq!(market.portfolio_of(alice, 2), (0, 0, 250));
-            assert_eq!(market.portfolio_of(alice, 3), (0, 0, 400));
-            assert_eq!(market.portfolio_of(alice, 4), (0, 0, 0));
+            assert_eq!(market.command(0, 0, 0), (true, 0, 0, 200));
+            assert_eq!(market.command(0, 1, 0), (true, 0, 0, 180));
+            assert_eq!(market.command(0, 2, 0), (true, 0, 0, 250));
+            assert_eq!(market.command(0, 3, 0), (true, 0, 0, 400));
+            assert_eq!(market.command(0, 9, 0), (true, 0, 0, 0));
+            ink::env::test::set_caller::<ink::env::DefaultEnvironment>(alice);
+            assert_eq!(market.command(0, 0, 0), (true, 0, 0, 200));
+            assert_eq!(market.remaining_claims, MAX_CLAIMS);
+        }
+
+        #[ink::test]
+        fn unsupported_actions_do_not_change_state() {
+            let mut market = PastxBudgetMarket::new();
+            assert_eq!(market.command(8, 0, 1), (false, 0, 0, 200));
             assert_eq!(market.remaining_claims, MAX_CLAIMS);
         }
     }
