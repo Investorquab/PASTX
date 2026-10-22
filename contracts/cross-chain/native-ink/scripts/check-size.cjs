@@ -44,8 +44,8 @@ try {
 const wasm = normalized.wasm;
 fs.writeFileSync(wasmPath, wasm);
 const wasmModule = new WebAssembly.Module(wasm);
-const exports = WebAssembly.Module.exports(wasmModule);
-const exportNames = exports.map((entry) => entry.name).sort();
+const wasmExports = WebAssembly.Module.exports(wasmModule);
+const exportNames = wasmExports.map((entry) => entry.name).sort();
 
 const deposit = wasm.length * OBSERVED_DEPOSIT_PER_BYTE;
 const maxBytesAtTarget = Math.floor(TARGET_BUDGET_TPOT / OBSERVED_DEPOSIT_PER_BYTE);
@@ -59,7 +59,7 @@ console.log(JSON.stringify({
   wasmBytesBeforeExportNormalization: initialWasm.length,
   wasmBytes: wasm.length,
   exportsBeforeNormalization: beforeExports,
-  exportsAfterNormalization: exports.map((entry) => ({ name: entry.name, kind: entry.kind })),
+  exportsAfterNormalization: wasmExports.map((entry) => ({ name: entry.name, kind: entry.kind })),
   removedExports: normalized.removed,
   observedDepositPerByteTpot: OBSERVED_DEPOSIT_PER_BYTE,
   estimatedCodeDepositTpot: Number(deposit.toFixed(4)),
@@ -76,7 +76,7 @@ if (
   exportNames.length !== 2 ||
   exportNames[0] !== "call" ||
   exportNames[1] !== "deploy" ||
-  exports.some((entry) => entry.kind !== "function")
+  wasmExports.some((entry) => entry.kind !== "function")
 ) {
   fail("WASM must export exactly function entry points deploy and call.");
 }
