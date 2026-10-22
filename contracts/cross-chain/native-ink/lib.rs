@@ -109,8 +109,7 @@ mod pastx_budget_market {
         #[ink::test]
         fn buying_and_selling_updates_only_the_callers_position() {
             let mut market = PastxBudgetMarket::new();
-            let accounts = ink::env::test::default_accounts::<ink::env::DefaultEnvironment>()
-                .expect("test accounts should exist");
+            let accounts = ink::env::test::default_accounts::<ink::env::DefaultEnvironment>();
 
             ink::env::test::set_caller::<ink::env::DefaultEnvironment>(accounts.alice);
             assert!(market.trade(0, true, 7));
@@ -123,8 +122,7 @@ mod pastx_budget_market {
         #[ink::test]
         fn invalid_trades_do_not_change_positions() {
             let mut market = PastxBudgetMarket::new();
-            let accounts = ink::env::test::default_accounts::<ink::env::DefaultEnvironment>()
-                .expect("test accounts should exist");
+            let accounts = ink::env::test::default_accounts::<ink::env::DefaultEnvironment>();
 
             ink::env::test::set_caller::<ink::env::DefaultEnvironment>(accounts.alice);
             assert!(!market.trade(7, true, 1));
