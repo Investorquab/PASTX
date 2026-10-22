@@ -5,7 +5,7 @@ mod pastx_budget_market {
     use ink::storage::Mapping;
 
     const CLAIM_AMOUNT: u32 = 1_000;
-    const PUSD_CAP: u32 = 1_000_000;
+    const MAX_CLAIMS: u16 = 1_000;
     const CLAIM_COOLDOWN_MS: u64 = 3_600_000;
 
     /// One-contract, testnet-only PASTX demo with whole-unit pUSD accounting.
@@ -13,14 +13,14 @@ mod pastx_budget_market {
     /// This is an in-app credit ledger, not an ERC-20 token. It has no external
     /// token transfer/allowance interface, no redemption, and no real money.
     /// Stock holdings are synthetic paper positions, not equity or stock tokens.
-    /// Buys move pUSD into the market reserve; sells pay from that reserve.
+    /// Prices are fixed: buying converts pUSD into positions; selling converts
+    /// those positions back to pUSD at exactly the same price, so trades do not mint.
     #[ink(storage)]
     pub struct PastxBudgetMarket {
         balances: Mapping<AccountId, u32>,
         last_claim_at_plus_one: Mapping<AccountId, u64>,
         holdings: Mapping<(AccountId, u8), u32>,
-        total_supply: u32,
-        market_reserve: u32,
+        successful_claims: u16,
     }
 
     impl Default for PastxBudgetMarket {
@@ -36,8 +36,7 @@ mod pastx_budget_market {
                 balances: Mapping::default(),
                 last_claim_at_plus_one: Mapping::default(),
                 holdings: Mapping::default(),
-                total_supply: 0,
-                market_reserve: 0,
+                successful_claims: 0,
             }
         }
 
@@ -47,9 +46,8 @@ mod pastx_budget_market {
         }
 
         /// Claim 1,000 whole pUSD. First claim is immediate; the same account
-        /// can claim again after one hour. Total minted balance never exceeds
-        /// the fixed 1,000,000 pUSD cap. Returns false without changing state
-        /// when the cooldown or cap check fails.
+        /// can claim again after one hour. At most 1,000 claims can ever succeed,
+        /// so total pUSD issued by the faucet is capped at 1,000,000.
         #[ink(message)]
         pub fn claim(&mut self) -> bool {
             let trader = self.env().caller();
@@ -68,12 +66,12 @@ mod pastx_budget_market {
                 }
             }
 
-            let Some(next_supply) = self.total_supply.checked_add(CLAIM_AMOUNT) else {
-                return false;
-            };
-            if next_supply > PUSD_CAP {
+            if self.successful_claims >= MAX_CLAIMS {
                 return false;
             }
+            let Some(next_claim_count) = self.successful_claims.checked_add(1) else {
+                return false;
+            };
             let Some(next_marker) = now.checked_add(1) else {
                 return false;
             };
@@ -82,7 +80,7 @@ mod pastx_budget_market {
                 return false;
             };
 
-            self.total_supply = next_supply;
+            self.successful_claims = next_claim_count;
             self.balances.insert(trader, &next_balance);
             self.last_claim_at_plus_one.insert(trader, &next_marker);
             true
@@ -102,18 +100,20 @@ mod pastx_budget_market {
         }
 
         /// Buy (is_buy = true) or sell (is_buy = false) whole synthetic shares.
-        /// Buys require enough pUSD and add it to the market reserve. Sells
-        /// require enough shares and reserve pUSD. Trading never mints pUSD.
+        /// A buy deducts the fixed pUSD price and adds a position. A sell requires
+        /// the position and returns the exact same fixed-price amount. Since each
+        /// user can only sell the positions they bought and prices never change,
+        /// a sale restores previously committed pUSD; it does not mint new supply.
         #[ink(message)]
         pub fn trade(&mut self, stock_id: u8, is_buy: bool, quantity: u32) -> bool {
             let price = Self::price_for(stock_id);
             if price == 0 || quantity == 0 {
                 return false;
             }
-
             let Some(cost) = price.checked_mul(quantity) else {
                 return false;
             };
+
             let trader = self.env().caller();
             let key = (trader, stock_id);
             let current_holdings: u32 = self.holdings.get(key).unwrap_or(0);
@@ -126,13 +126,9 @@ mod pastx_budget_market {
                 if current_balance < cost {
                     return false;
                 }
-                let Some(next_reserve) = self.market_reserve.checked_add(cost) else {
-                    return false;
-                };
                 let Some(next_balance) = current_balance.checked_sub(cost) else {
                     return false;
                 };
-                self.market_reserve = next_reserve;
                 self.balances.insert(trader, &next_balance);
                 self.holdings.insert(key, &next_holdings);
                 true
@@ -140,16 +136,9 @@ mod pastx_budget_market {
                 let Some(next_holdings) = current_holdings.checked_sub(quantity) else {
                     return false;
                 };
-                if self.market_reserve < cost {
-                    return false;
-                }
                 let Some(next_balance) = current_balance.checked_add(cost) else {
                     return false;
                 };
-                let Some(next_reserve) = self.market_reserve.checked_sub(cost) else {
-                    return false;
-                };
-                self.market_reserve = next_reserve;
                 self.balances.insert(trader, &next_balance);
                 if next_holdings == 0 {
                     self.holdings.remove(key);
@@ -199,7 +188,7 @@ mod pastx_budget_market {
 
             assert!(market.claim());
             assert_eq!(market.balance_of(alice), CLAIM_AMOUNT);
-            assert_eq!(market.total_supply, CLAIM_AMOUNT);
+            assert_eq!(market.successful_claims, 1);
             assert!(!market.claim());
 
             set_time(10_000 + CLAIM_COOLDOWN_MS - 1);
@@ -207,11 +196,11 @@ mod pastx_budget_market {
             set_time(10_000 + CLAIM_COOLDOWN_MS);
             assert!(market.claim());
             assert_eq!(market.balance_of(alice), 2 * CLAIM_AMOUNT);
-            assert_eq!(market.total_supply, 2 * CLAIM_AMOUNT);
+            assert_eq!(market.successful_claims, 2);
         }
 
         #[ink::test]
-        fn global_cap_stops_claims_at_one_million() {
+        fn global_cap_allows_exactly_1000_successful_claims() {
             let mut market = PastxBudgetMarket::new();
             let alice = account(0);
             ink::env::test::set_caller::<ink::env::DefaultEnvironment>(alice);
@@ -220,33 +209,29 @@ mod pastx_budget_market {
                 set_time(claim_index * CLAIM_COOLDOWN_MS);
                 assert!(market.claim());
             }
-            assert_eq!(market.total_supply, PUSD_CAP);
+            assert_eq!(market.successful_claims, MAX_CLAIMS);
             set_time(1_000 * CLAIM_COOLDOWN_MS);
             assert!(!market.claim());
             ink::env::test::set_caller::<ink::env::DefaultEnvironment>(account(1));
             assert!(!market.claim());
-            assert_eq!(market.total_supply, PUSD_CAP);
+            assert_eq!(market.successful_claims, MAX_CLAIMS);
         }
 
         #[ink::test]
-        fn trades_use_market_reserve_and_never_mint_pusd() {
+        fn trades_convert_balance_to_shares_and_back_without_extra_minting() {
             let mut market = PastxBudgetMarket::new();
             let alice = account(0);
             ink::env::test::set_caller::<ink::env::DefaultEnvironment>(alice);
             assert!(market.claim());
-            set_time(CLAIM_COOLDOWN_MS);
-            assert!(market.claim());
 
-            assert!(market.trade(0, true, 7));
-            assert_eq!(market.holdings_of(alice, 0), 7);
-            assert_eq!(market.balance_of(alice), 600);
-            assert_eq!(market.market_reserve, 1_400);
+            assert!(market.trade(0, true, 3));
+            assert_eq!(market.holdings_of(alice, 0), 3);
+            assert_eq!(market.balance_of(alice), 400);
 
             assert!(market.trade(0, false, 2));
-            assert_eq!(market.holdings_of(alice, 0), 5);
-            assert_eq!(market.balance_of(alice), 1_000);
-            assert_eq!(market.market_reserve, 1_000);
-            assert_eq!(market.total_supply, 2 * CLAIM_AMOUNT);
+            assert_eq!(market.holdings_of(alice, 0), 1);
+            assert_eq!(market.balance_of(alice), 800);
+            assert_eq!(market.successful_claims, 1);
         }
 
         #[ink::test]
@@ -261,7 +246,7 @@ mod pastx_budget_market {
             assert!(!market.trade(0, true, 0));
             assert_eq!(market.balance_of(alice), CLAIM_AMOUNT);
             assert_eq!(market.holdings_of(alice, 0), 0);
-            assert_eq!(market.total_supply, CLAIM_AMOUNT);
+            assert_eq!(market.successful_claims, 1);
         }
 
         #[ink::test]
@@ -272,7 +257,7 @@ mod pastx_budget_market {
             assert_eq!(market.quote(2), 250);
             assert_eq!(market.quote(3), 400);
             assert_eq!(market.quote(4), 0);
-            assert_eq!(market.total_supply, 0);
+            assert_eq!(market.successful_claims, 0);
         }
     }
 }
