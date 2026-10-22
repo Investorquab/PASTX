@@ -172,13 +172,18 @@ async function main() {
       account.data.miscFrozen
     ].filter(Boolean).map(bigint).reduce((a, b) => a > b ? a : b, 0n);
     const spendable = free > frozen ? free - frozen : 0n;
-    const keepReserve = parseUnits(process.env.PORTALDOT_NATIVE_KEEP_RESERVE || "1", decimals);
+    const minimumProtectedReserve = parseUnits("75", decimals);
+    const keepReserve = parseUnits(process.env.PORTALDOT_NATIVE_KEEP_RESERVE || "75", decimals);
+    if (keepReserve < minimumProtectedReserve) {
+      fail("Protected reserve is below the agreed 75 tPOT minimum. Set PORTALDOT_NATIVE_KEEP_RESERVE=75 in contracts/cross-chain/.env; no constructor simulation or transaction was submitted.");
+    }
 
     const perByte = api.consts.contracts?.depositPerByte;
     const perItem = api.consts.contracts?.depositPerItem;
     if (!perByte || !perItem) fail("Runtime contract deposit constants are unavailable.");
 
     const estimatedCodeDeposit = bigint(perByte) * BigInt(wasm.length) + bigint(perItem);
+    const maxStorageDepositBudget = spendable > keepReserve ? spendable - keepReserve : 0n;
     const report = {
       status: "read-only-preflight",
       transactionsSent: false,
@@ -195,7 +200,8 @@ async function main() {
       runtimeDepositPerByte: formatUnits(bigint(perByte), decimals, decimals),
       runtimeDepositPerItem: formatUnits(bigint(perItem), decimals, decimals),
       estimatedCodeDeposit: formatUnits(estimatedCodeDeposit, decimals) + " " + symbol,
-      configuredProtectedReserve: formatUnits(keepReserve, decimals) + " " + symbol
+      configuredProtectedReserve: formatUnits(keepReserve, decimals) + " " + symbol,
+      availableStorageDepositBudgetAfterReserve: formatUnits(maxStorageDepositBudget, decimals) + " " + symbol
     };
     console.log(JSON.stringify(report, null, 2));
 
@@ -234,7 +240,7 @@ async function main() {
       signer.address,
       0,
       maxBlockWeight(api),
-      null,
+      maxStorageDepositBudget,
       uploadCode,
       args[4],
       args[5]
