@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - ui/firstbell-inspired-market-terminal
     paths:
       - ".github/workflows/native-ink-size-check.yml"
       - "contracts/cross-chain/native-ink/**"
