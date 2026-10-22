@@ -226,7 +226,7 @@ mod pastx_budget_market {
             assert!(!market.trade(0, true, 0));
             assert_eq!(market.portfolio_of(alice, 0).0, CLAIM_AMOUNT);
             assert_eq!(market.portfolio_of(alice, 0).1, 0);
-            assert_eq!(market.remaining_claims, 1);
+            assert_eq!(market.remaining_claims, MAX_CLAIMS - 1);
         }
 
         #[ink::test]
