@@ -2,10 +2,17 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const { retainContractEntrypoints } = require(path.join(
+  __dirname,
+  "..",
+  "..",
+  "native-polkadot",
+  "scripts",
+  "wasm-exports.cjs"
+));
 
 const ROOT = path.resolve(__dirname, "..");
 const wasmPath = path.join(ROOT, "target", "ink", "pastx_budget_market.wasm");
-const bundlePath = path.join(ROOT, "target", "ink", "pastx_budget_market.contract");
 
 // Observed from PortaldotV3 Test runtime at specVersion 3002 on 2026-10-22.
 // depositPerByte = 6,000,000,000,000 raw units; token decimals = 14.
@@ -20,20 +27,25 @@ function fail(message) {
   process.exit(1);
 }
 
-if (!fs.existsSync(wasmPath)) fail("Missing release WASM: " + wasmPath);
-if (!fs.existsSync(bundlePath)) fail("Missing .contract bundle: " + bundlePath);
+if (!fs.existsSync(wasmPath)) fail("Missing size-optimized WASM: " + wasmPath);
 
-const wasm = fs.readFileSync(wasmPath);
+const initialWasm = fs.readFileSync(wasmPath);
+const beforeExports = WebAssembly.Module.exports(
+  new WebAssembly.Module(initialWasm)
+).map((entry) => entry.name);
+
+let normalized;
+try {
+  normalized = retainContractEntrypoints(initialWasm);
+} catch (error) {
+  fail("Compiled ink! WASM is not compatible with the Substrate Contracts entrypoint convention: " + error.message);
+}
+
+const wasm = normalized.wasm;
+fs.writeFileSync(wasmPath, wasm);
 const module = new WebAssembly.Module(wasm);
 const exports = WebAssembly.Module.exports(module);
 const exportNames = exports.map((entry) => entry.name).sort();
-
-const bundle = JSON.parse(fs.readFileSync(bundlePath, "utf8"));
-if (!bundle.source || typeof bundle.source.wasm !== "string") {
-  fail("Contract bundle does not contain source.wasm.");
-}
-const bundledWasm = Buffer.from(bundle.source.wasm.replace(/^0x/i, ""), "hex");
-if (!bundledWasm.equals(wasm)) fail("The .contract bundle's WASM differs from the .wasm file.");
 
 const deposit = wasm.length * OBSERVED_DEPOSIT_PER_BYTE;
 const maxBytesAtTarget = Math.floor(TARGET_BUDGET_TPOT / OBSERVED_DEPOSIT_PER_BYTE);
@@ -44,18 +56,20 @@ const maxBytesAfterReserve = Math.floor(
 
 console.log(JSON.stringify({
   contract: "PastxBudgetMarket",
+  wasmBytesBeforeExportNormalization: initialWasm.length,
   wasmBytes: wasm.length,
-  exports: exports.map((entry) => ({ name: entry.name, kind: entry.kind })),
-  codeHash: bundle.source.hash || null,
-  bundleMatchesWasm: true,
+  exportsBeforeNormalization: beforeExports,
+  exportsAfterNormalization: exports.map((entry) => ({ name: entry.name, kind: entry.kind })),
+  removedExports: normalized.removed,
   observedDepositPerByteTpot: OBSERVED_DEPOSIT_PER_BYTE,
   estimatedCodeDepositTpot: Number(deposit.toFixed(4)),
-  budgetFor300TpotMaxBytesBeforeOtherCosts: maxBytesAtTarget,
-  "budgetFor400TpotMaxBytesBeforeOtherCosts": maxBytesAtBalance,
-  "budgetFor400TpotWith75TpotReserveMaxBytesBeforeStorageDataAndFees": maxBytesAfterReserve,
+  budget300TpotMaxBytesBeforeOtherCosts: maxBytesAtTarget,
+  budget400TpotMaxBytesBeforeOtherCosts: maxBytesAtBalance,
+  budget400TpotWith75TpotReserveMaxBytesBeforeStorageDataAndFees: maxBytesAfterReserve,
   target300TpotMet: deposit <= TARGET_BUDGET_TPOT,
   budget400TpotWith75TpotReserveMet: deposit <= BALANCE_BUDGET_TPOT - REQUIRED_RESERVE_TPOT,
-  note: "Estimate uses the observed testnet deposit constant. It excludes contract storage entries, transaction fees, and any runtime changes."
+  artifactRole: "Size-feasibility experiment only; not a deployable .contract bundle and not deployment authorization.",
+  note: "Estimate uses the observed PortaldotV3 Test deposit constant. It excludes contract storage entries, fees, and runtime changes."
 }, null, 2));
 
 if (

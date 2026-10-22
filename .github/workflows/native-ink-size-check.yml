@@ -8,10 +8,12 @@ on:
     paths:
       - ".github/workflows/native-ink-size-check.yml"
       - "contracts/cross-chain/native-ink/**"
+      - "contracts/cross-chain/native-polkadot/scripts/wasm-exports.cjs"
   pull_request:
     paths:
       - ".github/workflows/native-ink-size-check.yml"
       - "contracts/cross-chain/native-ink/**"
+      - "contracts/cross-chain/native-polkadot/scripts/wasm-exports.cjs"
   workflow_dispatch:
 
 permissions:
@@ -21,7 +23,7 @@ jobs:
   compact-market:
     name: Build and measure compact ink! market
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: contracts/cross-chain/native-ink
@@ -40,14 +42,20 @@ jobs:
           workspaces: |
             contracts/cross-chain/native-ink -> target
 
-      - name: Install cargo-contract for ink! v5
-        run: cargo install cargo-contract --locked --version 5.0.3
+      - name: Install Binaryen WASM optimizer
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes binaryen
+          wasm-opt --version
 
       - name: Run native market unit tests
         run: cargo test
 
-      - name: Build size-optimized contract
-        run: cargo contract build --release
+      - name: Compile optimized no-std WASM
+        run: |
+          cargo build --release --target wasm32-unknown-unknown --no-default-features
+          mkdir -p target/ink
+          wasm-opt -Oz --strip-debug target/wasm32-unknown-unknown/release/pastx_budget_market.wasm -o target/ink/pastx_budget_market.wasm
 
       - name: Measure code deposit against Portaldot testnet constants
         run: node scripts/check-size.cjs
