@@ -59,7 +59,7 @@ async function main() {
     fail("Deployment manifest is missing core contract addresses.");
   }
 
-  const context = await connectNative();
+  const context = await connectNative({ requireGenesisPin: true });
   try {
     if (context.chain !== manifest.chain || context.genesisHash !== manifest.genesisHash) {
       fail("Connected native chain identity differs from the deployment manifest.");
@@ -110,9 +110,10 @@ async function main() {
       if (!sameAddress(context.api, await read(tokenContract, context, "market"), manifest.contracts.PastxMarket.address)) {
         fail(stock.key + " market check failed.");
       }
-      const row = await read(market, context, "getListing", bytes32FromText(stock.key));
-      if (!Array.isArray(row) || !sameAddress(row[0], saved.address) ||
-          !sameAddress(row[1], manifest.contracts.PastxDemoToken.address) ||
+      const rawRow = await read(market, context, "getListing", bytes32FromText(stock.key));
+      const row = listingParts(rawRow);
+      if (!row || !sameAddress(context.api, row[0], saved.address) ||
+          !sameAddress(context.api, row[1], manifest.contracts.PastxDemoToken.address) ||
           BigInt(row[2]) !== BigInt(saved.priceRaw) || row[3] !== true) {
         fail(stock.key + " listing check failed.");
       }

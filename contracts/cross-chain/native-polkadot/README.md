@@ -31,7 +31,7 @@ The compiler output is written to contracts/cross-chain/artifacts/native-polkado
 
 The native account is an sr25519/Substrate account with a 5... SS58 address. The local contracts/cross-chain/.env can provide PORTALDOT_DEPLOYER_MNEMONIC; the native tool derives it using the Substrate keyring, not ethers/Hardhat. Never paste or commit the mnemonic. PORTALDOT_NATIVE_EXPECTED_ADDRESS can optionally pin the expected native account address.
 
-The testnet endpoint is wss://test-node-v3.portaldot.dev. Every command checks the chain name, records the genesis hash, checks for the contracts pallet and verifies the native account balance. The EVM RPC and chain ID 420420777 are not used by this native package. Compare the printed genesis hash with the official Portaldot V3 Testnet network details before deploying.
+The testnet endpoint is wss://test-node-v3.portaldot.dev. Every command checks the chain name, records the genesis hash, checks for the contracts pallet and verifies the native account balance. The EVM RPC and chain ID 420420777 are not used by this native package. Compare the printed genesis hash with the official Portaldot V3 Testnet network details and set PORTALDOT_NATIVE_EXPECTED_GENESIS_HASH in the local .env before deploying. The deploy and verify commands refuse to run without this pin.
 
 ## Demo and security limits
 

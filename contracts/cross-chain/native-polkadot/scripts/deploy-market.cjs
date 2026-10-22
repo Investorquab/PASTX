@@ -280,9 +280,10 @@ async function verifyCore(context, manifest, token, market, faucet) {
     if (!safeEqualsAddress(context.api, await query(stockContract, context, "market"), manifest.contracts.PastxMarket.address)) {
       fail(stock.key + " market authority verification failed.");
     }
-    const row = await query(market, context, "getListing", bytes32FromText(stock.key));
-    if (!Array.isArray(row) || !safeEqualsAddress(row[0], stockInfo.address) ||
-        !safeEqualsAddress(row[1], manifest.contracts.PastxDemoToken.address) ||
+    const rawRow = await query(market, context, "getListing", bytes32FromText(stock.key));
+    const row = listingParts(rawRow);
+    if (!row || !safeEqualsAddress(context.api, row[0], stockInfo.address) ||
+        !safeEqualsAddress(context.api, row[1], manifest.contracts.PastxDemoToken.address) ||
         BigInt(row[2]) !== BigInt(stock.priceRaw) || row[3] !== true) {
       fail(stock.key + " listing verification failed.");
     }
@@ -310,7 +311,7 @@ async function verifyCore(context, manifest, token, market, faucet) {
 }
 
 async function main() {
-  const context = await connectNative();
+  const context = await connectNative({ requireGenesisPin: true });
   const runId = deploymentId();
   const outputDir = path.join(DEPLOYMENT_ROOT, runId);
   const latestFile = path.join(DEPLOYMENT_ROOT, "latest.json");

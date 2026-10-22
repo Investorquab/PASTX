@@ -15,6 +15,7 @@ const DEPLOYMENT_ROOT = path.join(CROSS_CHAIN_ROOT, "deployments", "native-polka
 const RPC_URL = (process.env.PORTALDOT_NATIVE_WS_RPC_URL || "wss://test-node-v3.portaldot.dev").trim();
 const EXPECTED_CHAIN = (process.env.PORTALDOT_NATIVE_EXPECTED_CHAIN || "PortaldotV3 Test").trim();
 const EXPECTED_ADDRESS = (process.env.PORTALDOT_NATIVE_EXPECTED_ADDRESS || "").trim();
+const EXPECTED_GENESIS_HASH = (process.env.PORTALDOT_NATIVE_EXPECTED_GENESIS_HASH || "").trim().toLowerCase();
 const RESERVE_TOKENS = (process.env.PORTALDOT_NATIVE_KEEP_RESERVE || "1").trim();
 
 const CONTRACT_NAMES = ["PastxDemoToken", "PastxMarket", "PastxFaucet", "PastxStockToken"];
@@ -122,7 +123,7 @@ function loadAllArtifacts() {
   return Object.fromEntries(CONTRACT_NAMES.map(name => [name, contractFiles(name)]));
 }
 
-async function connectNative() {
+async function connectNative(options = {}) {
   const mnemonic = (
     process.env.PORTALDOT_NATIVE_DEPLOYER_MNEMONIC ||
     process.env.PORTALDOT_DEPLOYER_MNEMONIC ||
@@ -160,6 +161,14 @@ async function connectNative() {
       api.query.system.account(signer.address)
     ]);
 
+    const genesisHashHex = genesisHash.toHex().toLowerCase();
+    if (EXPECTED_GENESIS_HASH && genesisHashHex !== EXPECTED_GENESIS_HASH) {
+      fail("Native genesis hash does not match PORTALDOT_NATIVE_EXPECTED_GENESIS_HASH. No transactions were submitted.");
+    }
+    if (options.requireGenesisPin && !EXPECTED_GENESIS_HASH) {
+      fail("Before deployment, run the native preflight, verify its genesis hash against the official Portaldot V3 testnet details, then set PORTALDOT_NATIVE_EXPECTED_GENESIS_HASH in local .env. No transactions were submitted.");
+    }
+
     const decimals = Number(api.registry.chainDecimals?.[0] ?? 14);
     const symbol = String(api.registry.chainTokens?.[0] ?? "tPOT");
     const free = bigint(account.data.free);
@@ -176,6 +185,7 @@ async function connectNative() {
       signer,
       chain,
       genesisHash: genesisHash.toHex(),
+      genesisPinned: Boolean(EXPECTED_GENESIS_HASH),
       blockNumber: bigint(header.number).toString(),
       specVersion: bigint(runtimeVersion.specVersion).toString(),
       decimals,
@@ -339,6 +349,7 @@ module.exports = {
   DEPLOYMENT_ROOT,
   EXPECTED_ADDRESS,
   EXPECTED_CHAIN,
+  EXPECTED_GENESIS_HASH,
   RPC_URL,
   checkBudget,
   connectNative,
