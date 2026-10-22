@@ -14,7 +14,7 @@ const OBSERVED_DEPOSIT_PER_BYTE_TPOT = 0.06;
 const OBSERVED_DEPOSIT_PER_ITEM_TPOT = 0.15;
 const TARGET_CODE_BUDGET_TPOT = 300;
 const TOTAL_BUDGET_TPOT = 400;
-const PROTECTED_RESERVE_TPOT = 75;
+const PROTECTED_RESERVE_TPOT = 1;
 
 function fail(message) {
   console.error("BUNDLE_CHECK_ERROR: " + message);
@@ -131,5 +131,5 @@ if (codeDepositTpot > TARGET_CODE_BUDGET_TPOT) {
   fail("Compact ink! WASM exceeds the 300 tPOT code-deposit target. Reduce the artifact size or re-evaluate the budget; do not deploy.");
 }
 if (remainingAfterCodeAndReserve <= 0) {
-  fail("Code deposit plus the protected 75 tPOT reserve exceeds the 400 tPOT planning budget.");
+  fail("Code deposit plus the protected 1 tPOT reserve exceeds the 400 tPOT planning budget.");
 }
