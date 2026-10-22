@@ -36,7 +36,7 @@ jobs:
       - name: Install Rust and WASM target
         uses: dtolnay/rust-toolchain@1.85.1
         with:
-          components: rust-src
+          components: rust-src, clippy
           targets: wasm32-unknown-unknown
 
       - name: Cache Rust dependencies
