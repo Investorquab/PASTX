@@ -41,7 +41,7 @@ Always use all three files from the **same successful workflow artifact**. After
 
 ## Read-only preflight
 
-1. Configure the native testnet mnemonic locally in `contracts/cross-chain/.env` using `PORTALDOT_NATIVE_DEPLOYER_MNEMONIC` or the existing `PORTALDOT_DEPLOYER_MNEMONIC`. Never share or commit this secret.
+1. Configure the native testnet mnemonic locally in `contracts/cross-chain/.env` using `PORTALDOT_DEPLOYER_MNEMONIC` (or `PORTALDOT_NATIVE_MNEMONIC`). Never share or commit this secret.
 2. Set `PORTALDOT_NATIVE_EXPECTED_ADDRESS` to the exact native `5...` address that actually holds the test tPOT.
 3. Verify `PORTALDOT_NATIVE_EXPECTED_GENESIS_HASH` against the official Portaldot V3 testnet identity, not merely an RPC's self-reported name.
 4. From `contracts/cross-chain`, run:
