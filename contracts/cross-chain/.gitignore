@@ -5,7 +5,8 @@ cache/
 coverage/
 typechain-types/
 ignition/deployments/
-
-# Local relay progress checkpoint (contains no keys).
 .pastx-relay-cursor.json
 .pastx-relay-cursor.json.tmp
+
+# Generated locally after deployment; commit only manually reviewed evidence.
+deployments/portal-v3-testnet/
