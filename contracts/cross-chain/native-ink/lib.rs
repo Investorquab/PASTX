@@ -17,8 +17,7 @@ mod pastx_budget_market {
     /// those positions back to pUSD at exactly the same price, so trades do not mint.
     #[ink(storage)]
     pub struct PastxBudgetMarket {
-        balances: Mapping<AccountId, u32>,
-        last_claim_at_plus_one: Mapping<AccountId, u64>,
+        accounts: Mapping<AccountId, (u32, u64)>,
         holdings: Mapping<(AccountId, u8), u32>,
         successful_claims: u16,
     }
@@ -33,8 +32,7 @@ mod pastx_budget_market {
         #[ink(constructor)]
         pub fn new() -> Self {
             Self {
-                balances: Mapping::default(),
-                last_claim_at_plus_one: Mapping::default(),
+                accounts: Mapping::default(),
                 holdings: Mapping::default(),
                 successful_claims: 0,
             }
@@ -42,7 +40,7 @@ mod pastx_budget_market {
 
         #[ink(message)]
         pub fn balance_of(&self, trader: AccountId) -> u32 {
-            self.balances.get(trader).unwrap_or(0)
+            self.accounts.get(trader).unwrap_or((0, 0)).0
         }
 
         /// Claim 1,000 whole pUSD. First claim is immediate; the same account
@@ -52,37 +50,26 @@ mod pastx_budget_market {
         pub fn claim(&mut self) -> bool {
             let trader = self.env().caller();
             let now = self.env().block_timestamp();
-            let marker: u64 = self.last_claim_at_plus_one.get(trader).unwrap_or(0);
-
-            if marker != 0 {
-                let Some(last_claim) = marker.checked_sub(1) else {
-                    return false;
-                };
-                let Some(elapsed) = now.checked_sub(last_claim) else {
-                    return false;
-                };
-                if elapsed < CLAIM_COOLDOWN_MS {
-                    return false;
-                }
+            let (balance, next_claim_at): (u32, u64) =
+                self.accounts.get(trader).unwrap_or((0, 0));
+            if next_claim_at != 0 && now < next_claim_at {
+                return false;
             }
-
             if self.successful_claims >= MAX_CLAIMS {
                 return false;
             }
             let Some(next_claim_count) = self.successful_claims.checked_add(1) else {
                 return false;
             };
-            let Some(next_marker) = now.checked_add(1) else {
+            let Some(next_claim_at) = now.checked_add(CLAIM_COOLDOWN_MS) else {
                 return false;
             };
-            let balance: u32 = self.balances.get(trader).unwrap_or(0);
             let Some(next_balance) = balance.checked_add(CLAIM_AMOUNT) else {
                 return false;
             };
 
             self.successful_claims = next_claim_count;
-            self.balances.insert(trader, &next_balance);
-            self.last_claim_at_plus_one.insert(trader, &next_marker);
+            self.accounts.insert(trader, &(next_balance, next_claim_at));
             true
         }
 
@@ -117,7 +104,7 @@ mod pastx_budget_market {
             let trader = self.env().caller();
             let key = (trader, stock_id);
             let current_holdings: u32 = self.holdings.get(key).unwrap_or(0);
-            let current_balance: u32 = self.balances.get(trader).unwrap_or(0);
+            let (current_balance, next_claim_at): (u32, u64) = self.accounts.get(trader).unwrap_or((0, 0));
 
             if is_buy {
                 let Some(next_holdings) = current_holdings.checked_add(quantity) else {
@@ -129,7 +116,7 @@ mod pastx_budget_market {
                 let Some(next_balance) = current_balance.checked_sub(cost) else {
                     return false;
                 };
-                self.balances.insert(trader, &next_balance);
+                self.accounts.insert(trader, &(next_balance, next_claim_at));
                 self.holdings.insert(key, &next_holdings);
                 true
             } else {
@@ -139,7 +126,7 @@ mod pastx_budget_market {
                 let Some(next_balance) = current_balance.checked_add(cost) else {
                     return false;
                 };
-                self.balances.insert(trader, &next_balance);
+                self.accounts.insert(trader, &(next_balance, next_claim_at));
                 if next_holdings == 0 {
                     self.holdings.remove(key);
                 } else {
