@@ -15,7 +15,7 @@ export function DemoWorkspace() {
   const [message, setMessage] = useState("");
   const [from] = useState<RouteNetwork>("portal");
   const [to] = useState<RouteNetwork>("bnb");
-  const [fromAsset, setFromAsset] = useState<RouteAsset>("pUSD");
+  const [fromAsset, setFromAsset] = useState<RouteAsset>("native");
   const [amount, setAmount] = useState("100");
   const [previewing, setPreviewing] = useState(false);
   const [simulated, setSimulated] = useState(false);
@@ -56,7 +56,7 @@ type RouteOption = {value:RouteAsset;label:string};
 function routeAssetOptionsFor(c:Record<string,string>):Record<RouteNetwork,RouteOption[]> {
  const external=(symbols:RouteAsset[])=>symbols.map(value=>({value,label:value+" ("+c.illustrative+")"}));
  return {
-  portal:[{value:"pUSD",label:c.demoTokenOption},{value:"native",label:c.nativePortalOption}],
+  portal:[{value:"native",label:c.nativePortalOption}],
   ethereum:external(["USDT","USDC","ETH"]),
   bnb:external(["USDT","USDC","BNB"]),
   polygon:external(["USDT","USDC","POL"])
@@ -64,6 +64,3 @@ function routeAssetOptionsFor(c:Record<string,string>):Record<RouteNetwork,Route
 }
 const routeNetworkName=(network:RouteNetwork,c:Record<string,string>)=>({portal:c.networkPortal,ethereum:c.networkEthereum,bnb:c.networkBnb,polygon:c.networkPolygon}[network]);
 const routeAssetName=(network:RouteNetwork,asset:RouteAsset,c:Record<string,string>)=>routeAssetOptionsFor(c)[network].find(option=>option.value===asset)?.label??String(asset);
-function localizedListingName(name:string,c:Record<string,string>):string{return name.replace(/\bDemo\b/g,c.demoWord);}
-
-function portalWalletProvider(){const w=window as any;const eth=w.ethereum;const injected=Array.isArray(eth?.providers)?eth.providers.filter((p:any)=>p&&typeof p.request==="function"):[];const flagged=injected.find((p:any)=>p.isSubWallet||p.isSubwallet||p.isTalisman||p.isTalismanWallet);const candidates=[w.talismanEth,w.subwallet?.ethereum,w.SubWallet?.ethereum,flagged,eth&&(eth.isSubWallet||eth.isSubwallet||eth.isTalisman||eth.isTalismanWallet)?eth:null];const selected=candidates.find((p:any)=>p&&typeof p.request==="function");if(selected)return selected;if(injected.length===1)return injected[0];if(injected.length===0&&eth&&typeof eth.request==="function")return eth;return null}
