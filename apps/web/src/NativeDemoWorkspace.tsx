@@ -222,8 +222,8 @@ export function NativeDemoWorkspace({ view = "markets" }: { view?: NativeWorkspa
       setPositions(queries.map((query, index) => ({
         symbol: STOCKS[index].symbol,
         name: STOCKS[index].name,
-        shares: query.result.shares,
-        quote: query.result.quote
+        shares: BigInt(query.result.shares),
+        quote: BigInt(query.result.quote)
       })));
       setFreeBalance(BigInt((info as any).data.free.toString()));
     } catch (error) {
