@@ -96,6 +96,10 @@ export function CrossChainDemoPage({language,onLanguageChange,onOpenOverview,onO
  const portalRead=createPublicClient({chain:portalChain,transport:http(PORTAL_RPC)});
  const bnbRead=createPublicClient({chain:bnbChain,transport:http(BNB_RPC)});
  const clients=useCallback((id:number)=>{const p=provider(),chain=chainFor(id);return {pub:createPublicClient({chain,transport:custom(p as never)}),wallet:createWalletClient({chain,transport:custom(p as never)})}},[]);
+ async function assertRpcChain(expected:number){
+  const actual=expected===PORTAL_ID?await portalRead.getChainId():await bnbRead.getChainId();
+  if(actual!==expected)throw new Error("RPC chain ID mismatch: expected "+expected+", received "+actual+". No transaction should be treated as verified.");
+ }
  const connect=useCallback(async()=>{const p=provider(),a=await p.request({method:"eth_requestAccounts"}),c=await p.request({method:"eth_chainId"});if(!Array.isArray(a)||typeof a[0]!=="string"||!isAddress(a[0]))throw new Error("Wallet returned no valid EVM account.");if(typeof c!=="string"||!/^0x[0-9a-f]+$/i.test(c))throw new Error("Wallet returned an invalid chain ID.");setAccount(getAddress(a[0]));setChainId(Number.parseInt(c,16));setMessage("Wallet connected. Confirm the testnet before sending transactions.");setTone("success")},[]);
  const run=useCallback(async(fn:()=>Promise<void>)=>{setBusy(true);setMessage("Waiting for wallet approval and transaction confirmation…");setTone("info");try{await fn()}catch(e){setMessage(errorText(e));setTone("error")}finally{setBusy(false)}},[]);
  const refresh=useCallback(async()=>{
@@ -136,6 +140,7 @@ export function CrossChainDemoPage({language,onLanguageChange,onOpenOverview,onO
  useEffect(()=>{void refresh().catch(e=>{setMessage(errorText(e));setTone("error")})},[refresh]);
  async function switchNetwork(target:"portal"|"bnb"){const p=provider(),chain=target==="portal"?portalChain:bnbChain;try{await p.request({method:"wallet_switchEthereumChain",params:[{chainId:chainIdHex(chain.id)}]})}catch(e){if(!(typeof e==="object"&&e!==null&&"code" in e&&e.code===4902))throw e;await p.request({method:"wallet_addEthereumChain",params:[{chainId:chainIdHex(chain.id),chainName:chain.name,nativeCurrency:{name:chain.nativeCurrency.name,symbol:chain.nativeCurrency.symbol,decimals:chain.nativeCurrency.decimals},rpcUrls:[target==="portal"?PORTAL_RPC:BNB_RPC],...(target==="bnb"?{blockExplorerUrls:["https://testnet.bscscan.com"]}:{})}]})}const c=await p.request({method:"eth_chainId"});if(typeof c!=="string"||!/^0x[0-9a-f]+$/i.test(c))throw new Error("Wallet returned invalid chain ID.");setChainId(Number.parseInt(c,16));setMessage("Network changed. Refresh balance before the next action.");setTone("success")}
  async function deposit(){
+  await assertRpcChain(PORTAL_ID);
   if(!account||chainId!==PORTAL_ID)throw new Error("Connect your wallet and switch to PortalDOT V3 testnet.");
   if(!ESCROW)throw new Error("Configure VITE_PASTX_PORTALDOT_ESCROW_ADDRESS after deployment.");
   if(!VALUE_CHECKED)throw new Error("Deposit locked until Portaldot EVM msg.value units have been independently verified.");
@@ -155,6 +160,7 @@ export function CrossChainDemoPage({language,onLanguageChange,onOpenOverview,onO
   setMessage("Source deposit confirmed on Portaldot. Switch to BNB testnet and verify the matching DepositCompleted event before treating the bridge as complete.");setTone("success");await refresh();
  }
  async function claimDemoPusd(){
+  await assertRpcChain(PORTAL_ID);
   if(!account||chainId!==PORTAL_ID)throw new Error("Connect your wallet and switch to Portaldot V3 testnet.");
   if(!FAUCET||!TOKEN)throw new Error("Configure the deployed PASTX pUSD token and faucet addresses.");
   const {wallet,pub}=clients(PORTAL_ID);
@@ -165,6 +171,7 @@ export function CrossChainDemoPage({language,onLanguageChange,onOpenOverview,onO
   setMessage("Confirmed on Portaldot: the pUSD faucet credited 1,000 demo tokens. They are not fiat or stablecoin value.");setTone("success");await refresh();
  }
  async function swapPusdForNative(){
+  await assertRpcChain(PORTAL_ID);
   if(!account||chainId!==PORTAL_ID)throw new Error("Connect your wallet and switch to Portaldot V3 testnet.");
   if(!TOKEN||!ISWAP)throw new Error("Configure the deployed pUSD token and iSwap contract.");
   if(!VALUE_CHECKED)throw new Error("iSwap locked until Portaldot EVM msg.value units are independently verified.");
@@ -183,6 +190,7 @@ export function CrossChainDemoPage({language,onLanguageChange,onOpenOverview,onO
   setMessage("iSwap confirmed on Portaldot: "+formatUnits(amount,18)+" pUSD was burned and "+formatTokenUnits(quote,TOKEN_DECIMALS,8)+" tPOT was paid from the funded test pool.");setTone("success");await refresh();
  }
  async function swapNativeForPusd(){
+  await assertRpcChain(PORTAL_ID);
   if(!account||chainId!==PORTAL_ID)throw new Error("Connect your wallet and switch to Portaldot V3 testnet.");
   if(!TOKEN||!ISWAP)throw new Error("Configure the deployed pUSD token and iSwap contract.");
   if(!VALUE_CHECKED)throw new Error("iSwap locked until Portaldot EVM msg.value units are independently verified.");
@@ -199,13 +207,15 @@ export function CrossChainDemoPage({language,onLanguageChange,onOpenOverview,onO
   setMessage("iSwap confirmed on Portaldot: "+formatTokenUnits(value,TOKEN_DECIMALS,8)+" tPOT entered the pool and "+formatUnits(quote,18)+" pUSD was minted.");setTone("success");await refresh();
  }
  async function verifyBnbArrival(){
+  await assertRpcChain(BNB_ID);
   if(!account||chainId!==BNB_ID)throw new Error("Switch the connected wallet to BNB testnet before verifying the destination.");
   if(!GATEWAY||!pendingDeposit)throw new Error("No pending source deposit or BNB gateway is configured.");
   const logs=await bnbRead.getLogs({address:GATEWAY,event:depositCompletedEvent,args:{depositId:pendingDeposit.depositId},fromBlock:pendingDeposit.destinationStartBlock,toBlock:"latest"});
-  const log=logs.find(item=>item.args.depositId.toLowerCase()===pendingDeposit.depositId.toLowerCase());
+  const log=logs.find(item=>item.args.depositId?.toLowerCase()===pendingDeposit.depositId.toLowerCase());
   if(!log)throw new Error("No matching DepositCompleted event is visible on BNB testnet yet. Ensure the trusted relayer is running, then retry.");
+  if(log.args.depositId===undefined||log.args.amount===undefined||log.args.recipient===undefined||log.args.sourceTxHash===undefined)throw new Error("BNB destination event is missing required verification fields.");
   if(log.args.amount!==pendingDeposit.amount||getAddress(log.args.recipient)!==pendingDeposit.recipient)throw new Error("BNB destination event does not match the source deposit amount/recipient.");
-  if(typeof log.args.sourceTxHash!=="string"||log.args.sourceTxHash.toLowerCase()!==pendingDeposit.sourceTxHash.toLowerCase())throw new Error("BNB destination event does not reference the exact confirmed Portaldot source transaction.");
+  if(log.args.sourceTxHash.toLowerCase()!==pendingDeposit.sourceTxHash.toLowerCase())throw new Error("BNB destination event does not reference the exact confirmed Portaldot source transaction.");
   const receipt=await bnbRead.getTransactionReceipt({hash:log.transactionHash});
   if(receipt.status!=="success")throw new Error("BNB destination transaction did not succeed.");
   const balance=await bnbRead.readContract({address:GATEWAY,abi:gatewayAbi,functionName:"balanceOf",args:[pendingDeposit.recipient]});
@@ -213,8 +223,10 @@ export function CrossChainDemoPage({language,onLanguageChange,onOpenOverview,onO
   setLastTx({chainId:BNB_ID,hash:log.transactionHash});
   setMessage("iBridge verified on BNB testnet (chain ID 97): DepositCompleted event and successful destination receipt match the source deposit. Current wtPOTv3 balance: "+formatTokenUnits(balance,TOKEN_DECIMALS,8)+".");setTone("success");await refresh();
  }
- async function trade(side:"buy"|"sell"){if(!account||chainId!==BNB_ID)throw new Error("Connect your wallet and switch to BNB testnet.");if(!GATEWAY)throw new Error("Configure VITE_PASTX_BNB_GATEWAY_ADDRESS after deployment.");const quantity=parseDecimalUnits(shareQty,SHARE_DECIMALS),{wallet,pub}=clients(BNB_ID);const tx=await wallet.writeContract({account,address:GATEWAY,abi:gatewayAbi,functionName:side==="buy"?"buyStock":"sellStock",args:[stockKey,quantity]});setLastTx({chainId:BNB_ID,hash:tx});const rec=await pub.waitForTransactionReceipt({hash:tx,confirmations:1});if(rec.status!=="success")throw new Error("Mock stock transaction reverted: "+tx);setMessage("Mock "+side+" confirmed. This is simulated stock exposure only.");setTone("success");await refresh()}
+ async function trade(side:"buy"|"sell"){
+  await assertRpcChain(BNB_ID);if(!account||chainId!==BNB_ID)throw new Error("Connect your wallet and switch to BNB testnet.");if(!GATEWAY)throw new Error("Configure VITE_PASTX_BNB_GATEWAY_ADDRESS after deployment.");const quantity=parseDecimalUnits(shareQty,SHARE_DECIMALS),{wallet,pub}=clients(BNB_ID);const tx=await wallet.writeContract({account,address:GATEWAY,abi:gatewayAbi,functionName:side==="buy"?"buyStock":"sellStock",args:[stockKey,quantity]});setLastTx({chainId:BNB_ID,hash:tx});const rec=await pub.waitForTransactionReceipt({hash:tx,confirmations:1});if(rec.status!=="success")throw new Error("Mock stock transaction reverted: "+tx);setMessage("Mock "+side+" confirmed. This is simulated stock exposure only.");setTone("success");await refresh()}
  async function withdraw(){
+  await assertRpcChain(BNB_ID);
   if(!account||chainId!==BNB_ID)throw new Error("Connect your wallet and switch to BNB testnet.");
   if(!GATEWAY)throw new Error("Configure VITE_PASTX_BNB_GATEWAY_ADDRESS after deployment.");
   const amount=parseDecimalUnits(withdrawAmount,TOKEN_DECIMALS);
@@ -238,11 +250,13 @@ export function CrossChainDemoPage({language,onLanguageChange,onOpenOverview,onO
   setMessage("Return request confirmed on BNB. Switch to Portaldot and verify the matching WithdrawalReleased event before treating the round trip as complete.");setTone("success");await refresh();
  }
  async function verifyPortalReturn(){
+  await assertRpcChain(PORTAL_ID);
   if(!account||chainId!==PORTAL_ID)throw new Error("Switch the connected wallet to Portaldot V3 before verifying the return.");
   if(!ESCROW||!pendingReturn)throw new Error("No pending BNB withdrawal or Portaldot escrow is configured.");
   const logs=await portalRead.getLogs({address:ESCROW,event:withdrawalReleasedEvent,args:{withdrawalId:pendingReturn.withdrawalId},fromBlock:pendingReturn.sourceStartBlock,toBlock:"latest"});
-  const log=logs.find(item=>item.args.withdrawalId.toLowerCase()===pendingReturn.withdrawalId.toLowerCase());
+  const log=logs.find(item=>item.args.withdrawalId?.toLowerCase()===pendingReturn.withdrawalId.toLowerCase());
   if(!log)throw new Error("No matching WithdrawalReleased event is visible on Portaldot yet. Ensure the trusted relayer is running, then retry.");
+  if(log.args.withdrawalId===undefined||log.args.amount===undefined||log.args.recipient===undefined)throw new Error("Portaldot release event is missing required verification fields.");
   if(log.args.amount!==pendingReturn.amount||getAddress(log.args.recipient)!==pendingReturn.recipient)throw new Error("Portaldot release event does not match the BNB withdrawal amount/recipient.");
   const receipt=await portalRead.getTransactionReceipt({hash:log.transactionHash});
   if(receipt.status!=="success")throw new Error("Portaldot release transaction did not succeed.");
