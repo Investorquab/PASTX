@@ -5,8 +5,8 @@ import { decodeNativeCommand, encodeNativeCommand, formatNativeTpot, type Native
 import "./native-demo.css";
 
 const RPC_URL = import.meta.env.VITE_PASTX_NATIVE_WS_RPC_URL?.trim() || "wss://test-node-v3.portaldot.dev";
-const CONTRACT_ADDRESS = import.meta.env.VITE_PASTX_NATIVE_CONTRACT_ADDRESS?.trim() || "";
-const EXPECTED_GENESIS = import.meta.env.VITE_PASTX_NATIVE_EXPECTED_GENESIS_HASH?.trim().toLowerCase() || "";
+const CONTRACT_ADDRESS = import.meta.env.VITE_PASTX_NATIVE_CONTRACT_ADDRESS?.trim() || "5G99ixmXqViMj8gVz4ZWGavV5ryeajGDY7Hq4qZ1qQN6pYFq";
+const EXPECTED_GENESIS = import.meta.env.VITE_PASTX_NATIVE_EXPECTED_GENESIS_HASH?.trim().toLowerCase() || "0xd4f9acbcf7f52388d8b095abe3c198d19fc510e0343e643e87cfbccb155283bd";
 const STOCKS = [
   { id: 0, symbol: "pAAPL", name: "Apple Demo", price: 200 },
   { id: 1, symbol: "pNVDA", name: "NVIDIA Demo", price: 180 },

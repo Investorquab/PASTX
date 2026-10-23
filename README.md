@@ -11,7 +11,7 @@
 - Transfers for supported native test tokens and pUSD when contracts are deployed and configured.
 - A testnet iBridge route between Portaldot V3 EVM and BNB Smart Chain testnet, built around a capped source escrow, wrapped `wtPOTv3` representation, and a trusted relayer. It is not enabled until deployed addresses, the relayer and raw EVM native-value units are verified.
 - A bounded iSwap prototype for exchanging faucet pUSD against a small, funded native tPOT test-value pool. pUSD is not fiat-redeemable, and pool depletion is possible by design.
-- A separate `/native-demo` workspace for the native ink! contract path. It requires the deployed native contract address and verified testnet genesis hash; it is not ready for transactions until those are configured.
+- A separate `/native-demo` workspace for the deployed native ink! compact market on Portaldot V3 testnet. It defaults to contract `5G99ixmXqViMj8gVz4ZWGavV5ryeajGDY7Hq4qZ1qQN6pYFq` and the pinned testnet genesis hash; public `VITE_PASTX_NATIVE_CONTRACT_ADDRESS`, `VITE_PASTX_NATIVE_WS_RPC_URL`, and `VITE_PASTX_NATIVE_EXPECTED_GENESIS_HASH` values can override those defaults at build time. The browser connects to the native Substrate RPC and the user's wallet signs native contract calls; the backend never handles wallet private keys. Verify the configured contract and network before making test transactions.
 - The earlier external reference-market terminal remains separate at `/research`. Reference stock quotes are not PASTX execution prices.
 
 ## Product roadmap
