@@ -46,4 +46,4 @@ const routeNetworkName=(network:RouteNetwork,c:Record<string,string>)=>({portal:
 const routeAssetName=(network:RouteNetwork,asset:RouteAsset,c:Record<string,string>)=>routeAssetOptionsFor(c)[network].find(option=>option.value===asset)?.label??String(asset);
 function localizedListingName(name:string,c:Record<string,string>):string{return name.replace(/\bDemo\b/g,c.demoWord);}
 
-function portalWalletProvider(){const w=window as any;const injected=w.ethereum;return w.talismanEth||(injected?.isTalisman||injected?.isSubWallet?injected:injected?.providers?.find((p:any)=>p.isTalisman||p.isSubWallet))}
+function portalWalletProvider(){const w=window as any;const candidates=[w.talismanEth,w.subwallet?.ethereum,w.SubWallet?.ethereum,w.ethereum?.providers?.find((p:any)=>p.isSubWallet||p.isTalisman),w.ethereum?.isSubWallet||w.ethereum?.isTalisman?w.ethereum:null];return candidates.find((p:any)=>p&&typeof p.request==="function")||null}
