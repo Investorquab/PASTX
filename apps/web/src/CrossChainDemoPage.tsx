@@ -6,7 +6,7 @@ import { textFor, type LanguageCode } from "./i18n";
 import { chainIdHex, formatTokenUnits, parseDecimalUnits } from "./crossChainDemoUtils";
 
 type Provider = { request(args: {method: string; params?: readonly unknown[] | object}): Promise<unknown>; on?(event:string,fn:(value:unknown)=>void):void; removeListener?(event:string,fn:(value:unknown)=>void):void };
-declare global { interface Window { ethereum?: Provider } }
+declare global { interface Window { ethereum?: Provider; talismanEth?: Provider; subwallet?: { ethereum?: Provider }; SubWallet?: { ethereum?: Provider } } }
 const PORTAL_ID=420420777, BNB_ID=97, TOKEN_DECIMALS=14, SHARE_DECIMALS=6;
 const PORTAL_RPC=import.meta.env.VITE_PASTX_PORTALDOT_EVM_RPC_URL || "https://test-evm-rpc-v3.portaldot.dev";
 const BNB_RPC=import.meta.env.VITE_PASTX_BSC_TESTNET_RPC_URL || "https://bsc-testnet-dataseed.bnbchain.org";
@@ -65,7 +65,7 @@ const STOCKS=[
 ] as const;
 type Stock=typeof STOCKS[number]["symbol"];
 function validAddress(v:string|undefined):Address|null{return v&&isAddress(v)?getAddress(v):null}
-function provider():Provider{if(!window.ethereum)throw new Error("No injected EVM wallet was found.");return window.ethereum}
+function provider():Provider{const w=window as Window&{talismanEth?:Provider;subwallet?:{ethereum?:Provider};SubWallet?:{ethereum?:Provider};ethereum?:Provider&{isSubWallet?:boolean;isTalisman?:boolean;providers?:Provider[]}};const candidates=[w.talismanEth,w.subwallet?.ethereum,w.SubWallet?.ethereum,w.ethereum?.providers?.find((p:any)=>p?.isSubWallet||p?.isTalisman),w.ethereum?.isSubWallet||w.ethereum?.isTalisman?w.ethereum:undefined];const selected=candidates.find((p):p is Provider=>Boolean(p&&typeof p.request==="function"));if(!selected)throw new Error("SubWallet/Talisman injection was not detected. Unlock SubWallet, enable its EVM account, refresh this page, and reconnect.");return selected}
 function chainFor(id:number){if(id===PORTAL_ID)return portalChain;if(id===BNB_ID)return bnbChain;throw new Error("Switch to PortalDOT V3 or BNB testnet.")}
 function bytes32(v:string):Hex{return ("0x"+Array.from(new TextEncoder().encode(v),b=>b.toString(16).padStart(2,"0")).join("").padEnd(64,"0")) as Hex}
 function errorText(e:unknown):string{if(typeof e==="object"&&e!==null&&"shortMessage" in e&&typeof e.shortMessage==="string")return e.shortMessage;return e instanceof Error?e.message:"Unknown wallet/network error."}
