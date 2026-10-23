@@ -275,6 +275,12 @@ export function NativeDemoWorkspace({ view = "markets" }: { view?: NativeWorkspa
     }
   };
 
+  useEffect(() => {
+    const handleWalletRequest = () => { void connectWallet(); };
+    window.addEventListener("pastx:connect-native-wallet", handleWalletRequest);
+    return () => window.removeEventListener("pastx:connect-native-wallet", handleWalletRequest);
+  });
+
   const prepareAction = async (action: 1 | 2 | 3) => {
     if (!api || !selectedAccount || !contractConfigured) {
       setMessage("The native contract address is not configured yet. Do not submit a transaction without the current deployment address.");
@@ -429,14 +435,8 @@ export function NativeDemoWorkspace({ view = "markets" }: { view?: NativeWorkspa
     <div className="native-demo-shell">
 <main className="native-demo-main">
         <section className="native-demo-intro">
-          <div className="native-intro-top">
-            <span className="native-eyebrow"><Activity size={13}/> PORTALDOT V3 · NATIVE SUBSTRATE</span>
-            <button type="button" className="native-button native-button-dark" onClick={() => void connectWallet()} disabled={busy}>
-              <Wallet size={15}/>{selectedAccount ? "Wallet connected" : "Connect SubWallet"}
-            </button>
-          </div>
+          <span className="native-eyebrow"><Activity size={13}/> PORTALDOT V3 · NATIVE MARKET</span>
           <h1>PASTX native market</h1>
-          <p>Portaldot-native testnet market. Only configured contract state is actionable; pUSD credits and shares are synthetic demo assets, not real equity.</p>
           <div className="native-network-status">
             <span className={api ? "native-status-dot is-ready" : "native-status-dot"} />
             <span>{chainName}</span>
@@ -458,14 +458,14 @@ export function NativeDemoWorkspace({ view = "markets" }: { view?: NativeWorkspa
               <button className="native-icon-button" type="button" disabled={!canUseContract || busy} onClick={() => void refresh()} aria-label="Refresh native portfolio"><RefreshCw size={14}/></button>
             </div>
             <div className="native-stock-list">
-              {canUseContract && networkVerified ? STOCKS.map((item) => (
+              {STOCKS.map((item) => (
                 <button className={item.id === stockId ? "native-stock-row is-selected" : "native-stock-row"} key={item.id} type="button" onClick={() => setStockId(item.id)}>
                   <span className="native-stock-icon">{item.symbol.slice(1, 2)}</span>
                   <span className="native-stock-identity"><strong>{item.symbol}</strong><small>{item.name}</small></span>
                   <span className="native-stock-price"><strong>{item.price} pUSD</strong><small>Fixed demo quote</small></span>
                   <span className="native-stock-select">{item.id === stockId ? "Selected" : "Select"}</span>
                 </button>
-              )) : <p className="native-helper">No verified Portaldot market listings are available. Configure the deployed contract address and expected testnet genesis hash before displaying tradable listings.</p>}
+              ))}
             </div>
             <div className="native-market-disclaimer"><ShieldCheck size={14}/> Fixed demonstration prices, not live market data or oracle-verified prices.</div>
           </section>}
