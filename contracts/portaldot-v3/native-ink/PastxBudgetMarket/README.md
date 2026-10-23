@@ -32,7 +32,7 @@ The native UI remains separate from the EVM demo because this address is SS58/na
 
 The GitHub Actions workflow **PASTX Compact Native Market Contract Bundle** runs ink! unit tests, installs pinned cargo-contract v5.0.3, builds the release contract, validates the generated `.contract` bundle, measures the code-deposit estimate, and uploads the outputs for 14 days. It never deploys.
 
-Expected output files in `contracts/cross-chain/native-ink/target/ink/`:
+Expected output files in `contracts/portaldot-v3/native-ink/PastxBudgetMarket/target/ink/`:
 - `pastx_budget_market.contract`
 - `pastx_budget_market.wasm`
 - `pastx_budget_market.json`

@@ -8,7 +8,7 @@ module.exports = {
   },
   networks: { hardhat: { chainId: 420420777 } },
   paths: {
-    sources: "./contracts/portal",
+    sources: "../portaldot-v3/evm",
     tests: "./test/portal-unit",
     cache: "./cache/portal-unit",
     artifacts: "./artifacts/portal-unit"

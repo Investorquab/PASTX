@@ -20,7 +20,7 @@ module.exports = {
     }
   },
   paths: {
-    sources: "./contracts/bnb",
+    sources: "../bnb-testnet/evm",
     tests: "./test/bnb",
     cache: "./cache/bnb",
     artifacts: "./artifacts/bnb"

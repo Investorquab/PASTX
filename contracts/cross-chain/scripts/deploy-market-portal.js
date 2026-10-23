@@ -2,6 +2,7 @@ const fs = require("node:fs/promises");
 const path = require("node:path");
 const hre = require("hardhat");
 const { assertPortalTestnet, redactError } = require("./portal-network");
+const { assertValueProbeEvidence } = require("./value-probe-evidence");
 const CAP = hre.ethers.parseEther("1000000");
 const CLAIM = hre.ethers.parseEther("1000");
 const COOLDOWN = 3600;
@@ -46,6 +47,7 @@ function readISwapConfig() {
 async function main() {
   const iSwapConfig = readISwapConfig();
   const preflight = await assertPortalTestnet(hre);
+  assertValueProbeEvidence(iSwapConfig.maxNative, preflight.signer.address);
   const [deployer] = await hre.ethers.getSigners();
   const startedAt = new Date().toISOString();
   const runId = runIdOf(new Date(startedAt));

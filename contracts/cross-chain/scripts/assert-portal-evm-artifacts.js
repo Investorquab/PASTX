@@ -5,9 +5,11 @@ const ARTIFACT_ROOT = path.resolve(__dirname, "..", "artifacts", "portal");
 const REQUIRED_CONTRACTS = [
   "PastxDemoToken",
   "PastxFaucet",
+  "PastxISwap",
   "PastxMarket",
   "PastxStockToken",
-  "PortalDotTestnetEscrow"
+  "PortalDotTestnetEscrow",
+  "PortalValueSemanticsProbe"
 ];
 
 function findJsonFiles(directory) {

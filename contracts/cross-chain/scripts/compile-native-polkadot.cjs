@@ -13,7 +13,13 @@ const { retainContractEntrypoints } = require(path.join(
 ));
 
 const packageRoot = path.resolve(__dirname, "..");
-const sourceRoot = path.join(packageRoot, "contracts", "native-polkadot");
+const sourceRoot = path.join(packageRoot, "..", "portaldot-v3", "native-solang");
+const sourceDirectories = {
+  PastxDemoToken: "pusd",
+  PastxMarket: "market",
+  PastxFaucet: "faucet",
+  PastxStockToken: "stock-token"
+};
 const artifactRoot = path.join(packageRoot, "artifacts", "native-polkadot");
 const cryptoModulePath = path.join(packageRoot, "native-polkadot", "node_modules", "@polkadot", "util-crypto");
 const contractNames = [
@@ -39,7 +45,7 @@ if (!fs.existsSync(cryptoModulePath)) {
 const { blake2AsHex } = require(cryptoModulePath);
 if (typeof blake2AsHex !== "function") fail("@polkadot/util-crypto does not expose blake2AsHex.");
 
-const sources = contractNames.map(name => path.join(sourceRoot, name + ".sol"));
+const sources = contractNames.map(name => path.join(sourceRoot, sourceDirectories[name], name + ".sol"));
 for (const file of sources) {
   if (!fs.existsSync(file)) fail("Required source missing: " + file);
   const source = fs.readFileSync(file, "utf8");

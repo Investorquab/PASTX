@@ -1,0 +1,257 @@
+{
+  "schemaVersion": 1,
+  "description": "PASTX smart-contract inventory. Paths are relative to the repository root. Duplicated names under different runtimes are separate implementations, not interchangeable artifacts.",
+  "primaryDeployment": {
+    "name": "iSwap + iBridge judge flow",
+    "deployCommand": "npm --prefix contracts/cross-chain run deploy:all:testnet",
+    "readOnlyPreflightCommand": "npm --prefix contracts/cross-chain run preflight:all:testnet",
+    "sequence": [
+      {
+        "step": 1,
+        "action": "require-live-value-probe",
+        "contractId": "portaldot-evm-value-probe",
+        "command": "npm --prefix contracts/cross-chain run probe:native-value:portal",
+        "writesChain": true
+      },
+      {
+        "step": 2,
+        "action": "deploy-market-and-iswap-bundle",
+        "contractIds": [
+          "portaldot-pusd",
+          "portaldot-iswap",
+          "portaldot-market",
+          "portaldot-faucet",
+          "portaldot-stock-token"
+        ],
+        "command": "npm --prefix contracts/cross-chain run deploy:market:portal",
+        "writesChain": true
+      },
+      {
+        "step": 3,
+        "action": "deploy-source-escrow",
+        "contractId": "portaldot-bridge-escrow",
+        "command": "npm --prefix contracts/cross-chain run deploy:portal",
+        "writesChain": true
+      },
+      {
+        "step": 4,
+        "action": "deploy-destination-wrapped-token-gateway",
+        "contractId": "bnb-wtpot-gateway",
+        "command": "npm --prefix contracts/cross-chain run deploy:bnb",
+        "writesChain": true
+      },
+      {
+        "step": 5,
+        "action": "run-relayer",
+        "contractIds": [
+          "portaldot-bridge-escrow",
+          "bnb-wtpot-gateway"
+        ],
+        "command": "npm --prefix contracts/cross-chain run relay",
+        "writesChain": "only if PASTX_RELAY_EXECUTE=true; leave false for first inspection"
+      }
+    ],
+    "safetyGates": [
+      "live probe report must match the configured 1000000000000 raw-unit cap",
+      "operator must confirm the Portaldot EVM native-value mapping and 14-decimal metadata",
+      "Portal EVM, BNB deployer, and both relayer accounts must be funded and verified",
+      "master deploy command asks for the exact phrase DEPLOY PASTX TESTNET",
+      "the relayer is not started by the deployment command",
+      "partial deployments are recorded; do not rerun over existing output"
+    ],
+    "excludes": [
+      "native-ink route",
+      "native-Solang route",
+      "standalone BNB synthetic market"
+    ]
+  },
+  "contracts": [
+    {
+      "id": "portaldot-evm-value-probe",
+      "name": "PortalValueSemanticsProbe",
+      "source": "contracts/portaldot-v3/evm/diagnostics/PortalValueSemanticsProbe.sol",
+      "language": "Solidity 0.8.28",
+      "runtime": "EVM",
+      "network": "Portaldot V3 EVM testnet",
+      "purpose": "Confirm msg.value, contract balance, and recoverable test-value return before fixing the bridge/swap amount.",
+      "primaryDeployment": "pre-deployment diagnostic",
+      "deployCommand": "npm --prefix contracts/cross-chain run probe:native-value:portal"
+    },
+    {
+      "id": "portaldot-pusd",
+      "name": "PastxDemoToken",
+      "source": "contracts/portaldot-v3/evm/pusd/PastxDemoToken.sol",
+      "language": "Solidity 0.8.28",
+      "runtime": "EVM",
+      "network": "Portaldot V3 EVM testnet",
+      "purpose": "Capped 18-decimal faucet-funded pUSD demo token.",
+      "primaryDeployment": true,
+      "deployCommand": "npm --prefix contracts/cross-chain run deploy:market:portal"
+    },
+    {
+      "id": "portaldot-faucet",
+      "name": "PastxFaucet",
+      "source": "contracts/portaldot-v3/evm/faucet/PastxFaucet.sol",
+      "language": "Solidity 0.8.28",
+      "runtime": "EVM",
+      "network": "Portaldot V3 EVM testnet",
+      "purpose": "Mints capped faucet demo pUSD with a one-hour wallet cooldown.",
+      "primaryDeployment": true,
+      "deployCommand": "npm --prefix contracts/cross-chain run deploy:market:portal"
+    },
+    {
+      "id": "portaldot-market",
+      "name": "PastxMarket",
+      "source": "contracts/portaldot-v3/evm/market/PastxMarket.sol",
+      "language": "Solidity 0.8.28",
+      "runtime": "EVM",
+      "network": "Portaldot V3 EVM testnet",
+      "purpose": "Fixed-price market for synthetic shares paid in pUSD.",
+      "primaryDeployment": true,
+      "deployCommand": "npm --prefix contracts/cross-chain run deploy:market:portal"
+    },
+    {
+      "id": "portaldot-stock-token",
+      "name": "PastxStockToken",
+      "source": "contracts/portaldot-v3/evm/stock-token/PastxStockToken.sol",
+      "language": "Solidity 0.8.28",
+      "runtime": "EVM",
+      "network": "Portaldot V3 EVM testnet",
+      "purpose": "One instance per synthetic listing: pAAPL, pNVDA, pTSLA, pMSFT.",
+      "primaryDeployment": true,
+      "deployCommand": "npm --prefix contracts/cross-chain run deploy:market:portal"
+    },
+    {
+      "id": "portaldot-iswap",
+      "name": "PastxISwap",
+      "source": "contracts/portaldot-v3/evm/iswap/PastxISwap.sol",
+      "language": "Solidity 0.8.28",
+      "runtime": "EVM",
+      "network": "Portaldot V3 EVM testnet",
+      "purpose": "Fixed-rate pUSD/native test-value conversion, capped per transaction and bounded by actual pool liquidity.",
+      "primaryDeployment": true,
+      "deployCommand": "npm --prefix contracts/cross-chain run deploy:market:portal"
+    },
+    {
+      "id": "portaldot-bridge-escrow",
+      "name": "PortalDotTestnetEscrow",
+      "source": "contracts/portaldot-v3/evm/bridge-escrow/PortalDotTestnetEscrow.sol",
+      "language": "Solidity 0.8.28",
+      "runtime": "EVM",
+      "network": "Portaldot V3 EVM testnet",
+      "purpose": "Locks native test value and releases only under trusted-relayer instruction with replay protection and a per-deposit cap.",
+      "primaryDeployment": true,
+      "deployCommand": "npm --prefix contracts/cross-chain run deploy:portal"
+    },
+    {
+      "id": "bnb-wtpot-gateway",
+      "name": "BnbTestnetGateway",
+      "source": "contracts/bnb-testnet/evm/bridge-gateway/BnbTestnetGateway.sol",
+      "language": "Solidity 0.8.28",
+      "runtime": "EVM",
+      "network": "BNB Smart Chain testnet",
+      "purpose": "Tracks bridge-backed wtPOTv3 representation, prevents source-event replay, and burns only backed units on return.",
+      "primaryDeployment": true,
+      "deployCommand": "npm --prefix contracts/cross-chain run deploy:bnb"
+    },
+    {
+      "id": "bnb-pusd",
+      "name": "PastxDemoToken",
+      "source": "contracts/bnb-testnet/evm/pusd/PastxDemoToken.sol",
+      "language": "Solidity 0.8.28",
+      "runtime": "EVM",
+      "network": "BNB Smart Chain testnet",
+      "purpose": "Separate demo pUSD implementation for the optional standalone BNB market.",
+      "primaryDeployment": false,
+      "deployCommand": "npm --prefix contracts/cross-chain run deploy:market:bnb"
+    },
+    {
+      "id": "bnb-faucet",
+      "name": "PastxFaucet",
+      "source": "contracts/bnb-testnet/evm/faucet/PastxFaucet.sol",
+      "language": "Solidity 0.8.28",
+      "runtime": "EVM",
+      "network": "BNB Smart Chain testnet",
+      "purpose": "Faucet for the optional standalone BNB synthetic market.",
+      "primaryDeployment": false,
+      "deployCommand": "npm --prefix contracts/cross-chain run deploy:market:bnb"
+    },
+    {
+      "id": "bnb-market",
+      "name": "PastxMarket",
+      "source": "contracts/bnb-testnet/evm/market/PastxMarket.sol",
+      "language": "Solidity 0.8.28",
+      "runtime": "EVM",
+      "network": "BNB Smart Chain testnet",
+      "purpose": "Separate synthetic market demo on BNB; not the Portaldot iSwap liquidity pool.",
+      "primaryDeployment": false,
+      "deployCommand": "npm --prefix contracts/cross-chain run deploy:market:bnb"
+    },
+    {
+      "id": "bnb-stock-token",
+      "name": "PastxStockToken",
+      "source": "contracts/bnb-testnet/evm/stock-token/PastxStockToken.sol",
+      "language": "Solidity 0.8.28",
+      "runtime": "EVM",
+      "network": "BNB Smart Chain testnet",
+      "purpose": "One synthetic stock-token instance per standalone BNB market listing.",
+      "primaryDeployment": false,
+      "deployCommand": "npm --prefix contracts/cross-chain run deploy:market:bnb"
+    },
+    {
+      "id": "native-solang-pusd",
+      "name": "PastxDemoToken",
+      "source": "contracts/portaldot-v3/native-solang/pusd/PastxDemoToken.sol",
+      "language": "Solidity 0.8.28",
+      "runtime": "Native Solang/WASM",
+      "network": "Portaldot V3 native Contracts pallet",
+      "purpose": "Alternative native Substrate implementation; deploys as a separate contract with a high storage/code-deposit budget.",
+      "primaryDeployment": false,
+      "deployCommand": "npm --prefix contracts/cross-chain run deploy:native:solang-market"
+    },
+    {
+      "id": "native-solang-faucet",
+      "name": "PastxFaucet",
+      "source": "contracts/portaldot-v3/native-solang/faucet/PastxFaucet.sol",
+      "language": "Solidity 0.8.28",
+      "runtime": "Native Solang/WASM",
+      "network": "Portaldot V3 native Contracts pallet",
+      "purpose": "Alternative native Substrate faucet implementation.",
+      "primaryDeployment": false,
+      "deployCommand": "npm --prefix contracts/cross-chain run deploy:native:solang-market"
+    },
+    {
+      "id": "native-solang-market",
+      "name": "PastxMarket",
+      "source": "contracts/portaldot-v3/native-solang/market/PastxMarket.sol",
+      "language": "Solidity 0.8.28",
+      "runtime": "Native Solang/WASM",
+      "network": "Portaldot V3 native Contracts pallet",
+      "purpose": "Alternative native Substrate market implementation.",
+      "primaryDeployment": false,
+      "deployCommand": "npm --prefix contracts/cross-chain run deploy:native:solang-market"
+    },
+    {
+      "id": "native-solang-stock-token",
+      "name": "PastxStockToken",
+      "source": "contracts/portaldot-v3/native-solang/stock-token/PastxStockToken.sol",
+      "language": "Solidity 0.8.28",
+      "runtime": "Native Solang/WASM",
+      "network": "Portaldot V3 native Contracts pallet",
+      "purpose": "Alternative native Substrate synthetic-share implementation.",
+      "primaryDeployment": false,
+      "deployCommand": "npm --prefix contracts/cross-chain run deploy:native:solang-market"
+    },
+    {
+      "id": "native-ink-budget-market",
+      "name": "PastxBudgetMarket",
+      "source": "contracts/portaldot-v3/native-ink/PastxBudgetMarket/lib.rs",
+      "language": "Rust / ink! 5",
+      "runtime": "Native Substrate Contracts pallet",
+      "network": "Portaldot V3 native Contracts pallet",
+      "purpose": "Budget-constrained single contract combining app-only pUSD ledger, fixed listings and paper share positions; not EVM pUSD and not the bridge.",
+      "primaryDeployment": false,
+      "deployCommand": "npm --prefix contracts/cross-chain run deploy:native:portal"
+    }
+  ]
+}

@@ -1,5 +1,9 @@
 const hre = require("hardhat");
+const fs = require("node:fs/promises");
+const path = require("node:path");
 require("dotenv").config();
+const { assertValueProbeEvidence } = require("./value-probe-evidence");
+const { redactError } = require("./portal-network");
 
 async function main() {
   if (process.env.PASTX_PORTAL_NATIVE_VALUE_SEMANTICS_VERIFIED !== "true") {
@@ -10,6 +14,7 @@ async function main() {
     throw new Error("Set PASTX_BRIDGE_MAX_DEPOSIT_RAW to a positive verified raw-unit value.");
   }
   const maxDepositRaw = BigInt(maxDepositText);
+  assertValueProbeEvidence(maxDepositRaw);
   const network = await hre.ethers.provider.getNetwork();
   if (network.chainId !== 97n) {
     throw new Error(`Refusing deployment: expected BNB Smart Chain testnet 97, received ${network.chainId}`);
@@ -56,10 +61,16 @@ async function main() {
     result.marketSeedRaw = seedAmount;
   }
 
+  const outputRoot = path.resolve(
+    process.env.PASTX_MASTER_DEPLOYMENT_OUTPUT_DIR ||
+    path.join(__dirname, "..", "deployments", "all-testnet")
+  );
+  await fs.mkdir(outputRoot, { recursive: true });
+  await fs.writeFile(path.join(outputRoot, "bnb-gateway.json"), JSON.stringify({ ...result, status: "deployed" }, null, 2) + "\n", "utf8");
   console.log(JSON.stringify(result, null, 2));
 }
 
 main().catch((error) => {
-  console.error(error);
+  console.error(redactError(error));
   process.exitCode = 1;
 });

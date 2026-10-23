@@ -1,4 +1,6 @@
 const hre = require("hardhat");
+const fs = require("node:fs/promises");
+const path = require("node:path");
 const { assertPortalTestnet, redactError } = require("./portal-network");
 
 const MAX_PROBE_RAW = 1_000_000_000_000n; // 0.01 native token only if 14-decimal value semantics are confirmed.
@@ -101,8 +103,16 @@ async function main() {
     valueSemanticsMatched: observedOk,
     testValueReturned: returnedOk,
     cleanupError,
+    testedAt: new Date().toISOString(),
     note: "A passing result supports the EVM raw-unit mapping. Confirm the official 14-decimal tPOT metadata and inspect these receipts before manually setting PASTX_PORTAL_NATIVE_VALUE_SEMANTICS_VERIFIED=true."
   };
+  const reportPath = path.resolve(
+    process.env.PASTX_VALUE_PROBE_REPORT_PATH ||
+    path.join(__dirname, "..", "deployments", "value-probe", "latest.json")
+  );
+  await fs.mkdir(path.dirname(reportPath), { recursive: true });
+  await fs.writeFile(reportPath, JSON.stringify(output, null, 2) + "\\n", "utf8");
+  output.reportPath = reportPath;
   console.log(JSON.stringify(output, null, 2));
   if (!observedOk || !returnedOk || cleanupError) process.exitCode = 1;
 }

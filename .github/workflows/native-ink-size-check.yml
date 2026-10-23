@@ -6,11 +6,11 @@ on:
       - main
     paths:
       - ".github/workflows/native-ink-size-check.yml"
-      - "contracts/cross-chain/native-ink/**"
+      - "contracts/portaldot-v3/native-ink/PastxBudgetMarket/**"
   pull_request:
     paths:
       - ".github/workflows/native-ink-size-check.yml"
-      - "contracts/cross-chain/native-ink/**"
+      - "contracts/portaldot-v3/native-ink/PastxBudgetMarket/**"
   workflow_dispatch:
 
 permissions:
@@ -27,7 +27,7 @@ jobs:
     timeout-minutes: 45
     defaults:
       run:
-        working-directory: contracts/cross-chain/native-ink
+        working-directory: contracts/portaldot-v3/native-ink/PastxBudgetMarket
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,7 +42,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
-            contracts/cross-chain/native-ink -> target
+            contracts/portaldot-v3/native-ink/PastxBudgetMarket -> target
 
       - name: Restore cached cargo-contract binary
         id: cargo-contract-cache
@@ -82,8 +82,8 @@ jobs:
         with:
           name: pastx-compact-native-market-${{ github.sha }}
           path: |
-            contracts/cross-chain/native-ink/target/ink/pastx_budget_market.contract
-            contracts/cross-chain/native-ink/target/ink/pastx_budget_market.wasm
-            contracts/cross-chain/native-ink/target/ink/pastx_budget_market.json
+            contracts/portaldot-v3/native-ink/PastxBudgetMarket/target/ink/pastx_budget_market.contract
+            contracts/portaldot-v3/native-ink/PastxBudgetMarket/target/ink/pastx_budget_market.wasm
+            contracts/portaldot-v3/native-ink/PastxBudgetMarket/target/ink/pastx_budget_market.json
           if-no-files-found: error
           retention-days: 14

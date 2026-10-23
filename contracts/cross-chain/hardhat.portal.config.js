@@ -38,7 +38,7 @@ module.exports = {
     }
   },
   paths: {
-    sources: "./contracts/portal",
+    sources: "../portaldot-v3/evm",
     tests: "./test/portal-unit",
     cache: "./cache/portal",
     artifacts: "./artifacts/portal"

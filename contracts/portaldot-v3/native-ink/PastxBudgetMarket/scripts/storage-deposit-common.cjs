@@ -189,8 +189,8 @@ async function connectAndPrepare({ requirePinnedNetwork = false } = {}) {
       throw new Error(`Native genesis hash mismatch: .env has ${EXPECTED_GENESIS}, live node reports ${genesisText}. No transaction submitted.`);
     }
 
-    const artifactPath = path.resolve(process.cwd(), 'native-ink', 'target', 'ink', 'pastx_budget_market.contract');
-    if (!fs.existsSync(artifactPath)) throw new Error(`Compiled ink! artifact not found: ${artifactPath}. Build the native-ink contract first.`);
+    const artifactPath = path.resolve(process.cwd(), '..', 'portaldot-v3', 'native-ink', 'PastxBudgetMarket', 'target', 'ink', 'pastx_budget_market.contract');
+    if (!fs.existsSync(artifactPath)) throw new Error(`Compiled ink! artifact not found: ${artifactPath}. Build the root contracts/portaldot-v3/native-ink/PastxBudgetMarket contract first.`);
     const artifact = JSON.parse(fs.readFileSync(artifactPath, 'utf8'));
     const wasm = artifact.source?.wasm;
     if (typeof wasm !== 'string' || !/^0x(?:[0-9a-fA-F]{2})+$/.test(wasm) || !wasm.startsWith('0x0061736d')) {

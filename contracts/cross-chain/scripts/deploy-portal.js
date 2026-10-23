@@ -1,5 +1,9 @@
 const hre = require("hardhat");
+const fs = require("node:fs/promises");
+const path = require("node:path");
 require("dotenv").config();
+const { assertPortalTestnet, redactError } = require("./portal-network");
+const { assertValueProbeEvidence } = require("./value-probe-evidence");
 
 async function main() {
   if (process.env.PASTX_PORTAL_NATIVE_VALUE_SEMANTICS_VERIFIED !== "true") {
@@ -10,6 +14,8 @@ async function main() {
   if (!/^[0-9]+$/.test(maxDepositText) || BigInt(maxDepositText) <= 0n) throw new Error("Set PASTX_BRIDGE_MAX_DEPOSIT_RAW to a positive raw-unit cap after verifying native-value semantics.");
   if (maxDepositText !== iswapCapText) throw new Error("PASTX_BRIDGE_MAX_DEPOSIT_RAW must equal PASTX_ISWAP_MAX_NATIVE_PER_SWAP_RAW for the 0.01 demo flow.");
   const maxDepositRaw = BigInt(maxDepositText);
+  const preflight = await assertPortalTestnet(hre);
+  assertValueProbeEvidence(maxDepositRaw, preflight.signer.address);
   const network = await hre.ethers.provider.getNetwork();
   if (network.chainId !== 420420777n) {
     throw new Error(`Refusing deployment: expected PortalDOT V3 testnet 420420777, received ${network.chainId}`);
@@ -26,7 +32,7 @@ async function main() {
   const receipt = await contract.deploymentTransaction().wait();
   await contract.waitForDeployment();
 
-  console.log(JSON.stringify({
+  const result = {
     network: "PortalDOT V3 testnet",
     chainId: network.chainId.toString(),
     contract: await contract.getAddress(),
@@ -37,11 +43,18 @@ async function main() {
     deployer: deployer.address,
     deploymentTx: receipt.hash,
     deploymentBlock: receipt.blockNumber,
-    note: "Testnet only; raw tPOT EVM value semantics must be verified before sending any amount."
-  }, null, 2));
+    note: "Testnet only; raw tPOT EVM value semantics were checked against the saved live probe report."
+  };
+  const outputRoot = path.resolve(
+    process.env.PASTX_MASTER_DEPLOYMENT_OUTPUT_DIR ||
+    path.join(__dirname, "..", "deployments", "all-testnet")
+  );
+  await fs.mkdir(outputRoot, { recursive: true });
+  await fs.writeFile(path.join(outputRoot, "portal-escrow.json"), JSON.stringify({ ...result, status: "deployed" }, null, 2) + "\n", "utf8");
+  console.log(JSON.stringify(result, null, 2));
 }
 
 main().catch((error) => {
-  console.error(error);
+  console.error(redactError(error));
   process.exitCode = 1;
 });

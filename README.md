@@ -18,6 +18,10 @@
 
 After Portaldot mainnet deployment and runtime validation, the roadmap is to enable verified market contracts and asset listings, stronger source-aware market data, and persistent transaction indexing. iSwap and iBridge are planned modules: iSwap for supported asset swaps where pools and liquidity exist; iBridge for approved cross-network routes with clear source/destination assets, amounts, fees and transaction status. These are future goals, not live capabilities of the current demo.
 
+## Contract source and deployment map
+
+The individual contract sources are organized in the root [`contracts/`](contracts/README.md) library, with a [`contracts/manifest.json`](contracts/manifest.json) registry and one named folder per contract. Deployment tooling remains in `contracts/cross-chain/`. The guarded primary EVM iSwap/iBridge deploy command is `npm --prefix contracts/cross-chain run deploy:all:testnet`; it first runs read-only preflights and never starts the relayer automatically.
+
 ## Product truth and safety
 
 - pUSD is a test-only PASTX demo token, not USDC/USDT or fiat-redeemable. The optional iSwap can exchange it against a capped, funded pool of native tPOT test value; that does not give pUSD real-world value.

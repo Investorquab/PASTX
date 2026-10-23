@@ -5,10 +5,14 @@ on:
     branches: [main, "ui/firstbell-inspired-market-terminal"]
     paths:
       - "contracts/cross-chain/**"
+      - "contracts/portaldot-v3/**"
+      - "contracts/bnb-testnet/**"
       - ".github/workflows/cross-chain-prototype.yml"
   pull_request:
     paths:
       - "contracts/cross-chain/**"
+      - "contracts/portaldot-v3/**"
+      - "contracts/bnb-testnet/**"
       - ".github/workflows/cross-chain-prototype.yml"
   workflow_dispatch:
 
