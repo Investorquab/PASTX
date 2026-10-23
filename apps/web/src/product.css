@@ -147,3 +147,20 @@
 .cross-chain-page .cross-chain-intro,.cross-chain-page .cross-chain-status-card,.cross-chain-page .cross-chain-flow,.cross-chain-page .cross-chain-evidence-card,.cross-chain-page .cross-chain-actions-grid,.cross-chain-page .cross-chain-market-stats{font-size:15px!important}
 .cross-chain-page .cross-chain-intro p,.cross-chain-page .cross-chain-config-row,.cross-chain-page .cross-chain-flow p,.cross-chain-page .cross-chain-evidence-note,.cross-chain-page .cross-chain-disclaimer{font-size:13px!important}
 .cross-chain-page .cross-chain-button,.cross-chain-page .cross-chain-primary-button,.cross-chain-page .cross-chain-secondary-button{font-size:13px!important}
+
+/* Compact institutional workspace header and native-market layout */
+.workspace-wallet-button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:32px;padding:0 12px;border:1px solid #1c796b;border-radius:7px;background:#147b6b;color:#fff;font:inherit;font-size:12px;font-weight:650;white-space:nowrap;cursor:pointer}
+.workspace-wallet-button:hover{background:#106858}
+.workspace-tools{gap:10px}
+.native-demo-shell .native-demo-intro h1{font-size:27px;margin:8px 0}
+.native-demo-shell .native-demo-intro{padding-bottom:15px;margin-bottom:16px}
+.native-demo-shell .native-network-status small{display:none}
+.native-demo-shell .native-warning{font-size:12px;padding:9px 12px;margin-top:10px}
+.native-demo-shell .native-stock-list{gap:8px}
+.native-demo-shell .native-stock-row{min-height:60px;padding:12px}
+.native-demo-shell .native-account-card .native-helper{display:none}
+.native-demo-shell .native-balance-grid{gap:8px;margin:12px 0}
+.native-demo-shell .native-balance-grid>div{padding:12px}
+.native-demo-shell .native-balance-grid small{display:none}
+.native-demo-shell .native-trade-card .native-helper{margin-top:9px}
+@media(max-width:680px){.workspace-wallet-button{font-size:11px;padding:0 9px}.workspace-tools{gap:6px}}
