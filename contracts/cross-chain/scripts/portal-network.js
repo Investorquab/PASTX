@@ -48,7 +48,7 @@ async function assertPortalTestnet(hre) {
   const blockNumber = await hre.ethers.provider.getBlockNumber();
   if (!Number.isSafeInteger(blockNumber) || blockNumber < 1) throw new Error("RPC did not return a usable latest block.");
   const balance = await hre.ethers.provider.getBalance(signer.address);
-  if (balance <= 0n) throw new Error("The deployer's EVM account has no native tPOTv3 balance for gas. No transactions were submitted.");
+  if (balance <= 0n) throw new Error("The configured Portaldot EVM deployer account " + signer.address + " has zero native tPOTv3 balance for gas. Verify that this exact 0x EVM account is the one funded by the testnet faucet. The native Substrate 5... account is different. No transactions were submitted.");
 
   return { signer, chainId: network.chainId, blockNumber, balance };
 }
