@@ -365,7 +365,24 @@ export function NativeDemoWorkspace() {
               finish(new Error(`Transaction was not accepted: ${result.status.toString()}`));
               return;
             }
-            if (result.status?.isFinalized) finish(undefined, result.txHash.toHex());
+            if (result.status?.isFinalized) {
+              // contracts.call can finalize as an extrinsic even when the contract
+              // itself reverted. Do not report success unless ContractExecution
+              // confirms the contract call result was Ok.
+              const executionEvent = result.events?.find(({ event }: any) =>
+                event.section === "contracts" && event.method === "ContractExecution"
+              );
+              const executionResult = executionEvent?.event?.data?.[1] as any;
+              if (executionResult?.isErr) {
+                finish(new Error(`Contract execution failed: ${decodeDispatchError(api, executionResult.asErr)}`));
+                return;
+              }
+              if (!executionEvent) {
+                finish(new Error("Transaction finalized without a contracts.ContractExecution event; outcome is unverified."));
+                return;
+              }
+              finish(undefined, result.txHash.toHex());
+            }
           }
         ).then((unsub: () => void) => {
           unsubscribe = unsub;
