@@ -146,7 +146,9 @@ function actionName(action: PendingAction["action"]): string {
   return action === 1 ? "Claim pUSD" : action === 2 ? "Buy demo shares" : "Sell demo shares";
 }
 
-export function NativeDemoWorkspace() {
+type NativeWorkspaceView = "markets" | "portfolio" | "activity";
+
+export function NativeDemoWorkspace({ view = "markets" }: { view?: NativeWorkspaceView }) {
   const [api, setApi] = useState<ApiPromise | null>(null);
   const [chainName, setChainName] = useState("Connecting to Portaldot V3 Testnet…");
   const [genesisHash, setGenesisHash] = useState("");
@@ -434,7 +436,7 @@ export function NativeDemoWorkspace() {
         <section className="native-demo-intro">
           <span className="native-eyebrow"><Activity size={13}/> PORTALDOT V3 · NATIVE SUBSTRATE</span>
           <h1>PASTX native market</h1>
-          <p>One ink! contract for a capped pUSD demo ledger and four fixed-price synthetic listings. No real money or stock ownership.</p>
+          <p>Portaldot-native testnet market. Only configured contract state is actionable; pUSD credits and shares are synthetic demo assets, not real equity.</p>
           <div className="native-network-status">
             <span className={api ? "native-status-dot is-ready" : "native-status-dot"} />
             <span>{chainName}</span>
@@ -450,25 +452,25 @@ export function NativeDemoWorkspace() {
         </section>
 
         <div className="native-demo-grid">
-          <section className="native-card native-market-card">
+          {view === "markets" && <section className="native-card native-market-card">
             <div className="native-section-head">
               <div><span className="native-eyebrow">DEMO LISTINGS</span><h2>Choose a market</h2></div>
               <button className="native-icon-button" type="button" disabled={!canUseContract || busy} onClick={() => void refresh()} aria-label="Refresh native portfolio"><RefreshCw size={14}/></button>
             </div>
             <div className="native-stock-list">
-              {STOCKS.map((item) => (
+              {canUseContract && networkVerified ? STOCKS.map((item) => (
                 <button className={item.id === stockId ? "native-stock-row is-selected" : "native-stock-row"} key={item.id} type="button" onClick={() => setStockId(item.id)}>
                   <span className="native-stock-icon">{item.symbol.slice(1, 2)}</span>
                   <span className="native-stock-identity"><strong>{item.symbol}</strong><small>{item.name}</small></span>
                   <span className="native-stock-price"><strong>{item.price} pUSD</strong><small>Fixed demo quote</small></span>
                   <span className="native-stock-select">{item.id === stockId ? "Selected" : "Select"}</span>
                 </button>
-              ))}
+              )) : <p className="native-helper">No verified Portaldot market listings are available. Configure the deployed contract address and expected testnet genesis hash before displaying tradable listings.</p>}
             </div>
             <div className="native-market-disclaimer"><ShieldCheck size={14}/> Fixed demonstration prices, not live market data or oracle-verified prices.</div>
-          </section>
+          </section>}
 
-          <section className="native-card native-account-card">
+          {(view === "markets" || view === "portfolio") && <section className="native-card native-account-card">
             <span className="native-eyebrow">YOUR NATIVE ACCOUNT</span>
             <h2>Portfolio and faucet</h2>
             {accounts.length > 0 && <label className="native-field"><span>Wallet account</span><select value={selectedAddress} onChange={(event) => { setSelectedAddress(event.target.value); setPending(null); }} disabled={busy}>{accounts.map((account) => <option key={account.address} value={account.address}>{account.label} · {account.address.slice(0, 7)}…{account.address.slice(-5)}</option>)}</select></label>}
@@ -482,9 +484,9 @@ export function NativeDemoWorkspace() {
               Claim 1,000 pUSD
             </button>
             <p className="native-helper">First claim is immediate; the same account can claim once per hour. Global cap: 1,000,000 pUSD. pUSD is not tPOT and cannot pay gas.</p>
-          </section>
+          </section>}
 
-          <section className="native-card native-trade-card">
+          {view === "markets" && <section className="native-card native-trade-card">
             <div className="native-section-head"><div><span className="native-eyebrow">FIXED-PRICE TRADING</span><h2>{stock.symbol} order ticket</h2></div><ArrowLeftRight size={18}/></div>
             <div className="native-trade-price"><span>Price per share</span><strong>{selectedQuote} pUSD</strong></div>
             <label className="native-field"><span>Whole shares</span><input value={shareQuantity} onChange={(event) => { setShareQuantity(event.target.value.replace(/[^0-9]/g, "")); setPending(null); }} inputMode="numeric" aria-label="Whole shares" /></label>
@@ -494,9 +496,9 @@ export function NativeDemoWorkspace() {
               <button className="native-button native-button-outline" type="button" disabled={!canWrite || busy} onClick={() => void prepareAction(3)}>Sell shares</button>
             </div>
             <p className="native-helper">Buys debit pUSD and create paper shares. Sells require shares and return the same fixed price. No fractional shares, order book, or real equity.</p>
-          </section>
+          </section>}
 
-          {pending && <section className="native-card native-confirm-card">
+          {view === "markets" && pending && <section className="native-card native-confirm-card">
             <span className="native-eyebrow">DRY-RUN PASSED · REVIEW BEFORE SIGNING</span>
             <h2>{pending.description}</h2>
             <div className="native-confirm-details">
@@ -513,9 +515,10 @@ export function NativeDemoWorkspace() {
             </div>
           </section>}
 
-          {activity.length > 0 && <section className="native-card native-activity-card">
-            <span className="native-eyebrow">RECENT ACTIVITY</span><h2>Finalized transactions</h2>
-            {activity.map((entry) => <div className="native-activity-row" key={entry}><CheckCircle2 size={15}/><span>{entry}</span></div>)}
+          {view === "activity" && <section className="native-card native-activity-card">
+            <span className="native-eyebrow">ON-CHAIN CONFIRMATIONS</span><h2>Finalized transactions</h2>
+            {activity.length ? activity.map((entry) => <div className="native-activity-row" key={entry}><CheckCircle2 size={15}/><span>{entry}</span></div>) : <p className="native-helper">No finalized market transactions recorded in this session for the selected account.</p>}
+            <p className="native-helper">This list contains transactions finalized by this app session; it is not a complete explorer index of all wallet activity.</p>
           </section>}
         </div>
         {message && <div className="native-message" role="status"><span>{message}</span><button type="button" onClick={() => setMessage("")}>Dismiss</button></div>}
