@@ -69,3 +69,23 @@
 .native-demo-footer a{display:flex;align-items:center;gap:5px;color:#5c7883;text-decoration:none}
 @media(max-width:840px){.native-demo-header{padding:14px 18px;flex-wrap:wrap}.native-demo-header nav{order:3;width:100%;justify-content:flex-start}.native-demo-grid{grid-template-columns:minmax(0,1fr)}.native-account-card,.native-trade-card,.native-confirm-card,.native-activity-card{grid-column:1;grid-row:auto}.native-demo-main{padding:30px 16px 22px}}
 @media(max-width:520px){.native-demo-header{gap:12px}.native-demo-header nav{gap:13px}.native-demo-header nav a{font-size:11px}.native-demo-main{padding-left:12px;padding-right:12px}.native-card{padding:17px}.native-stock-row{grid-template-columns:32px minmax(72px,1fr) auto;gap:8px}.native-stock-icon{width:30px;height:30px}.native-stock-price{max-width:75px}.native-stock-select{display:none}.native-balance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.native-confirm-details{grid-template-columns:1fr}}
+
+
+/* Readability pass: slightly larger native-demo copy while preserving its layout. */
+.native-demo-shell{font-size:16px}
+.native-demo-header nav a{font-size:13px}
+.native-demo-brand{font-size:16px}
+.native-demo-brand small{font-size:9px}
+.native-eyebrow{font-size:11px}
+.native-demo-intro>p{font-size:15px}
+.native-network-status{font-size:13px}
+.native-network-status small{font-size:12px}
+.native-warning{font-size:13px}
+.native-section-head h2,.native-card h2{font-size:19px}
+.native-stock-identity strong,.native-stock-price strong{font-size:13px}
+.native-stock-identity small,.native-stock-price small{font-size:11px}
+.native-market-disclaimer,.native-helper,.native-confirm-note{font-size:12px}
+.native-field{font-size:12px}
+.native-button{font-size:13px}
+.native-message{font-size:13px}
+.native-demo-footer{font-size:11px}
