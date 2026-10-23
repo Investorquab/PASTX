@@ -3,11 +3,11 @@
 **Last checked:** 15 October 2026  
 **Project:** PASTX — Portaldot Asset & Stock Trading Exchange  
 **Primary track:** Ecosystem DApps  
-**Secondary contribution:** Modular Cloud & Middleware
+**Technical contribution:** Multi-Chain & Cross-Chain Infrastructure
 
 ## Track fit
 
-PASTX is primarily an **Ecosystem DApp** because the product goal is a consumer-facing market and asset application. The market API and provider-normalization layer may also contribute to **Modular Cloud & Middleware**, but we should submit to the single track that best matches the delivered core product.
+PASTX is primarily an **Ecosystem DApp** because the product goal is a consumer-facing market and asset application. The technical differentiator is the cross-chain asset/settlement layer that supports that user-facing product. Submit to the single track that best matches the delivered core product; confirm with organizers whether dual-track awards are allowed.
 
 Officially listed tracks:
 1. Modular Cloud & Middleware — decentralized middleware, storage/data components and APIs.
@@ -75,10 +75,11 @@ A prototype/core flow is expected by check-in; concept-only submissions are insu
 1. Keep the preview UI truthful and runnable.
 2. Implement and test server-side market API/provider normalization without leaking API keys.
 3. Confirm provider licensing before publicly displaying live market data.
-4. Verify the actual Portaldot V3 RPC, runtime identity, wallet path and supported asset/contract route.
-5. Prove atomic settlement and rollback under the selected route.
-6. Deploy to Portaldot testnet and capture verifiable evidence.
-7. Complete a reproducible end-to-end core flow, README, demo and pitch deck.
+4. Verify the actual PortalDOT V3 RPC, runtime identity, EVM/native-value semantics and wallet path.
+5. Validate the isolated `contracts/cross-chain` prototype with local tests and both EVM/PVM compile targets.
+6. Deploy to PortalDOT V3 testnet only after the target RPC and amount semantics are checked; capture verifiable evidence.
+7. Validate the BNB testnet relay only with test assets and clearly labelled mock stock instruments. The official iBridge/iSwap route for tPOTv3 remains unverified.
+8. Complete reproducible end-to-end evidence, README, demo and pitch deck.
 
 **Important:** UI, provider API, or local-node tests alone do not satisfy the required Portaldot testnet integration gate.
 
@@ -88,3 +89,8 @@ A prototype/core flow is expected by check-in; concept-only submissions are insu
 - [DoraHacks project event page](https://dorahacks.io/hackathon/2362/detail)
 - [Portaldot V3 testnet guide](https://github.com/ItsCogumellum/portaldot-v3-testnet-guide)
 - [PASTX repository](https://github.com/Investorquab/PASTX)
+
+
+## Cross-chain prototype status
+
+The current PASTX proposal is an **Ecosystem DApp/RWA product with a Multi-Chain & Cross-Chain Infrastructure technical contribution**. The isolated prototype in `contracts/cross-chain` uses a trusted relayer and mock destination market for testnet demonstration. A local test or successful compilation is not proof of a live bridge. The exact PortalDOT V3-to-BNB route for tPOTv3 and an official BNB testnet stock-token market remain unverified. Demo materials must show that limitation and must not describe test representations as official stock tokens or real stock ownership.

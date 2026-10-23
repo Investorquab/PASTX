@@ -48,13 +48,13 @@ The browser must not contain provider secrets. The UI can use `/api/capabilities
 
 ## Market data
 
-The catalogue currently contains AAPL, NVDA, TSLA and MSFT as **reference instruments**. They are external price references, not equity tokens and not executable on-chain assets. Quote and candle routes use Twelve Data via `MARKET_DATA_API_KEY`. The provider's free/basic terms distinguish internal non-display usage from client-facing external display; do not publicly display live provider data until the account and licensing tier are confirmed. The UI therefore remains clearly labelled as fixture/sample data until a permitted provider configuration and end-to-end display integration are verified.
+The initial quick-access list contains AAPL, NVDA, TSLA and MSFT, but is not the full stock universe. The API exposes `/api/markets/search?q=...` using Twelve Data's `/symbol_search` endpoint and returns bounded, validated equity listings with exchange, MIC, country and currency identity. Quote, candle and logo requests preserve listing identity so repeated tickers on different venues are not conflated. Company logos are fetched on demand with ticker initials as a fallback. Search requires `MARKET_DATA_API_KEY`; quote and candle display also require `MARKET_DATA_DISPLAY_ENABLED=true`. The UI no longer shows invented prices or synthetic chart series when provider responses are unavailable. Selected-stock quotes refresh every 60 seconds when enabled and show the provider timestamp; feed-delay status remains unknown and no websocket feed exists. Wallet connection, order submission and atomic settlement remain unimplemented. Confirm client-facing provider data entitlements before public live quote display.
 
-The adapter uses bounded timeouts, UTC-normalized timestamps, provider symbol/interval/currency metadata checks for candle series, numeric and OHLC validation, stable error mapping, and no provider-detail leakage. It does not guess whether data is delayed. Identical concurrent cache misses are coalesced by instrument/provider mapping/currency (and by interval/output size for candles), avoiding duplicate provider calls; failed in-flight requests are cleared rather than cached. Identical concurrent cache misses are coalesced by instrument/provider mapping/currency (and by interval/output size for candles), avoiding duplicate provider calls; failed in-flight requests are cleared rather than cached.
+The adapter uses bounded timeouts, UTC-normalized timestamps, provider symbol/interval/currency metadata checks for candle series, numeric and OHLC validation, stable error mapping, and no provider-detail leakage. It does not guess whether data is delayed. Identical concurrent cache misses are coalesced by instrument/provider mapping/currency (and by interval/output size for candles), avoiding duplicate provider calls; failed in-flight requests are cleared rather than cached.
 
 ## Chain-adapter boundary
 
-The published [Portaldot V3 testnet guide](https://github.com/ItsCogumellum/portaldot-v3-testnet-guide) documents the EVM JSON-RPC endpoint `https://testnetv3-eth-rpc.feso-apps.xyz`, chain ID `420420777`, Solidity execution through `revive`, and an H160-to-native-SS58 mapping through `reviveApi.accountId`. The current PASTX adapter performs a read-only `eth_chainId` and latest-block read and has automated tests for those responses. Live endpoint reachability and wallet/account mapping have not yet been demonstrated. Passing this probe does not establish that the endpoint is canonical, nor does it prove account mapping, balance reads, transaction simulation, receipt verification, asset interoperability, or safe settlement.
+The [Portaldot V3 testnet guide](https://github.com/ItsCogumellum/portaldot-v3-testnet-guide) was updated on 16 October 2026 and explicitly retires the former `feso-apps.xyz` endpoints. The current documented testnet endpoints are Substrate WebSocket `wss://test-node-v3.portaldot.dev` and EVM JSON-RPC `https://test-evm-rpc-v3.portaldot.dev`, with EVM chain ID `420420777`, Solidity execution through `revive`, and H160-to-native-SS58 mapping through `reviveApi.accountId`. `docs/PROJECT-STATUS.md` records prior successful read-only testnet observations, but these are historical snapshots and must be re-run before release. The current PASTX adapter performs only a read-only `eth_chainId` and latest-block read. Passing that probe does not establish that the endpoint is canonical, nor does it prove wallet/account mapping, balance reads, transaction simulation, receipt verification, asset interoperability, or safe settlement.
 
 Native `assets` tokens and Solidity contracts under `revive` are separate asset/execution models in the guide; interoperability and direct cross-module atomicity are not established. Keep PASTX trading disabled until the selected asset/payment route is tested end-to-end.
 
@@ -81,9 +81,17 @@ See [Settlement Design](SETTLEMENT-DESIGN.md).
 - Use a server-side market-data adapter to protect keys and normalize provider responses.
 - Use PostgreSQL only when there is a concrete need for durable records or indexed chain history.
 - Add Redis only if measured caching, rate limiting or job coordination needs justify it.
-- Defer cross-chain bridges, matching engines and authentication expansion until the core flow works.
+- Keep the cross-chain prototype isolated from the production application until chain/account/payment semantics and an official or intentionally trusted testnet route are independently verified.
+- Never present the single-relayer prototype as a production-secure bridge.
 
 
 ## Reference-only order intent domain
 
 The shared package owns deterministic order-preview validation so the web app does not maintain separate arithmetic. It accepts a known reference-catalogue symbol, a buy/sell side, bounded positive quantity, and positive finite reference price. The result is explicitly `executable: false`; it is not an order, balance check, authorization, or transaction. Live trading remains disabled.
+
+
+## Cross-chain prototype
+
+The testnet prototype lives in [`contracts/cross-chain`](../contracts/cross-chain/README.md). Its source escrow and BNB gateway are testnet-only contracts; the destination uses `wtPOTv3` and mock `*-TEST` stock instruments. A separate relayer observes source events and submits destination calls after a configurable confirmation depth.
+
+The contracts validate event identifiers and prevent replay, but the relayer is trusted and no cross-chain light-client proof is verified on-chain. Testnet amount scaling and PortalDOT EVM value semantics must be validated before any test deposit. This package is not integrated into the main UI, has not been deployed, and must not be used for valuable funds. The official PortalDOT V3-to-BNB iBridge route for tPOTv3 remains unverified.

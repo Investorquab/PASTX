@@ -1,0 +1,43 @@
+{
+  "name": "pastx-cross-chain-testnet-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Testnet-only Portaldot V3 EVM market and separate Portaldot-to-BNB prototype",
+  "scripts": {
+    "check": "node --check scripts/compile-native-polkadot.cjs && node --check scripts/assert-portal-evm-artifacts.js && node --check scripts/deploy-portal.js && node --check scripts/deploy-bnb.js && node --check scripts/deploy-market-portal.js && node --check scripts/preflight-bnb.js && node --check scripts/value-probe-evidence.js && node --check scripts/deploy-all-testnet.cjs && node --check scripts/probe-native-value.js && node --check scripts/deploy-market-bnb.js && node --check scripts/preflight-market-portal.js && node --check scripts/verify-market-portal.js && node --check scripts/portal-network.js && node --check scripts/relay.mjs && node --check scripts/relay-cursor.mjs && node --check native-polkadot/scripts/common.cjs && node --check native-polkadot/scripts/preflight.cjs && node --check native-polkadot/scripts/deploy-market.cjs && node --check native-polkadot/scripts/verify-market.cjs && node --check ../portaldot-v3/native-ink/PastxBudgetMarket/scripts/preflight.cjs && node --check ../portaldot-v3/native-ink/PastxBudgetMarket/scripts/check-size.cjs && node --check ../portaldot-v3/native-ink/PastxBudgetMarket/scripts/storage-deposit-common.cjs && node --check ../portaldot-v3/native-ink/PastxBudgetMarket/scripts/deploy.cjs",
+    "compile:portal": "hardhat --config hardhat.portal.config.js compile && node scripts/assert-portal-evm-artifacts.js",
+    "compile:native:portal": "node scripts/compile-native-polkadot.cjs",
+    "compile:bnb": "hardhat --config hardhat.bnb.config.js compile",
+    "test:bnb": "hardhat --config hardhat.bnb.config.js test",
+    "test:portal-unit": "hardhat --config hardhat.portal-unit.config.js test",
+    "test": "npm run test:relay-cursor && npm run test:portal-unit && npm run test:bnb",
+    "build": "npm run check && npm test && npm run compile:bnb && npm run compile:portal",
+    "preflight:market:portal": "hardhat --config hardhat.portal.config.js run scripts/preflight-market-portal.js --network portalV3Testnet",
+    "deploy:portal": "hardhat --config hardhat.portal.config.js run scripts/deploy-portal.js --network portalV3Testnet",
+    "deploy:bnb": "hardhat --config hardhat.bnb.config.js run scripts/deploy-bnb.js --network bscTestnet",
+    "deploy:market:portal": "hardhat --config hardhat.portal.config.js run scripts/deploy-market-portal.js --network portalV3Testnet",
+    "verify:market:portal": "hardhat --config hardhat.portal.config.js run scripts/verify-market-portal.js --network portalV3Testnet",
+    "deploy:market:bnb": "hardhat --config hardhat.bnb.config.js run scripts/deploy-market-bnb.js --network bscTestnet",
+    "relay": "node scripts/relay.mjs",
+    "test:relay-cursor": "node --test test/relay-cursor.test.mjs",
+    "install:native:portal": "npm --prefix native-polkadot install --no-audit --no-fund --no-package-lock",
+    "preflight:native:portal": "npm --prefix native-polkadot install --no-audit --no-fund --no-package-lock && node ../portaldot-v3/native-ink/PastxBudgetMarket/scripts/preflight.cjs",
+    "deploy:native:portal": "npm --prefix native-polkadot install --no-audit --no-fund --no-package-lock && node ../portaldot-v3/native-ink/PastxBudgetMarket/scripts/deploy.cjs --deploy",
+    "preflight:native:ink": "npm --prefix native-polkadot install --no-audit --no-fund --no-package-lock && node ../portaldot-v3/native-ink/PastxBudgetMarket/scripts/preflight.cjs",
+    "preflight:native:solang-market": "npm --prefix native-polkadot install --no-audit --no-fund --no-package-lock && npm run compile:native:portal && node native-polkadot/scripts/preflight.cjs",
+    "deploy:native:solang-market": "npm --prefix native-polkadot install --no-audit --no-fund --no-package-lock && npm run compile:native:portal && node native-polkadot/scripts/deploy-market.cjs",
+    "verify:native:solang-market": "npm --prefix native-polkadot install --no-audit --no-fund --no-package-lock && npm run compile:native:portal && node native-polkadot/scripts/verify-market.cjs",
+    "deploy:native:ink": "npm --prefix native-polkadot install --no-audit --no-fund --no-package-lock && node ../portaldot-v3/native-ink/PastxBudgetMarket/scripts/deploy.cjs --deploy",
+    "compile:native:solang-market": "node scripts/compile-native-polkadot.cjs",
+    "probe:native-value:portal": "hardhat --config hardhat.portal.config.js run scripts/probe-native-value.js --network portalV3Testnet",
+    "preflight:bnb": "hardhat --config hardhat.bnb.config.js run scripts/preflight-bnb.js --network bscTestnet",
+    "preflight:all:testnet": "node scripts/deploy-all-testnet.cjs --preflight-only",
+    "deploy:all:testnet": "node scripts/deploy-all-testnet.cjs"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "6.1.0",
+    "dotenv": "17.2.3",
+    "hardhat": "2.28.0",
+    "viem": "2.57.7"
+  }
+}

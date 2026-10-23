@@ -7,6 +7,10 @@ export type MarketInstrument = {
   description: string;
   currency: string;
   providerSymbol?: string;
+  exchange?: string;
+  micCode?: string;
+  country?: string;
+  instrumentType?: string;
 };
 
 export type QuoteSource = "fixture" | "twelve_data";
@@ -68,10 +72,10 @@ export type ApiError = {
 };
 
 export const MARKET_INSTRUMENTS: readonly MarketInstrument[] = [
-  { symbol: "AAPL", name: "Apple Inc.", kind: "reference", description: "External stock-price reference only; not an on-chain equity token.", currency: "USD", providerSymbol: "AAPL" },
-  { symbol: "NVDA", name: "NVIDIA Corporation", kind: "reference", description: "External stock-price reference only; not an on-chain equity token.", currency: "USD", providerSymbol: "NVDA" },
-  { symbol: "TSLA", name: "Tesla, Inc.", kind: "reference", description: "External stock-price reference only; not an on-chain equity token.", currency: "USD", providerSymbol: "TSLA" },
-  { symbol: "MSFT", name: "Microsoft Corporation", kind: "reference", description: "External stock-price reference only; not an on-chain equity token.", currency: "USD", providerSymbol: "MSFT" }
+  { symbol: "AAPL", name: "Apple Inc.", kind: "reference", description: "Listed stock quote data from an external provider; not an on-chain equity token and not a Portaldot-issued equity token.", currency: "USD", providerSymbol: "AAPL" },
+  { symbol: "NVDA", name: "NVIDIA Corporation", kind: "reference", description: "Listed stock quote data from an external provider; not an on-chain equity token and not a Portaldot-issued equity token.", currency: "USD", providerSymbol: "NVDA" },
+  { symbol: "TSLA", name: "Tesla, Inc.", kind: "reference", description: "Listed stock quote data from an external provider; not an on-chain equity token and not a Portaldot-issued equity token.", currency: "USD", providerSymbol: "TSLA" },
+  { symbol: "MSFT", name: "Microsoft Corporation", kind: "reference", description: "Listed stock quote data from an external provider; not an on-chain equity token and not a Portaldot-issued equity token.", currency: "USD", providerSymbol: "MSFT" }
 ] as const;
 
 export function isCandleInterval(value: string): value is CandleInterval {

@@ -1,61 +1,40 @@
 import { useEffect, useMemo, useState } from "react";
-import { getApiCapabilities, getChainStatus, getMarketCatalogue, getMarketCandles, getMarketQuote, type ChainStatus } from "./api";
+import { getApiCapabilities, getChainStatus, getMarketCatalogue, getMarketCandles, getMarketQuote, getMarketSearch, type ChainStatus } from "./api";
+import { findMarketByIdentity, marketIdentityKey as marketKey } from "./marketIdentity";
 import type { MarketCandle, MarketInstrument, MarketQuote } from "@pastx/shared";
-import { calculateReferenceNotional, parsePreviewQuantity } from "./orderPreview";
+import { calculateReferenceNotional } from "./orderPreview";
+import { AssetLogo } from "./AssetLogo";
+import { OverviewPage } from "./OverviewPage";
+import { textFor, type LanguageCode } from "./i18n";
+import { LanguageSwitcher } from "./LanguageSwitcher";
+import { CrossChainDemoPage } from "./CrossChainDemoPage";
 import {
   Activity,
   ArrowDownRight,
+  ArrowDownUp,
   ArrowUpRight,
   Bell,
   ChartCandlestick,
+  Check,
   ChevronDown,
-  CircleHelp,
   Compass,
+  ExternalLink,
   Layers3,
   Search,
   ShieldCheck,
   Wallet,
+  X,
 } from "lucide-react";
 
-type MarketItem = {
-  symbol: string;
-  name: string;
-  category: string;
-  currency: string;
-  price: string;
-  change: string;
-  positive: boolean;
-  initials: string;
-};
+type MarketItem=MarketInstrument&{category:string;price:string;change:string;positive:boolean;initials:string};
 
-const referenceMarkets: MarketItem[] = [
-  { symbol: "AAPL", name: "Apple Inc.", category: "US EQUITY · REFERENCE", currency: "USD", price: "$247.96", change: "+1.24%", positive: true, initials: "A" },
-  { symbol: "NVDA", name: "NVIDIA Corporation", category: "US EQUITY · REFERENCE", currency: "USD", price: "$181.42", change: "+2.86%", positive: true, initials: "N" },
-  { symbol: "TSLA", name: "Tesla, Inc.", category: "US EQUITY · REFERENCE", currency: "USD", price: "$438.07", change: "−0.72%", positive: false, initials: "T" },
-  { symbol: "MSFT", name: "Microsoft Corporation", category: "US EQUITY · REFERENCE", currency: "USD", price: "$514.21", change: "+0.38%", positive: true, initials: "M" },
-];
+const referenceMarkets:MarketItem[]=[
+ {symbol:"AAPL",name:"Apple Inc.",kind:"reference",description:"Listed stock quote data from an external provider; not a Portaldot-issued equity token.",providerSymbol:"AAPL",exchange:"NASDAQ",micCode:"XNAS",country:"United States",instrumentType:"Common Stock",category:"NASDAQ · LISTED STOCK",currency:"USD",price:"—",change:"—",positive:true,initials:"A"},
+ {symbol:"NVDA",name:"NVIDIA Corporation",kind:"reference",description:"Listed stock quote data from an external provider; not a Portaldot-issued equity token.",providerSymbol:"NVDA",exchange:"NASDAQ",micCode:"XNAS",country:"United States",instrumentType:"Common Stock",category:"NASDAQ · LISTED STOCK",currency:"USD",price:"—",change:"—",positive:true,initials:"N"},
+ {symbol:"TSLA",name:"Tesla, Inc.",kind:"reference",description:"Listed stock quote data from an external provider; not a Portaldot-issued equity token.",providerSymbol:"TSLA",exchange:"NASDAQ",micCode:"XNAS",country:"United States",instrumentType:"Common Stock",category:"NASDAQ · LISTED STOCK",currency:"USD",price:"—",change:"—",positive:true,initials:"T"},
+ {symbol:"MSFT",name:"Microsoft Corporation",kind:"reference",description:"Listed stock quote data from an external provider; not a Portaldot-issued equity token.",providerSymbol:"MSFT",exchange:"NASDAQ",micCode:"XNAS",country:"United States",instrumentType:"Common Stock",category:"NASDAQ · LISTED STOCK",currency:"USD",price:"—",change:"—",positive:true,initials:"M"}];
 
-const candles = [34, 42, 37, 51, 47, 43, 59, 55, 65, 60, 73, 67, 77, 70, 84, 79, 90, 82, 96, 88, 103, 95, 108, 101, 116, 110, 122, 113, 128, 121, 136, 130, 143, 135, 151, 145, 158, 149, 166, 158, 174, 166, 183, 175, 191, 182, 199, 191, 208, 200, 217, 210];
-
-function MiniChart({ values }: { values?: number[] }) {
-  const series = values && values.length > 1 ? values : candles;
-  const minimum = Math.min(...series);
-  const maximum = Math.max(...series);
-  const range = maximum - minimum || 1;
-  const points = series.map((value, index) => `${(index / (series.length - 1)) * 100},${200 - ((value - minimum) / range) * 160}`).join(" ");
-  return (
-    <svg className="chart-line" viewBox="0 0 100 220" preserveAspectRatio="none" role="img" aria-label={values && values.length > 1 ? "Historical AAPL closing prices from Twelve Data" : "Illustrative upward market chart, not live price data"}>
-      <defs>
-        <linearGradient id="chart-fill" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="#64e5b4" stopOpacity=".24" />
-          <stop offset="100%" stopColor="#64e5b4" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <polygon points={`0,220 ${points} 100,220`} fill="url(#chart-fill)" />
-      <polyline points={points} fill="none" stroke="#64e5b4" strokeWidth="1.8" vectorEffect="non-scaling-stroke" />
-    </svg>
-  );
-}
+function MiniChart({values}:{values?:number[]}){if(!values||values.length<2||values.some((v)=>!Number.isFinite(v)||v<=0))return <div className="chart-empty-state" role="status">Historical chart data appears here when an approved market-data feed is available.</div>;const min=Math.min(...values),max=Math.max(...values),range=max-min||1;const pts=values.map((v,i)=>(i/(values.length-1))*100+","+(200-((v-min)/range)*160)).join(" ");return <svg className="chart-line" viewBox="0 0 100 220" preserveAspectRatio="none" role="img" aria-label="Historical close prices from the configured market-data provider"><defs><linearGradient id="chart-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#00865f" stopOpacity=".15"/><stop offset="100%" stopColor="#00865f" stopOpacity="0"/></linearGradient></defs><polygon points={"0,220 "+pts+" 100,220"} fill="url(#chart-fill)"/><polyline points={pts} fill="none" stroke="#00865f" strokeWidth="1.8" vectorEffect="non-scaling-stroke"/></svg>;}
 
 function formatQuotePrice(quote: MarketQuote | undefined, fixturePrice: string): string {
   if (!quote) return fixturePrice;
@@ -71,25 +50,38 @@ function formatAxisDate(timestamp: string): string {
 }
 
 function formatTimestamp(timestamp: string): string {
-  return `${new Date(timestamp).toISOString().replace("T", " ").slice(0, 16)} UTC`;
+  return new Date(timestamp).toISOString().replace("T", " ").slice(0, 16) + " UTC";
 }
 
 function formatQuoteChange(quote: MarketQuote | undefined, fixtureChange: string): string {
   if (!quote) return fixtureChange;
   const sign = quote.changePercent > 0 ? "+" : "";
-  return `${sign}${quote.changePercent.toFixed(2)}%`;
+  return sign + quote.changePercent.toFixed(2) + "%";
 }
 
 function App() {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [activePage, setActivePage] = useState<"overview" | "app" | "crosschain">("overview");
+  const [language, setLanguage] = useState<LanguageCode>("en");
+  const t = textFor(language);
+  const [searchTerm,setSearchTerm]=useState("");
+  const [remoteSearchResults,setRemoteSearchResults]=useState<MarketItem[]>([]);
+  const [marketSearchLoading,setMarketSearchLoading]=useState(false);
+  const [marketSearchError,setMarketSearchError]=useState(false);
+  const [marketDataEnabled,setMarketDataEnabled]=useState({quotes:false,candles:false});
   const [chainStatus, setChainStatus] = useState<ChainStatus | null>(null);
   const [chainStatusError, setChainStatusError] = useState(false);
   const [marketCatalogue, setMarketCatalogue] = useState<MarketItem[]>(referenceMarkets);
   const [liveQuotes, setLiveQuotes] = useState<Record<string, MarketQuote>>({});
   const [liveCandles, setLiveCandles] = useState<MarketCandle[] | null>(null);
-  const [orderSymbol, setOrderSymbol] = useState("AAPL");
+  const [orderSymbol,setOrderSymbol]=useState("AAPL");
+  const [orderExchange,setOrderExchange]=useState("NASDAQ");
+  const [orderMicCode,setOrderMicCode]=useState("XNAS");
+  const [orderCountry,setOrderCountry]=useState("United States");
+  const [orderCurrencyCode,setOrderCurrencyCode]=useState("USD");
   const [orderSide, setOrderSide] = useState<"buy" | "sell">("buy");
   const [orderQuantity, setOrderQuantity] = useState("1");
+  const [marketMenuOpen, setMarketMenuOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -105,236 +97,215 @@ function App() {
     };
   }, []);
 
-  useEffect(() => {
-    let active = true;
-    Promise.all([getApiCapabilities(), getMarketCatalogue()])
-      .then(async ([contract, instruments]) => {
-        if (!active) return;
-        const displayItems = instruments.map((instrument: MarketInstrument) => {
-          const fixture = referenceMarkets.find((market) => market.symbol === instrument.symbol);
-          return {
-            symbol: instrument.symbol,
-            name: instrument.name,
-            category: `${instrument.kind.toUpperCase()} · ${instrument.kind === "reference" ? "REFERENCE" : instrument.kind === "simulated" ? "SIMULATED" : "ON-CHAIN"}`,
-            currency: instrument.currency,
-            price: fixture?.price ?? "—",
-            change: fixture?.change ?? "—",
-            positive: fixture?.positive ?? true,
-            initials: instrument.symbol.slice(0, 1)
-          };
-        });
-        setMarketCatalogue(displayItems);
-        const quotePromise = contract.capabilities.marketQuotes.enabled
-          ? Promise.allSettled(displayItems.map((market) => getMarketQuote(market.symbol)))
-          : Promise.resolve([]);
-        const candlePromise = contract.capabilities.marketCandles.enabled
-          ? getMarketCandles("AAPL", "1day", 30).then(
-              (items) => ({ ok: true as const, items }),
-              () => ({ ok: false as const, items: [] as MarketCandle[] })
-            )
-          : Promise.resolve({ ok: false as const, items: [] as MarketCandle[] });
-        const [quoteResults, candleResult] = await Promise.all([quotePromise, candlePromise]);
-        if (!active) return;
-        const quotes = quoteResults.flatMap((result) => result.status === "fulfilled" ? [result.value] : []);
-        setLiveQuotes(Object.fromEntries(quotes.map((quote) => [quote.symbol, quote])));
-        setLiveCandles(candleResult.ok ? candleResult.items : null);
-      })
-      .catch(() => {
-        // If the API contract or catalogue is unavailable, keep the labelled preview fixtures.
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
+  useEffect(()=>{let active=true;Promise.all([getApiCapabilities(),getMarketCatalogue()]).then(([contract,instruments])=>{if(!active)return;const rows=instruments.map((i:MarketInstrument)=>{const seed=referenceMarkets.find((m)=>m.symbol===i.symbol),exchange=i.exchange??seed?.exchange;return {...i,exchange,micCode:i.micCode??seed?.micCode,country:i.country??seed?.country,instrumentType:i.instrumentType??seed?.instrumentType??"Common Stock",category:(exchange??"EQUITY")+" · LISTED STOCK",price:"—",change:"—",positive:true,initials:i.symbol.slice(0,1)};});setMarketCatalogue(rows);const initial=rows.find((m)=>m.symbol==="AAPL");if(initial){setOrderExchange(initial.exchange??"NASDAQ");setOrderMicCode(initial.micCode??"");setOrderCountry(initial.country??"United States");setOrderCurrencyCode(initial.currency??"USD");}setMarketDataEnabled({quotes:contract.capabilities.marketQuotes.enabled,candles:contract.capabilities.marketCandles.enabled});}).catch(()=>{/* seed entries remain available when API is not reachable */});return()=>{active=false;};},[]);
 
-  const hasLiveQuotes = Object.keys(liveQuotes).length > 0;
-  const hasLiveCandles = Boolean(liveCandles && liveCandles.length > 0);
-  const hasAnyLiveData = hasLiveQuotes || hasLiveCandles;
+  useEffect(()=>{const q=searchTerm.trim();if(!marketMenuOpen||q.length<2){setRemoteSearchResults([]);setMarketSearchLoading(false);setMarketSearchError(false);return;}let active=true;const timer=window.setTimeout(()=>{setMarketSearchLoading(true);setMarketSearchError(false);getMarketSearch(q,15).then((items)=>{if(active)setRemoteSearchResults(items.map((i)=>({...i,category:(i.exchange??"EQUITY")+" · "+(i.instrumentType??"LISTED STOCK").toUpperCase(),price:"—",change:"—",positive:true,initials:i.symbol.slice(0,1)})));}).catch(()=>{if(active){setRemoteSearchResults([]);setMarketSearchError(true);}}).finally(()=>{if(active)setMarketSearchLoading(false);});},300);return()=>{active=false;window.clearTimeout(timer);};},[searchTerm,marketMenuOpen]);
 
-  const selectedOrderInstrument = marketCatalogue.find((market) => market.symbol === orderSymbol) ?? marketCatalogue[0] ?? referenceMarkets[0];
-  const selectedOrderQuote = liveQuotes[orderSymbol];
+  const selectedOrderInstrument=findMarketByIdentity(marketCatalogue,{symbol:orderSymbol,exchange:orderExchange,micCode:orderMicCode,country:orderCountry,currency:orderCurrencyCode})??findMarketByIdentity(referenceMarkets,{symbol:orderSymbol,exchange:orderExchange,micCode:orderMicCode,country:orderCountry,currency:orderCurrencyCode})??referenceMarkets[0];
+  useEffect(()=>{if(!marketDataEnabled.quotes)return;let active=true;const refresh=async()=>{try{const q=await getMarketQuote(selectedOrderInstrument);if(active)setLiveQuotes((current)=>({...current,[marketKey(selectedOrderInstrument)]:q}));}catch{/* no invented fallback; retain any last successful quote */}};void refresh();const timer=window.setInterval(()=>{void refresh();},60_000);return()=>{active=false;window.clearInterval(timer);};},[marketDataEnabled.quotes,selectedOrderInstrument]);
+  useEffect(()=>{if(!marketDataEnabled.candles){setLiveCandles(null);return;}let active=true;setLiveCandles(null);getMarketCandles(selectedOrderInstrument,"1day",30).then((rows)=>{if(active)setLiveCandles(rows);}).catch(()=>{if(active)setLiveCandles(null);});return()=>{active=false;};},[marketDataEnabled.candles,selectedOrderInstrument]);
+  const selectedOrderQuote=liveQuotes[marketKey(selectedOrderInstrument)];
+  const hasLiveQuotes=Boolean(selectedOrderQuote),hasLiveCandles=Boolean(liveCandles&&liveCandles.length>1),hasAnyLiveData=hasLiveQuotes||hasLiveCandles;
   const orderUnitPrice = selectedOrderQuote?.price ?? Number(selectedOrderInstrument.price.replace(/[$,]/g, ""));
-  const orderQuantityNumber = parsePreviewQuantity(orderQuantity);
   const orderNotional = calculateReferenceNotional(orderQuantity, orderUnitPrice);
   const orderCurrency = selectedOrderQuote?.currency ?? selectedOrderInstrument.currency;
-  const chartAxisLabels = hasLiveCandles && liveCandles && liveCandles.length > 0
+  const selectedChange = selectedOrderQuote?.changePercent;
+  const selectedChangeText = selectedOrderQuote ? formatQuoteChange(selectedOrderQuote, selectedOrderInstrument.change) : selectedOrderInstrument.change;
+  const chartAxisLabels = hasLiveCandles && liveCandles
     ? [0, Math.floor((liveCandles.length - 1) / 3), Math.floor(((liveCandles.length - 1) * 2) / 3), liveCandles.length - 1].map((index) => formatAxisDate(liveCandles[index].timestamp))
-    : ["09:00", "12:00", "15:00", "18:00"];
+    : [];
 
   const chainStatusLabel = chainStatus
     ? ({
-        not_configured: "RPC not configured",
-        unreachable: "RPC unreachable",
-        wrong_network: "Wrong network",
-        verified: "Chain + block verified"
+        not_configured: t.rpcNotConfigured,
+        unreachable: t.rpcUnreachable,
+        wrong_network: t.wrongNetwork,
+        verified: t.chainBlockVerified
       } as const)[chainStatus.status]
     : chainStatusError
-      ? "API unavailable"
-      : "Checking RPC…";
+      ? t.apiUnavailable
+      : t.checkingRpc;
   const chainStatusDetail = chainStatus?.status === "verified"
-    ? `Read-only chain and latest-block check (block ${chainStatus.blockNumber}); settlement unverified`
+    ? "Read-only chain and latest-block check (block " + chainStatus.blockNumber + "); settlement unverified"
     : chainStatus?.status === "wrong_network"
-      ? `Expected chain ID ${chainStatus.expectedChainId}; received ${chainStatus.chainId}`
+      ? "Expected chain ID " + chainStatus.expectedChainId + "; received " + chainStatus.chainId
       : chainStatus?.status === "unreachable"
         ? "Configured RPC did not respond"
         : chainStatus?.status === "not_configured"
-          ? `Expected EVM chain ID ${chainStatus.expectedChainId}`
+          ? "Expected EVM chain ID " + chainStatus.expectedChainId
           : "Network integration not verified";
+  const networkTone = chainStatus?.status === "verified" ? "online" : chainStatusError || chainStatus?.status === "unreachable" || chainStatus?.status === "wrong_network" ? "warning" : "pending";
 
-  const visibleMarkets = useMemo(() => {
-    const query = searchTerm.trim().toLowerCase();
-    if (!query) return marketCatalogue;
-    return marketCatalogue.filter((market) =>
-      [market.symbol, market.name, market.category].some((field) => field.toLowerCase().includes(query))
-    );
-  }, [marketCatalogue, searchTerm]);
+  const visibleMarkets=useMemo(()=>{const q=searchTerm.trim().toLowerCase();if(q.length>=2)return remoteSearchResults;if(!q)return marketCatalogue;return marketCatalogue.filter((m)=>[m.symbol,m.name,m.category,m.exchange??"",m.country??""].some((v)=>v.toLowerCase().includes(q)));},[marketCatalogue,remoteSearchResults,searchTerm]);
+  function selectMarket(m:MarketItem){const key=marketKey(m);setMarketCatalogue((current)=>current.some((i)=>marketKey(i)===key)?current:[...current,m].slice(-80));setOrderSymbol(m.symbol);setOrderExchange(m.exchange??"");setOrderMicCode(m.micCode??"");setOrderCountry(m.country??"");setOrderCurrencyCode(m.currency);setLiveCandles(null);setMarketMenuOpen(false);setSearchTerm("");setRemoteSearchResults([]);}
+
+  if (activePage === "overview") {
+    return <OverviewPage language={language} onLanguageChange={setLanguage} text={t} markets={marketCatalogue}
+      chainStatusLabel={chainStatusLabel} chainStatusDetail={chainStatusDetail} networkTone={networkTone}
+      notificationsOpen={notificationsOpen} setNotificationsOpen={setNotificationsOpen}
+      onOpenApp={(symbol,exchange,micCode,country,currency)=>{if(symbol){const m=findMarketByIdentity(marketCatalogue,{symbol,exchange,micCode,country,currency});if(m){setOrderSymbol(m.symbol);setOrderExchange(m.exchange??"");setOrderMicCode(m.micCode??"");setOrderCountry(m.country??"");setOrderCurrencyCode(m.currency);}}setActivePage("app");setMarketMenuOpen(false);}} />;
+  }
+
+  if (activePage === "crosschain") {
+    return <CrossChainDemoPage language={language} onLanguageChange={setLanguage} onOpenOverview={() => setActivePage("overview")} onOpenTrade={() => setActivePage("app")} />;
+  }
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
-        <a className="brand" href="#" aria-label="PASTX home">
-          <span className="brand-mark"><ChartCandlestick size={22} /></span>
-          <span>PAST<span className="brand-x">X</span><small>ASSET EXCHANGE</small></span>
+      <header className="site-header">
+        <a className="brand" href="#markets" aria-label="PASTX home">
+          <span className="brand-mark"><ChartCandlestick size={21} strokeWidth={2.2} /></span>
+          <span className="brand-word">PAST<span>X</span><small>ASSET EXCHANGE</small></span>
         </a>
 
-        <div className="sidebar-label">WORKSPACE</div>
-        <nav className="side-nav" aria-label="Main navigation">
-          <a className="nav-item active" href="#markets"><Compass size={17} /> Markets</a>
-          <a className="nav-item" href="#portfolio"><Layers3 size={17} /> Portfolio <span className="nav-soon">SOON</span></a>
-          <a className="nav-item" href="#activity"><Activity size={17} /> Activity <span className="nav-soon">SOON</span></a>
+        <nav className="top-nav" aria-label="Main navigation">
+          <button className="top-nav-item" type="button" onClick={() => setActivePage("overview")}><Compass size={15} /> {t.overview}</button><button className="top-nav-item active" type="button" onClick={() => setActivePage("app")}><ChartCandlestick size={15} /> {t.trade}</button>
+          <a className="top-nav-item" href="#portfolio"><Layers3 size={15} /> {t.portfolio}</a>
+          <a className="top-nav-item" href="#activity"><Activity size={15} /> {t.activity}</a>
+          <button className="top-nav-item" type="button" onClick={() => setActivePage("crosschain")}><ArrowDownUp size={15} /> Cross-chain demo</button>
         </nav>
 
-        <div className="sidebar-bottom">
-          <div className="network-card">
-            <span className="network-dot" />
-            <div><strong>Network status</strong><small>{chainStatusDetail}</small></div>
+        <div className="header-actions">
+          <div className="network-status" title={chainStatusDetail} aria-label={"Network status: " + chainStatusLabel}>
+            <span className={"network-dot " + networkTone} />
+            <span className="network-label">{t.networkStatus}</span>
+            <strong>{chainStatusLabel}</strong>
           </div>
-          <a className="nav-item muted-link" href="https://github.com/Investorquab/PASTX#readme" target="_blank" rel="noreferrer"><CircleHelp size={17} /> Documentation</a>
-          <div className="sidebar-foot">PASTX PREVIEW <span>v0.1.0</span></div>
-        </div>
-      </aside>
-
-      <main className="main-content">
-        <header className="topbar">
-          <div className="breadcrumb">PASTX <span>/</span> Markets</div>
-          <div className="top-actions">
-            <span className="preview-pill"><span /> {hasAnyLiveData ? "PROVIDER DATA · SNAPSHOT" : "PREVIEW · SAMPLE DATA"}</span>
-            <button className="icon-button" aria-label="Notifications" type="button" disabled title="Notifications are not implemented in this preview"><Bell size={18} /></button>
-            <button className="connect-button" type="button" disabled title="Wallet connection will be added after chain compatibility testing"><Wallet size={16} /> Wallet integration pending</button>
-          </div>
-        </header>
-
-        <section className="page-intro" id="markets">
-          <div>
-            <div className="eyebrow">THE MARKET TERMINAL</div>
-            <h1>Markets, <span>in perspective.</span></h1>
-            <p>Explore reference instruments and prepare for on-chain markets built for Portaldot.</p>
-          </div>
-          <div className="search-box"><Search size={17} /><input aria-label="Search markets" placeholder="Search markets..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /><kbd>Search</kbd></div>
-        </section>
-
-        <div className="notice" role="note">
-          <ShieldCheck size={18} />
-          <div><strong>{hasAnyLiveData ? "Provider reference data · partial availability possible" : "Preview environment"}</strong><span>{hasAnyLiveData ? "Successful quotes and candles are sourced from Twelve Data. Any instrument without a successful provider response retains its explicitly labelled sample value; the chart has its own source label. External reference prices are not on-chain equity or guaranteed execution prices. No trades or wallet transactions are enabled." : "Prices and chart below are illustrative fixtures, not live quotes. No trades or wallet transactions are enabled."}</span></div>
-        </div>
-
-        <section className="summary-grid" aria-label="Market overview">
-          <article className="summary-card">
-            <div className="card-label">TRACKED INSTRUMENTS <span className="tiny-icon"><Layers3 size={15} /></span></div>
-            <div className="summary-value">{String(marketCatalogue.length).padStart(2, "0")} <span className="summary-sub">catalogue entries</span></div>
-            <div className="summary-note">Reference catalogue only</div>
-          </article>
-          <article className="summary-card">
-            <div className="card-label">NETWORK <span className="tiny-icon"><Activity size={15} /></span></div>
-            <div className="summary-value network-value"><span className="status-ring" /> {chainStatusLabel}</div>
-            <div className="summary-note">Read-only chain and block check; no wallet or trades</div>
-          </article>
-          <article className="summary-card">
-            <div className="card-label">TRADE EXECUTION <span className="tiny-icon"><ShieldCheck size={15} /></span></div>
-            <div className="summary-value">Disabled</div>
-            <div className="summary-note">Awaiting settlement verification</div>
-          </article>
-        </section>
-
-        <section className="market-layout">
-          <div className="panel market-panel">
-            <div className="panel-heading">
-              <div><h2>Watchlist</h2><p>{hasLiveQuotes ? "External reference prices where available · Twelve Data" : "Reference instruments · sample values"}</p></div>
-              <button className="subtle-button" type="button" disabled title="This preview contains a curated reference watchlist">Reference list <ChevronDown size={14} /></button>
-            </div>
-            <div className="market-table">
-              <div className="table-head"><span>INSTRUMENT</span><span>REFERENCE PRICE</span><span>24H CHANGE*</span></div>
-              {visibleMarkets.map((market) => (
-                <div className="market-row" key={market.symbol}>
-                  <div className="instrument">
-                    <span className={`instrument-icon icon-${market.symbol.toLowerCase()}`}>{market.initials}</span>
-                    <span><strong>{market.symbol}</strong><small>{market.name}</small><em>{market.category}</em></span>
-                  </div>
-                  <div className="price-cell"><strong className="market-price">{formatQuotePrice(liveQuotes[market.symbol], market.price)}</strong>{liveQuotes[market.symbol] && <small className="quote-time">Twelve Data · as of {formatTimestamp(liveQuotes[market.symbol].observedAt)}</small>}{!liveQuotes[market.symbol] && <small className="quote-time">Sample value · no live quote</small>}</div>
-                  <span className={`market-change ${(liveQuotes[market.symbol]?.changePercent ?? (market.positive ? 1 : -1)) >= 0 ? "positive" : "negative"}`}>{(liveQuotes[market.symbol]?.changePercent ?? (market.positive ? 1 : -1)) >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}{formatQuoteChange(liveQuotes[market.symbol], market.change)}</span>
-                </div>
-              ))}
-              {visibleMarkets.length === 0 && <div className="empty-state">No reference instruments match “{searchTerm}”.</div>}
-            </div>
-            <div className="panel-foot">{hasLiveQuotes ? "Source: Twelve Data for individually timestamped successful quotes; rows labelled Sample value are fixtures. No instrument is verified as an on-chain equity." : "* Sample values for layout preview only. No successful external market-data quotes are available."}</div>
-          </div>
-
-          <div className="panel chart-panel">
-            <div className="panel-heading">
-              <div><h2>Market overview</h2><p>{hasLiveCandles ? "AAPL historical closes · Twelve Data" : "Illustrative trend · no live feed"}</p></div>
-              <button className="subtle-button" type="button" disabled title="Chart intervals are not connected to historical data yet">Preview <ChevronDown size={14} /></button>
-            </div>
-            <div className="chart-metric"><strong>{hasLiveCandles ? "AAPL close history" : "Market trend preview"}</strong><span className="positive"><ArrowUpRight size={15} /> {hasLiveCandles ? "Historical reference" : "Illustrative"}</span></div>
-            <div className="chart-wrap"><div className="chart-grid"><i /><i /><i /><i /></div><MiniChart values={liveCandles?.map((candle) => candle.close)} /></div>
-            <div className="chart-axis">{chartAxisLabels.map((label, index) => <span key={`${label}-${index}`}>{label}</span>)}</div>
-            <div className="chart-legend"><span /><span>{hasLiveCandles ? "AAPL close · Twelve Data" : "Illustrative index"}</span></div>
-            <div className="chart-disclaimer">{hasLiveCandles ? "Historical external reference data; not an executable on-chain price." : "This graphic is a UI fixture, not a real index or a trading signal."}</div>
-          </div>
-        </section>
-
-        <section className="panel order-ticket" aria-labelledby="order-preview-title">
-          <div className="panel-heading">
-            <div><h2 id="order-preview-title">Order ticket</h2><p>Interactive estimate only · no order is submitted</p></div>
-            <span className="feature-status">PREVIEW ONLY</span>
-          </div>
-          <div className="order-form-grid">
-            <label className="order-field">
-              <span>Reference instrument</span>
-              <select value={orderSymbol} onChange={(event) => setOrderSymbol(event.target.value)}>
-                {marketCatalogue.map((market) => <option key={market.symbol} value={market.symbol}>{market.symbol} · {market.name}</option>)}
-              </select>
-            </label>
-            <div className="order-field">
-              <span>Side</span>
-              <div className="order-side-control">
-                <button type="button" className={orderSide === "buy" ? "selected buy-side" : ""} onClick={() => setOrderSide("buy")}>Buy</button>
-                <button type="button" className={orderSide === "sell" ? "selected sell-side" : ""} onClick={() => setOrderSide("sell")}>Sell</button>
+          <div className="notification-wrap">
+            <LanguageSwitcher language={language} onChange={setLanguage} text={t} /><button className="icon-button" type="button" aria-label={t.notifications} aria-expanded={notificationsOpen} onClick={() => setNotificationsOpen((open) => !open)} title={t.notifications}>
+              <Bell size={17} />
+            </button>
+            {notificationsOpen && (
+              <div className="notification-popover" role="status">
+                <div className="popover-heading"><strong>{t.notifications}</strong><button type="button" aria-label="Close notifications" onClick={() => setNotificationsOpen(false)}><X size={14} /></button></div>
+                <p>{t.notificationsEmpty}</p>
+                <span>{t.notificationsDisabled}</span>
               </div>
-            </div>
-            <label className="order-field">
-              <span>Quantity</span>
-              <input type="number" min="0.0001" max="1000000" step="0.0001" value={orderQuantity} onChange={(event) => setOrderQuantity(event.target.value)} />
-            </label>
-            <div className="order-estimate">
-              <span>Estimated reference value</span>
-              <strong>{orderNotional !== null && Number.isFinite(orderNotional) ? new Intl.NumberFormat("en-US", { style: "currency", currency: orderCurrency, maximumFractionDigits: 2 }).format(orderNotional) : "Enter a valid quantity"}</strong>
-              <small>{selectedOrderQuote ? `Twelve Data · as of ${formatTimestamp(selectedOrderQuote.observedAt)}` : "Sample price · not an execution quote"}</small>
+            )}
+          </div>
+          <button className="wallet-button" type="button" disabled title={t.walletConnectionNotImplemented}><Wallet size={15} /> {t.walletPending}</button>
+        </div>
+      </header>
+
+      <main className="page-container">
+        <div className="page-meta">
+          <span>PASTX <span className="meta-slash">/</span> TRADE</span>
+          <span className="meta-right">PORTALDOT V3 <span className="meta-slash">/</span> {t.readOnlyPreview}</span>
+        </div>
+
+        <section className="asset-heading" id="markets">
+          <div className="asset-identity">
+            <AssetLogo symbol={selectedOrderInstrument.symbol} name={selectedOrderInstrument.name} initials={selectedOrderInstrument.initials} exchange={selectedOrderInstrument.exchange} micCode={selectedOrderInstrument.micCode} country={selectedOrderInstrument.country} currency={selectedOrderInstrument.currency} className={"asset-mark mark-" + selectedOrderInstrument.symbol.toLowerCase()} />
+            <div className="asset-title-wrap">
+              <div className="asset-title-line">
+                <h1>{selectedOrderInstrument.symbol}</h1>
+                <button className="asset-picker-toggle" type="button" aria-expanded={marketMenuOpen} onClick={() => setMarketMenuOpen((open) => { if (open) setSearchTerm(""); return !open; })} aria-label={t.chooseMarket}><ChevronDown size={17} /></button>
+              </div>
+              <p>{selectedOrderInstrument.name} <span>·</span> {t.listedStockData}</p>
+              {marketMenuOpen && (
+                <div className="market-picker">
+                  <label className="market-search"><Search size={15}/><input autoFocus aria-label={t.searchListedStocks} placeholder={t.searchStocksPlaceholder} value={searchTerm} onChange={(event)=>setSearchTerm(event.target.value)}/><kbd>{t.directoryLabel}</kbd></label>
+                  <div className="market-picker-list">
+                    {marketSearchLoading&&<div className="picker-empty">{t.searchingStockDirectory}</div>}
+                    {marketSearchError&&<div className="picker-empty">{t.stockSearchUnavailable}</div>}
+                    {visibleMarkets.map((market)=><button className={"market-option "+(marketKey(market)===marketKey(selectedOrderInstrument)?"selected":"")} type="button" key={marketKey(market)} onClick={()=>selectMarket(market)}>
+                      <AssetLogo symbol={market.symbol} name={market.name} initials={market.initials} exchange={market.exchange} micCode={market.micCode} country={market.country} currency={market.currency} allowRemote={false} className={"option-mark mark-"+market.symbol.toLowerCase()}/>
+                      <span className="option-label"><strong>{market.symbol} <small>{market.exchange??""}</small></strong><small>{market.name}{market.country?" · "+market.country:""}</small></span>
+                      {marketKey(market)===marketKey(selectedOrderInstrument)?<Check size={15}/>:<span className="option-price">{formatQuotePrice(liveQuotes[marketKey(market)],market.price)}</span>}
+                    </button>)}
+                    {!marketSearchLoading&&!marketSearchError&&visibleMarkets.length===0&&<div className="picker-empty">{searchTerm.trim().length>=2?t.noMatchingListedStocks:t.typeTwoCharacters}</div>}
+                  </div>
+                  <div className="picker-foot">{t.externalStockDirectory} · {t.onchainTokenAvailabilitySeparate}</div>
+                </div>
+              )}
             </div>
           </div>
-          <div className="order-preview-footer">
-            <span>{orderSide === "buy" ? "Buy" : "Sell"} preview: {orderQuantityNumber !== null ? orderQuantityNumber.toLocaleString("en-US", { maximumFractionDigits: 4 }) : "—"} {orderSymbol}</span>
-            <button className="connect-button" type="button" disabled title="Trade submission is disabled until Portaldot settlement is verified">Trading disabled</button>
+
+          <div className="asset-market-stats">
+            <div className="chain-caption"><span className="small-status-dot" /> PORTALDOT · RPC STATUS</div>
+            <div className="market-stats-row">
+              <div className="market-stat"><span>{t.latestQuote.toUpperCase()}</span><strong>{formatQuotePrice(selectedOrderQuote,selectedOrderInstrument.price)}</strong><small>{selectedOrderQuote?"Twelve Data · "+formatTimestamp(selectedOrderQuote.observedAt)+" · "+t.quoteTimestampDelayUnknown:t.noProviderQuoteLoaded}</small></div>
+              <div className="market-stat change-stat"><span>{t.providerChange.toUpperCase()}</span><strong className={(selectedChange??0)>=0?"positive":"negative"}>{selectedOrderQuote?selectedChangeText:"—"}</strong><small>{t.fromLatestProviderResponse}</small></div>
+            </div>
           </div>
-          <p className="order-disclaimer">This is a non-executable estimate using an external reference price. It is not a tokenized equity, an order, or proof of on-chain settlement.</p>
         </section>
 
-        <section className="bottom-grid">
-          <div className="panel bottom-card" id="portfolio"><div className="bottom-icon"><Wallet size={18} /></div><div><h3>Portfolio</h3><p>Connect a supported wallet after network and balance reads are verified.</p></div><span className="feature-status">PLANNED</span></div>
-          <div className="panel bottom-card" id="activity"><div className="bottom-icon"><Activity size={18} /></div><div><h3>On-chain activity</h3><p>Transaction history will be based on verifiable chain evidence.</p></div><span className="feature-status">PLANNED</span></div>
+        <div className="preview-notice" role="note">
+          <ShieldCheck size={16} />
+          <p><strong>{hasAnyLiveData?t.providerDataAvailable:t.marketDataNotConnected}</strong><span>{hasAnyLiveData?t.quoteTimestampDelayUnknown:t.noNumericPriceFabricated}</span></p>
+        </div>
+
+        <section className="trade-workspace" aria-label={t.marketChartAndOrderPreview}>
+          <div className="chart-panel surface">
+            <div className="panel-topline">
+              <div className="panel-tab"><ChartCandlestick size={16} /><strong>Chart</strong><span>MARKET / PORTALDOT</span></div>
+              <span className={"data-badge " + (hasLiveCandles ? "data-badge-live" : "")}>{hasLiveCandles ? "PROVIDER DATA" : "SAMPLE PREVIEW"}</span>
+            </div>
+            <div className="chart-period-row"><span className="period-chip active">1D</span><span className="period-chip">1W</span><span className="period-chip">1M</span><span className="period-note">{t.historicalFeedWhenEnabled}</span></div>
+            <div className="chart-summary"><div><span className="chart-symbol">{hasLiveCandles?selectedOrderInstrument.symbol+" · "+t.historicalClose.toUpperCase():selectedOrderInstrument.symbol+" · "+t.chartDataUnavailable.toUpperCase()}</span><strong>{hasLiveCandles?t.historicalMarketData:t.noChartDataYet}</strong></div><span className="chart-return"><span className="chart-dot"/>{hasLiveCandles?"Twelve Data":t.awaitingFeed}</span></div>
+            <div className="chart-stage">
+              <div className="chart-gridlines"><i /><i /><i /><i /><i /></div>
+              {hasLiveCandles&&<div className="chart-y-axis"><span>{liveCandles?.[liveCandles.length-1]?.high.toFixed(2)}</span><span>{liveCandles?.[Math.floor((liveCandles.length-1)/2)]?.close.toFixed(2)}</span><span>{liveCandles?.[0]?.low.toFixed(2)}</span></div>}
+              <MiniChart values={hasLiveCandles ? liveCandles?.map((candle) => candle.close) : undefined} />
+            </div>
+            <div className="chart-x-axis">{chartAxisLabels.map((label, index) => <span key={label + "-" + index}>{label}</span>)}</div>
+            <div className="chart-footer"><span>{hasLiveCandles?selectedOrderInstrument.symbol+" · 1 DAY":t.chartDataUnavailable.toUpperCase()}</span><span>{hasLiveCandles?"Twelve Data":t.awaitingFeed.toUpperCase()}</span></div>
+          </div>
+
+          <aside className="trade-card surface" aria-labelledby="trade-title">
+            <div className="trade-card-heading"><h2 id="trade-title">{t.trade}</h2><span>{selectedOrderInstrument.symbol}</span></div>
+            <div className="side-switch" role="group" aria-label={t.orderSide}>
+              <button className={orderSide === "buy" ? "active buy-active" : ""} type="button" onClick={() => setOrderSide("buy")}>{t.buy}</button>
+              <button className={orderSide === "sell" ? "active sell-active" : ""} type="button" onClick={() => setOrderSide("sell")}>{t.sell}</button>
+            </div>
+            <div className="order-type-row"><span>{t.orderType}</span><strong>{t.marketOrder}</strong></div>
+            <label className="amount-label" htmlFor="order-quantity">{t.quantity.toUpperCase()}</label>
+            <div className="amount-input-wrap"><input id="order-quantity" type="number" min="0.0001" max="1000000" step="0.0001" value={orderQuantity} onChange={(event) => setOrderQuantity(event.target.value)} /><span>{orderCurrency}</span></div>
+            <div className="available-row"><span>Available</span><strong>{t.walletBalanceNotImplemented}</strong></div>
+            <div className="receive-row"><span>{t.estimatedValueAtLatestQuote}</span><strong>{selectedOrderQuote&&orderNotional!==null&&Number.isFinite(orderNotional)?new Intl.NumberFormat("en-US",{style:"currency",currency:orderCurrency,maximumFractionDigits:2}).format(orderNotional):"—"}</strong></div>
+            <p className="trade-hint">{t.quoteBasedEstimateOnly}</p>
+            <div className="trade-actions"><button className="cancel-button" type="button" onClick={() => { setOrderQuantity("1"); setOrderSide("buy"); }}>Reset</button><button className="submit-button" type="button" disabled title={t.submitOrderNotImplemented}>{orderSide === "buy" ? "Buy" : "Sell"} · {t.previewSuffix}</button></div>
+            <div className="trade-card-links"><a href="#asset-details">{t.assetDetails} <ExternalLink size={12} /></a><a href="https://github.com/Investorquab/PASTX#readme" target="_blank" rel="noreferrer">{t.documentation} <ExternalLink size={12} /></a></div>
+          </aside>
         </section>
 
-        <footer className="footer"><span>PASTX · Portaldot Asset & Stock Trading Exchange</span><span>Early preview · Not financial advice</span></footer>
+        <section className="asset-details surface" id="asset-details" aria-label={t.assetAndNetworkDetails}>
+          <div className="details-topline"><span>{t.listedStockDataHeader}</span><span>{t.networkCheck}: {chainStatusLabel.toUpperCase()}</span></div>
+          <div className="details-grid">
+            <div className="detail-item"><span>{t.latestQuote}</span><strong>{formatQuotePrice(selectedOrderQuote,selectedOrderInstrument.price)}</strong><small>{selectedOrderQuote?t.observedFeedDelayUnknown.replace("{timestamp}",formatTimestamp(selectedOrderQuote.observedAt)):t.noProviderQuoteLoaded}</small></div>
+            <div className="detail-item"><span>{t.assetClassification}</span><strong>{t.externalMarket}</strong><small>{t.tokenSettlementUnverified}</small></div>
+            <div className="detail-item network-detail"><span><Activity size={13} /> Network status</span><strong>{chainStatusLabel}</strong><small>{chainStatusDetail}</small></div>
+          </div>
+          <p className="details-disclaimer">{t.externalQuoteDisclaimer}</p>
+        </section>
+
+        <section className="watchlist-section" aria-label="Listed stock watchlist">
+          <div className="watchlist-heading"><div><span className="section-kicker">{t.stockDirectory.toUpperCase()}</span><h2>{t.featuredSelectedStocks}</h2></div><span>{visibleMarkets.length} {t.visible}</span></div>
+          <div className="watchlist-rows">
+            {visibleMarkets.map((market) => (
+              <button key={marketKey(market)} className={"watchlist-row "+(marketKey(market)===marketKey(selectedOrderInstrument)?"chosen":"")} type="button" onClick={()=>selectMarket(market)}>
+                <AssetLogo symbol={market.symbol} name={market.name} initials={market.initials} exchange={market.exchange} micCode={market.micCode} country={market.country} currency={market.currency} allowRemote={false} className={"option-mark mark-"+market.symbol.toLowerCase()}/>
+                <span className="watchlist-name"><strong>{market.symbol}</strong><small>{market.name}</small><em>{market.category}</em></span>
+                <span className="watchlist-price"><strong>{formatQuotePrice(liveQuotes[marketKey(market)],market.price)}</strong><small>{liveQuotes[marketKey(market)]?"Twelve Data · "+formatTimestamp(liveQuotes[marketKey(market)].observedAt):t.awaitingQuote}</small></span>
+                <span className={"watchlist-change "+((liveQuotes[marketKey(market)]?.changePercent??0)>=0?"positive":"negative")}>{liveQuotes[marketKey(market)]?(liveQuotes[marketKey(market)].changePercent>=0?<ArrowUpRight size={13}/>:<ArrowDownRight size={13}/>):null}{formatQuoteChange(liveQuotes[marketKey(market)],market.change)}</span>
+              </button>
+            ))}
+          </div>
+          <p className="watchlist-disclaimer">{t.searchByTickerDisclaimer}</p>
+        </section>
+
+        <section className="below-grid">
+          <div className="below-card" id="portfolio"><span className="below-icon"><Wallet size={17} /></span><div><strong>Portfolio</strong><p>{t.portfolioUnavailable}</p></div><span className="feature-tag">{t.planned.toUpperCase()}</span></div>
+          <div className="below-card" id="activity"><span className="below-icon"><Activity size={17} /></span><div><strong>On-chain activity</strong><p>{t.activityUnavailable}</p></div><span className="feature-tag">PLANNED</span></div>
+        </section>
       </main>
+
+      <footer className="site-footer">
+        <a className="footer-brand" href="#markets"><span className="brand-mark"><ChartCandlestick size={19} /></span><span>PAST<span>X</span><small>ASSET EXCHANGE</small></span></a>
+        <span className="footer-tagline">Markets for the Portaldot ecosystem.</span>
+        <div className="footer-links"><a href="https://github.com/Investorquab/PASTX#readme" target="_blank" rel="noreferrer">{t.documentation} <ExternalLink size={12} /></a><a href="https://github.com/Investorquab/PASTX" target="_blank" rel="noreferrer">GitHub <ExternalLink size={12} /></a></div>
+        <span className="footer-copy">© 2026 PASTX · EARLY PREVIEW</span>
+      </footer>
     </div>
   );
 }

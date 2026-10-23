@@ -1,0 +1,52 @@
+name: PASTX Contract Tests and EVM Builds
+
+on:
+  push:
+    branches: [main, "ui/firstbell-inspired-market-terminal"]
+    paths:
+      - "contracts/cross-chain/**"
+      - "contracts/portaldot-v3/**"
+      - "contracts/bnb-testnet/**"
+      - ".github/workflows/cross-chain-prototype.yml"
+  pull_request:
+    paths:
+      - "contracts/cross-chain/**"
+      - "contracts/portaldot-v3/**"
+      - "contracts/bnb-testnet/**"
+      - ".github/workflows/cross-chain-prototype.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pastx-cross-chain-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    name: Contract tests and network-specific EVM compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: contracts/cross-chain
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install contract tooling
+        run: npm install --no-audit --no-fund
+      - name: Check scripts
+        run: npm run check
+      - name: Test Portaldot market/escrow logic in a local EVM model
+        run: npm run test:portal-unit
+      - name: Test BNB-side gateway and mock trading in a local EVM
+        run: npm run test:bnb
+      - name: Compile EVM bytecode for BNB testnet
+        run: npm run compile:bnb
+      - name: Compile standard EVM bytecode for Portaldot V3
+        run: npm run compile:portal

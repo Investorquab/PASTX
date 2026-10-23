@@ -1,0 +1,12 @@
+.env
+node_modules/
+artifacts/
+cache/
+coverage/
+typechain-types/
+ignition/deployments/
+.pastx-relay-cursor.json
+.pastx-relay-cursor.json.tmp
+
+# Generated locally after deployment; commit only manually reviewed evidence.
+deployments/portal-v3-testnet/

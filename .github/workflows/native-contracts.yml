@@ -1,0 +1,44 @@
+name: PASTX Native Contracts
+
+on:
+  push:
+    branches:
+      - main
+      - ui/firstbell-inspired-market-terminal
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compile-native-contracts:
+    name: Compile Solidity to native WASM
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: contracts/cross-chain
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install native API dependencies
+        run: npm --prefix native-polkadot install --no-audit --no-fund --no-package-lock
+      - name: Validate native build script and tooling
+        run: npm --prefix native-polkadot run check
+      - name: Test native tooling utilities
+        run: npm --prefix native-polkadot test
+      - name: Install Solang v0.3.5
+        run: |
+          curl --fail --location --retry 3             https://github.com/hyperledger-solang/solang/releases/download/v0.3.5/solang-linux-x86-64             --output /tmp/solang
+          chmod +x /tmp/solang
+          /tmp/solang --version
+        shell: bash
+      - name: Compile native contracts
+        run: node scripts/compile-native-polkadot.cjs
+        env:
+          SOLANG_PATH: /tmp/solang

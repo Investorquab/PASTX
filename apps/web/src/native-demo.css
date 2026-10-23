@@ -1,0 +1,71 @@
+.native-demo-shell{min-height:100vh;background:#f4f6f8;color:#14212d;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.native-demo-header{min-height:72px;padding:0 clamp(18px,4vw,56px);display:flex;align-items:center;justify-content:space-between;gap:24px;background:#091823;color:#f4f8fb;border-bottom:1px solid rgba(255,255,255,.1)}
+.native-demo-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;font-size:15px;font-weight:800;letter-spacing:.08em}
+.native-demo-brand small{display:block;margin-top:3px;font-size:8px;font-weight:600;letter-spacing:.16em;color:#94a4b1}
+.native-demo-mark{display:grid;place-items:center;width:32px;height:32px;border:1px solid #8dbbc0;border-radius:8px;color:#c6f2ed;font-size:20px}
+.native-demo-header nav{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.native-demo-header nav a{display:flex;align-items:center;gap:5px;color:#bdcad3;text-decoration:none;font-size:12px}
+.native-demo-header nav a:hover{color:#fff}
+.native-demo-main{max-width:1180px;margin:0 auto;padding:42px 24px 28px}
+.native-demo-intro{margin-bottom:26px}
+.native-eyebrow{display:flex;align-items:center;gap:7px;font-size:10px;letter-spacing:.14em;font-weight:800;color:#587481}
+.native-demo-intro h1{font-size:clamp(28px,4vw,42px);line-height:1.08;letter-spacing:-.04em;margin:12px 0 10px;color:#0c1e29}
+.native-demo-intro>p{max-width:670px;color:#60727e;font-size:14px;line-height:1.7;margin:0 0 18px}
+.native-network-status{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:9px;font-size:12px;color:#38515e}
+.native-network-status small{font-size:11px;color:#7c8b95;overflow-wrap:anywhere}
+.native-status-dot{width:8px;height:8px;border-radius:50%;background:#c68a36}
+.native-status-dot.is-ready{background:#17a878;box-shadow:0 0 0 4px rgba(23,168,120,.1)}
+.native-warning{margin-top:16px;padding:12px 14px;border:1px solid #e2c993;background:#fff8e8;color:#78541c;border-radius:10px;font-size:12px;line-height:1.6}
+.native-warning code{font-size:11px}
+.native-demo-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(310px,.9fr);gap:16px;align-items:start}
+.native-card{background:#fff;border:1px solid #e1e7ea;border-radius:15px;padding:22px;box-shadow:0 8px 28px rgba(17,38,51,.035);min-width:0}
+.native-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.native-section-head h2,.native-card h2{font-size:18px;letter-spacing:-.025em;margin:7px 0 14px;color:#142b38}
+.native-icon-button{display:grid;place-items:center;width:34px;height:34px;border-radius:9px;border:1px solid #e1e7ea;background:#fff;color:#42606e;cursor:pointer}
+.native-stock-list{display:grid;gap:6px}
+.native-stock-row{display:grid;grid-template-columns:36px minmax(90px,1fr) auto auto;align-items:center;gap:12px;width:100%;text-align:left;padding:13px 10px;border:1px solid transparent;background:#f8fafb;border-radius:10px;cursor:pointer;color:inherit}
+.native-stock-row:hover,.native-stock-row.is-selected{border-color:#8dc7bf;background:#effaf7}
+.native-stock-icon{display:grid;place-items:center;width:33px;height:33px;border-radius:9px;background:#e4f3f0;color:#176b62;font-size:13px;font-weight:800}
+.native-stock-identity strong,.native-stock-price strong{display:block;font-size:12px}
+.native-stock-identity small,.native-stock-price small{display:block;margin-top:4px;font-size:10px;color:#798994}
+.native-stock-price{text-align:right}
+.native-stock-select{font-size:10px;color:#55717e;padding-left:7px}
+.native-market-disclaimer{display:flex;align-items:flex-start;gap:8px;margin-top:15px;padding-top:13px;border-top:1px solid #edf0f2;color:#778994;font-size:11px;line-height:1.6}
+.native-account-card{grid-column:2;grid-row:1}
+.native-balance-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:17px 0}
+.native-balance-grid>div{background:#f7f9fa;border:1px solid #edf0f2;border-radius:10px;padding:13px;min-width:0}
+.native-balance-grid span,.native-balance-grid small{display:block;color:#788894;font-size:10px}
+.native-balance-grid strong{display:block;margin:8px 0 6px;font-size:18px;letter-spacing:-.03em;overflow-wrap:anywhere}
+.native-field{display:grid;gap:7px;margin:15px 0;color:#5d7480;font-size:11px;font-weight:700}
+.native-field input,.native-field select{box-sizing:border-box;width:100%;padding:11px 12px;border:1px solid #dae2e6;border-radius:8px;background:white;color:#172d39;font:inherit;font-weight:500;outline:none}
+.native-field input:focus,.native-field select:focus{border-color:#3e9e8d;box-shadow:0 0 0 3px rgba(62,158,141,.1)}
+.native-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:10px 14px;border:1px solid transparent;border-radius:9px;font-size:12px;font-weight:750;cursor:pointer;transition:filter .15s ease,opacity .15s ease}
+.native-button:disabled{opacity:.45;cursor:not-allowed}
+.native-button:not(:disabled):hover{filter:brightness(.97)}
+.native-button-dark{background:#102a38;color:#fff}
+.native-button-green{background:#137b69;color:#fff}
+.native-button-outline{background:#fff;border-color:#d7e0e4;color:#274554}
+.native-full-button{width:100%}
+.native-helper{font-size:11px;line-height:1.65;color:#7b8993;margin:12px 0 0}
+.native-trade-card{grid-column:1;grid-row:2}
+.native-trade-price,.native-estimated-cost{display:flex;align-items:center;justify-content:space-between;gap:12px;border-radius:10px;background:#f7f9fa;padding:13px 14px;color:#6c808b;font-size:11px}
+.native-trade-price strong,.native-estimated-cost strong{font-size:16px;color:#173a46}
+.native-trade-actions{display:flex;gap:9px;margin-top:14px}
+.native-trade-actions>.native-button{flex:1}
+.native-confirm-card{grid-column:1/-1;border-color:#a6d5c8;box-shadow:0 8px 28px rgba(20,120,100,.06)}
+.native-confirm-card h2{margin-bottom:16px}
+.native-confirm-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.native-confirm-details>div{display:flex;flex-direction:column;gap:7px;padding:12px;background:#f6faf9;border-radius:9px}
+.native-confirm-details span{color:#71858d;font-size:10px;line-height:1.5}
+.native-confirm-details strong{color:#163f45;font-size:13px;overflow-wrap:anywhere}
+.native-confirm-note{margin-top:14px;color:#617781;font-size:11px;line-height:1.7}
+.native-activity-card{grid-column:1/-1}
+.native-activity-card h2{margin-bottom:12px}
+.native-activity-row{display:flex;align-items:flex-start;gap:9px;padding:11px 0;border-top:1px solid #eef1f2;font-size:11px;line-height:1.6;overflow-wrap:anywhere}
+.native-activity-row svg{flex:0 0 auto;color:#188b70;margin-top:1px}
+.native-message{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-top:16px;padding:14px 16px;background:#102a38;color:#eef8f8;border-radius:10px;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+.native-message button{flex:0 0 auto;border:0;background:transparent;color:#a6e0d5;font-size:11px;font-weight:750;cursor:pointer}
+.native-demo-footer{display:flex;gap:12px 20px;align-items:center;flex-wrap:wrap;margin-top:24px;padding-top:17px;border-top:1px solid #dfe6e9;color:#84939b;font-size:10px}
+.native-demo-footer a{display:flex;align-items:center;gap:5px;color:#5c7883;text-decoration:none}
+@media(max-width:840px){.native-demo-header{padding:14px 18px;flex-wrap:wrap}.native-demo-header nav{order:3;width:100%;justify-content:flex-start}.native-demo-grid{grid-template-columns:minmax(0,1fr)}.native-account-card,.native-trade-card,.native-confirm-card,.native-activity-card{grid-column:1;grid-row:auto}.native-demo-main{padding:30px 16px 22px}}
+@media(max-width:520px){.native-demo-header{gap:12px}.native-demo-header nav{gap:13px}.native-demo-header nav a{font-size:11px}.native-demo-main{padding-left:12px;padding-right:12px}.native-card{padding:17px}.native-stock-row{grid-template-columns:32px minmax(72px,1fr) auto;gap:8px}.native-stock-icon{width:30px;height:30px}.native-stock-price{max-width:75px}.native-stock-select{display:none}.native-balance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.native-confirm-details{grid-template-columns:1fr}}

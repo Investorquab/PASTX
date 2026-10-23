@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { ApiClientError, getApiCapabilities, getApiHealth, getChainStatus, getMarketCatalogue, getMarketCandles, getMarketQuote } from "./api";
+import { ApiClientError, getApiCapabilities, getApiHealth, getChainStatus, getMarketCatalogue, getMarketCandles, getMarketLogoUrl, getMarketQuote, getMarketSearch } from "./api";
 
 describe("getChainStatus", () => {
   it("returns the read-only status object", async () => {
@@ -106,8 +106,8 @@ describe("getMarketCatalogue", () => {
     count: 2,
     classification: "reference catalogue; not proof of tokenized equity or executable market",
     items: [
-      { symbol: "AAPL", name: "Apple Inc.", kind: "reference", description: "External stock-price reference only.", currency: "USD", providerSymbol: "AAPL" },
-      { symbol: "NVDA", name: "NVIDIA Corporation", kind: "reference", description: "External stock-price reference only.", currency: "USD", providerSymbol: "NVDA" }
+      { symbol: "AAPL", name: "Apple Inc.", kind: "reference", description: "External stock-price reference only.", currency: "USD", providerSymbol: "AAPL", exchange: "NASDAQ", micCode: "XNAS" },
+      { symbol: "NVDA", name: "NVIDIA Corporation", kind: "reference", description: "External stock-price reference only.", currency: "USD", providerSymbol: "NVDA", exchange: "NASDAQ", micCode: "XNAS" }
     ]
   };
 
@@ -119,7 +119,21 @@ describe("getMarketCatalogue", () => {
     ]);
   });
 
-  it("rejects duplicate symbols and inconsistent counts", async () => {
+  it("allows the same ticker on distinct exchanges but rejects duplicate listings", async () => {
+    const sameTickerAcrossExchanges = {
+      ...validCatalogue,
+      count: 2,
+      items: [
+        { ...validCatalogue.items[0], exchange: "NASDAQ", micCode: "XNAS" },
+        { ...validCatalogue.items[0], exchange: "New York Stock Exchange", micCode: "XNYS" }
+      ]
+    };
+    const distinctListingsFetcher = async () => new Response(JSON.stringify(sameTickerAcrossExchanges), { status: 200 });
+    await expect(getMarketCatalogue(distinctListingsFetcher as unknown as typeof fetch)).resolves.toMatchObject([
+      { symbol: "AAPL", micCode: "XNAS" },
+      { symbol: "AAPL", micCode: "XNYS" }
+    ]);
+
     const duplicate = { ...validCatalogue, items: [validCatalogue.items[0], validCatalogue.items[0]] };
     const duplicateFetcher = async () => new Response(JSON.stringify(duplicate), { status: 200 });
     await expect(getMarketCatalogue(duplicateFetcher as unknown as typeof fetch)).rejects.toBeInstanceOf(ApiClientError);
@@ -235,4 +249,28 @@ describe("market data API client", () => {
     }] }), { status: 200 });
     await expect(getMarketCandles("AAPL", "1day", 1, malformed as unknown as typeof fetch)).rejects.toBeInstanceOf(ApiClientError);
   });
+});
+
+
+describe("provider stock directory client",()=>{
+ const stock={symbol:"AMD",name:"Advanced Micro Devices",kind:"reference" as const,description:"Listed stock",currency:"USD",providerSymbol:"AMD",exchange:"NASDAQ",micCode:"XNAS",country:"United States",instrumentType:"Common Stock"};
+ it("preserves same-symbol search results across distinct exchange listings",async()=>{const second={...stock,exchange:"New York Stock Exchange",micCode:"XNYS"};const fetcher=async()=>new Response(JSON.stringify({query:"AMD",count:2,items:[stock,second],classification:"external listed-stock directory; not proof of a Portaldot-issued equity token"}),{status:200});await expect(getMarketSearch("AMD",15,fetcher as unknown as typeof fetch)).resolves.toMatchObject([{symbol:"AMD",micCode:"XNAS"},{symbol:"AMD",micCode:"XNYS"}]);});
+ it("preserves full listing identity for quote, candles, and logo requests",async()=>{
+  const urls:string[]=[];
+  const quoteFetch=async(input:RequestInfo|URL)=>{urls.push(String(input));return new Response(JSON.stringify({item:{symbol:"AMD",price:100,change:1,changePercent:1,currency:"USD",observedAt:"2026-10-18T05:00:00.000Z",source:"twelve_data",delayed:null}}),{status:200});};
+  await getMarketQuote(stock,quoteFetch as typeof fetch);
+  expect(urls[0]).toContain("/api/markets/AMD/quote?exchange=NASDAQ&mic_code=XNAS&country=United+States&currency=USD");
+  const candleFetch=async(input:RequestInfo|URL)=>{urls.push(String(input));return new Response(JSON.stringify({symbol:"AMD",interval:"1day",items:[]}),{status:200});};
+  await getMarketCandles(stock,"1day",30,candleFetch as typeof fetch);
+  expect(urls[1]).toContain("/api/markets/AMD/candles?exchange=NASDAQ&mic_code=XNAS&country=United+States&currency=USD&interval=1day&outputsize=30");
+  const logoFetch=async(input:RequestInfo|URL)=>{urls.push(String(input));return new Response(JSON.stringify({url:null}),{status:200});};
+  await getMarketLogoUrl(stock,logoFetch as typeof fetch);
+  expect(urls[2]).toContain("/api/markets/AMD/logo?exchange=NASDAQ&mic_code=XNAS&country=United+States&currency=USD");
+ });
+ it("rejects search results that omit venue identity",async()=>{
+  const missingVenue={...stock};delete (missingVenue as {exchange?:string}).exchange;
+  const fetcher=async()=>new Response(JSON.stringify({query:"AMD",count:1,items:[missingVenue],classification:"external listed-stock directory; not proof of a Portaldot-issued equity token"}),{status:200});
+  await expect(getMarketSearch("AMD",15,fetcher as typeof fetch)).rejects.toBeInstanceOf(ApiClientError);
+ });
+ it("rejects unsafe logo URLs and supports no-logo fallback",async()=>{const bad=async()=>new Response(JSON.stringify({url:"javascript:alert(1)"}),{status:200});await expect(getMarketLogoUrl(stock,bad as unknown as typeof fetch)).rejects.toBeInstanceOf(ApiClientError);const none=async()=>new Response(JSON.stringify({url:null}),{status:200});await expect(getMarketLogoUrl(stock,none as unknown as typeof fetch)).resolves.toBeNull();});
 });

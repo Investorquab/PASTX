@@ -12,6 +12,47 @@ function fakeFetch(payload: unknown, status = 200): typeof fetch {
 }
 
 describe("TwelveDataAdapter", () => {
+  it("searches equities while excluding ETFs and duplicate venue identities",async()=>{
+    const adapter=new TwelveDataAdapter("test-key",fakeFetch({status:"ok",data:[
+      {symbol:"MSFT",instrument_name:"Microsoft",exchange:"NASDAQ",mic_code:"XNAS",country:"United States",currency:"USD",instrument_type:"Common Stock"},
+      {symbol:"QQQ",instrument_name:"Invesco QQQ",exchange:"NASDAQ",mic_code:"XNAS",country:"United States",currency:"USD",instrument_type:"ETF"},
+      {symbol:"SHEL",instrument_name:"Shell plc",exchange:"NYSE",mic_code:"XNYS",country:"United States",currency:"USD",instrument_type:"American Depositary Receipt"},
+      {symbol:"SHEL",instrument_name:"Shell plc",exchange:"London Stock Exchange",mic_code:"XLON",country:"United Kingdom",currency:"GBP",instrument_type:"Common Stock"},
+      {symbol:"MSFT",instrument_name:"Microsoft",exchange:"NASDAQ",mic_code:"XNAS",country:"United States",currency:"USD",instrument_type:"Common Stock"}
+    ]}));
+    const items=await adapter.searchStocks("Microsoft",20);expect(items).toHaveLength(3);expect(items[0]).toMatchObject({symbol:"MSFT",exchange:"NASDAQ",micCode:"XNAS"});expect(items.filter((item)=>item.symbol==="SHEL").map((item)=>item.micCode)).toEqual(["XNYS","XLON"]);
+  });
+  it("preserves country-distinct listings when MIC identity is unavailable", async () => {
+    const adapter = new TwelveDataAdapter("test-key", fakeFetch({ status: "ok", data: [
+      { symbol: "ABC", instrument_name: "ABC US", exchange: "Regional Exchange", country: "United States", currency: "USD", instrument_type: "Common Stock" },
+      { symbol: "ABC", instrument_name: "ABC CA", exchange: "Regional Exchange", country: "Canada", currency: "CAD", instrument_type: "Common Stock" }
+    ] }));
+    const items = await adapter.searchStocks("ABC", 20);
+    expect(items).toHaveLength(2);
+    expect(items.map((item) => [item.country, item.currency])).toEqual([["United States", "USD"], ["Canada", "CAD"]]);
+  });
+  it("rejects too-short stock queries before network access",async()=>{const fetcher=vi.fn();const adapter=new TwelveDataAdapter("key",fetcher as unknown as typeof fetch);await expect(adapter.searchStocks("A")).rejects.toMatchObject({statusCode:400});expect(fetcher).not.toHaveBeenCalled();});
+  it("validates logo URL and symbol/listing identity", async () => {
+    const listedInstrument = {
+      symbol: "MSFT", name: "Microsoft", kind: "reference" as const, description: "test",
+      currency: "USD", providerSymbol: "MSFT", exchange: "NASDAQ", micCode: "XNAS"
+    };
+    const adapter = new TwelveDataAdapter("key", fakeFetch({
+      meta: { symbol: "MSFT", exchange: "NASDAQ" }, url: "https://assets.example.test/msft.png"
+    }));
+    await expect(adapter.getLogo(listedInstrument)).resolves.toBe("https://assets.example.test/msft.png");
+
+    const wrongVenue = new TwelveDataAdapter("key", fakeFetch({
+      meta: { symbol: "MSFT", exchange: "NYSE", mic_code: "XNYS" }, url: "https://assets.example.test/msft.png"
+    }));
+    await expect(wrongVenue.getLogo(listedInstrument)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
+
+    const missingVenue = new TwelveDataAdapter("key", fakeFetch({
+      meta: { symbol: "MSFT" }, url: "https://assets.example.test/msft.png"
+    }));
+    await expect(missingVenue.getLogo(listedInstrument)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
+  });
+
   it("refuses to fetch quotes or candles for non-reference instruments", async () => {
     const fetcher = vi.fn();
     const adapter = new TwelveDataAdapter("test-key", fetcher as unknown as typeof fetch);
@@ -44,6 +85,86 @@ describe("TwelveDataAdapter", () => {
     expect(Number.isFinite(Date.parse(quote.observedAt))).toBe(true);
   });
 
+  it("keeps quote cache and provider identity separate for the same ticker on different venues", async () => {
+    const requests: URL[] = [];
+    const fetcher = vi.fn(async (input: URL | RequestInfo) => {
+      const url = new URL(String(input));
+      requests.push(url);
+      const mic = url.searchParams.get("mic_code");
+      const listing = mic === "XNAS"
+        ? { exchange: "NASDAQ", mic_code: "XNAS", close: "10.25" }
+        : { exchange: "NYSE", mic_code: "XNYS", close: "11.75" };
+      return new Response(JSON.stringify({
+        symbol: "SHEL", ...listing, change: "0.25", percent_change: "2.4",
+        currency: "USD", timestamp: 1792033200
+      }), { status: 200, headers: { "content-type": "application/json" } });
+    }) as unknown as typeof fetch;
+    const adapter = new TwelveDataAdapter("test-key", fetcher);
+    const nasdaq = { symbol: "SHEL", name: "Shell test listing", kind: "reference" as const, description: "test", currency: "USD", providerSymbol: "SHEL", exchange: "NASDAQ", micCode: "XNAS" };
+    const nyse = { ...nasdaq, exchange: "NYSE", micCode: "XNYS" };
+
+    await expect(adapter.getQuote(nasdaq)).resolves.toMatchObject({ symbol: "SHEL", price: 10.25 });
+    await expect(adapter.getQuote(nyse)).resolves.toMatchObject({ symbol: "SHEL", price: 11.75 });
+    await expect(adapter.getQuote(nasdaq)).resolves.toMatchObject({ price: 10.25 });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(requests.map((url) => url.searchParams.get("mic_code"))).toEqual(["XNAS", "XNYS"]);
+  });
+
+  it("keeps quote and candle caches isolated by country when MIC identity is unavailable", async () => {
+    const requested: URL[] = [];
+    const fetcher = vi.fn(async (input: URL | RequestInfo) => {
+      const url = new URL(String(input));
+      requested.push(url);
+      const country = url.searchParams.get("country");
+      const quote = url.pathname.endsWith("/quote");
+      const payload = quote
+        ? { symbol: "ABC", exchange: "NASDAQ", country, close: country === "United States" ? "10" : "20", change: "1", percent_change: "1", currency: "USD", timestamp: 1792033200 }
+        : { meta: { symbol: "ABC", exchange: "NASDAQ", country, interval: "1day", currency: "USD" }, values: [{ datetime: "2026-10-15", open: "10", high: "21", low: "9", close: country === "United States" ? "10" : "20", volume: "50" }] };
+      return new Response(JSON.stringify(payload), { status: 200, headers: { "content-type": "application/json" } });
+    }) as unknown as typeof fetch;
+    const adapter = new TwelveDataAdapter("test-key", fetcher);
+    const us = { symbol: "ABC", name: "ABC US", kind: "reference" as const, description: "test", currency: "USD", providerSymbol: "ABC", exchange: "NASDAQ", country: "United States" };
+    const ca = { ...us, name: "ABC Canada", country: "Canada" };
+
+    await expect(adapter.getQuote(us)).resolves.toMatchObject({ price: 10 });
+    await expect(adapter.getQuote(ca)).resolves.toMatchObject({ price: 20 });
+    await expect(adapter.getCandles(us, "1day", 1)).resolves.toMatchObject([{ close: 10 }]);
+    await expect(adapter.getCandles(ca, "1day", 1)).resolves.toMatchObject([{ close: 20 }]);
+    expect(fetcher).toHaveBeenCalledTimes(4);
+    expect(requested.map((url) => url.searchParams.get("country"))).toEqual(["United States", "Canada", "United States", "Canada"]);
+  });
+
+  it("fails closed when country-qualified quote, candle, or logo responses cannot verify country without a MIC", async () => {
+    const countryInstrument = {
+      symbol: "ABC", name: "ABC Canada", kind: "reference" as const, description: "test",
+      currency: "USD", providerSymbol: "ABC", exchange: "Regional Exchange", country: "Canada"
+    };
+    const validQuote = {
+      symbol: "ABC", exchange: "Regional Exchange", close: "10", change: "1",
+      percent_change: "1", currency: "USD", timestamp: 1792033200
+    };
+    const missingCountryQuote = new TwelveDataAdapter("key", fakeFetch(validQuote));
+    const wrongCountryQuote = new TwelveDataAdapter("key", fakeFetch({ ...validQuote, country: "United States" }));
+    await expect(missingCountryQuote.getQuote(countryInstrument)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
+    await expect(wrongCountryQuote.getQuote(countryInstrument)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
+
+    const candles = [{ datetime: "2026-10-15", open: "10", high: "11", low: "9", close: "10", volume: "50" }];
+    const missingCountryCandles = new TwelveDataAdapter("key", fakeFetch({
+      meta: { symbol: "ABC", exchange: "Regional Exchange", interval: "1day", currency: "USD" }, values: candles
+    }));
+    const wrongCountryCandles = new TwelveDataAdapter("key", fakeFetch({
+      meta: { symbol: "ABC", exchange: "Regional Exchange", country: "United States", interval: "1day", currency: "USD" }, values: candles
+    }));
+    await expect(missingCountryCandles.getCandles(countryInstrument, "1day", 1)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
+    await expect(wrongCountryCandles.getCandles(countryInstrument, "1day", 1)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
+
+    const wrongCountryLogo = new TwelveDataAdapter("key", fakeFetch({
+      meta: { symbol: "ABC", exchange: "Regional Exchange", country: "United States" },
+      url: "https://assets.example.test/abc.png"
+    }));
+    await expect(wrongCountryLogo.getLogo(countryInstrument)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
+  });
+
   it("rejects provider quotes for a different symbol or currency", async () => {
     const wrongSymbol = new TwelveDataAdapter("test-key", fakeFetch({
       symbol: "NVDA", close: "247.96", change: "3.04", percent_change: "1.24",
@@ -56,6 +177,28 @@ describe("TwelveDataAdapter", () => {
       currency: "EUR", timestamp: 1792033200
     }));
     await expect(wrongCurrency.getQuote(instrument)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
+  });
+
+  it("rejects quotes returned for a different exchange listing", async () => {
+    const listedInstrument = {
+      ...instrument, symbol: "SHEL", providerSymbol: "SHEL", currency: "USD",
+      exchange: "NASDAQ", micCode: "XNAS"
+    };
+    const wrongVenue = new TwelveDataAdapter("test-key", fakeFetch({
+      symbol: "SHEL", exchange: "NYSE", mic_code: "XNYS", close: "10.25",
+      change: "0.25", percent_change: "2.4", currency: "USD", timestamp: 1792033200
+    }));
+    await expect(wrongVenue.getQuote(listedInstrument)).rejects.toMatchObject({
+      code: "PROVIDER_INVALID_RESPONSE", statusCode: 502
+    });
+
+    const missingVenue = new TwelveDataAdapter("test-key", fakeFetch({
+      symbol: "SHEL", close: "10.25", change: "0.25", percent_change: "2.4",
+      currency: "USD", timestamp: 1792033200
+    }));
+    await expect(missingVenue.getQuote(listedInstrument)).rejects.toMatchObject({
+      code: "PROVIDER_INVALID_RESPONSE", statusCode: 502
+    });
   });
 
   it("caches successful quotes briefly and refreshes after expiry", async () => {
@@ -77,48 +220,6 @@ describe("TwelveDataAdapter", () => {
     } finally {
       vi.useRealTimers();
     }
-  });
-
-  it("coalesces concurrent quote requests for the same mapped instrument", async () => {
-    let resolveFetch!: (response: Response) => void;
-    const fetcher = vi.fn(() => new Promise<Response>((resolve) => { resolveFetch = resolve; })) as unknown as typeof fetch;
-    const adapter = new TwelveDataAdapter("test-key", fetcher);
-
-    const firstRequest = adapter.getQuote(instrument);
-    const secondRequest = adapter.getQuote(instrument);
-    expect(fetcher).toHaveBeenCalledTimes(1);
-
-    resolveFetch(new Response(JSON.stringify({
-      symbol: "AAPL", close: "247.96", change: "3.04", percent_change: "1.24",
-      currency: "USD", timestamp: 1792033200
-    }), { status: 200, headers: { "content-type": "application/json" } }));
-
-    const [first, second] = await Promise.all([firstRequest, secondRequest]);
-    expect(fetcher).toHaveBeenCalledTimes(1);
-    first.price = -999;
-    expect(second.price).toBe(247.96);
-  });
-
-  it("coalesces concurrent candle requests and returns independent arrays", async () => {
-    let resolveFetch!: (response: Response) => void;
-    const fetcher = vi.fn(() => new Promise<Response>((resolve) => { resolveFetch = resolve; })) as unknown as typeof fetch;
-    const adapter = new TwelveDataAdapter("test-key", fetcher);
-
-    const firstRequest = adapter.getCandles(instrument, "1min", 1);
-    const secondRequest = adapter.getCandles(instrument, "1min", 1);
-    expect(fetcher).toHaveBeenCalledTimes(1);
-
-    resolveFetch(new Response(JSON.stringify({
-      meta: { symbol: "AAPL", interval: "1min", currency: "USD" },
-      values: [{ datetime: "2026-10-15 10:00:00", open: "10", high: "12", low: "9", close: "11", volume: "50" }]
-    }), { status: 200, headers: { "content-type": "application/json" } }));
-
-    const [first, second] = await Promise.all([firstRequest, secondRequest]);
-    expect(fetcher).toHaveBeenCalledTimes(1);
-    first[0].close = -999;
-    first.push({ timestamp: "invalid", open: 1, high: 1, low: 1, close: 1, volume: null });
-    expect(second).toHaveLength(1);
-    expect(second[0].close).toBe(11);
   });
 
   it("coalesces concurrent quote requests for the same mapped instrument", async () => {
@@ -202,6 +303,18 @@ describe("TwelveDataAdapter", () => {
       values: [{ datetime: "2026-10-15 10:00:00", open: "10", high: "12", low: "9", close: "11", volume: "50" }]
     }));
     await expect(missingMetadata.getCandles(instrument, "1min", 1)).rejects.toMatchObject({ code: "PROVIDER_INVALID_RESPONSE" });
+
+    const listedInstrument = {
+      ...instrument, symbol: "SHEL", providerSymbol: "SHEL", currency: "USD",
+      exchange: "NASDAQ", micCode: "XNAS"
+    };
+    const wrongVenue = new TwelveDataAdapter("test-key", fakeFetch({
+      meta: { symbol: "SHEL", interval: "1min", currency: "USD", exchange: "NYSE", mic_code: "XNYS" },
+      values: [{ datetime: "2026-10-15 10:00:00", open: "10", high: "12", low: "9", close: "11", volume: "50" }]
+    }));
+    await expect(wrongVenue.getCandles(listedInstrument, "1min", 1)).rejects.toMatchObject({
+      code: "PROVIDER_INVALID_RESPONSE", statusCode: 502
+    });
   });
 
   it("normalizes provider candle timestamps as UTC independent of server timezone", async () => {

@@ -1,0 +1,89 @@
+name: PASTX Compact Native Market Contract Bundle
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/native-ink-size-check.yml"
+      - "contracts/portaldot-v3/native-ink/PastxBudgetMarket/**"
+  pull_request:
+    paths:
+      - ".github/workflows/native-ink-size-check.yml"
+      - "contracts/portaldot-v3/native-ink/PastxBudgetMarket/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: compact-native-ink-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  compact-market:
+    name: Test, build and measure deployable ink! bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: contracts/portaldot-v3/native-ink/PastxBudgetMarket
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust and WASM target
+        uses: dtolnay/rust-toolchain@1.85.1
+        with:
+          components: rust-src, clippy
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            contracts/portaldot-v3/native-ink/PastxBudgetMarket -> target
+
+      - name: Restore cached cargo-contract binary
+        id: cargo-contract-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cargo/bin/cargo-contract
+          key: cargo-contract-${{ runner.os }}-${{ runner.arch }}-v5.0.3-rust-1.85.1
+
+      - name: Install cargo-contract v5 for the Substrate Contracts pallet
+        if: steps.cargo-contract-cache.outputs.cache-hit != 'true'
+        run: cargo install cargo-contract --locked --version 5.0.3 --jobs 2
+
+      - name: Save cargo-contract binary for later runs
+        if: success() && steps.cargo-contract-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cargo/bin/cargo-contract
+          key: cargo-contract-${{ runner.os }}-${{ runner.arch }}-v5.0.3-rust-1.85.1
+
+      - name: Record compiler toolchain
+        run: |
+          rustc --version
+          cargo --version
+          cargo contract --version
+
+      - name: Run compact market unit tests
+        run: cargo test
+
+      - name: Build the real ink! contract bundle
+        run: cargo contract build --release
+
+      - name: Validate bundle and measure code deposit
+        run: node scripts/check-size.cjs
+
+      - name: Upload deployable bundle for review (not deployed)
+        uses: actions/upload-artifact@v4
+        with:
+          name: pastx-compact-native-market-${{ github.sha }}
+          path: |
+            contracts/portaldot-v3/native-ink/PastxBudgetMarket/target/ink/pastx_budget_market.contract
+            contracts/portaldot-v3/native-ink/PastxBudgetMarket/target/ink/pastx_budget_market.wasm
+            contracts/portaldot-v3/native-ink/PastxBudgetMarket/target/ink/pastx_budget_market.json
+          if-no-files-found: error
+          retention-days: 14

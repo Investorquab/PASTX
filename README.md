@@ -1,86 +1,62 @@
-# PASTX
+# PASTX — Portaldot Asset & Stock Exchange
 
-**Portaldot Asset & Stock Trading Exchange** — a market-discovery application designed around the Portaldot ecosystem.
+**A Portaldot-first stock-market application, starting with a synthetic testnet MVP and designed to grow toward a broader tokenized-asset marketplace.**
 
-> **Status: early engineering foundation.** The web terminal is a preview using labelled fixture data. The Fastify market API and Twelve Data adapter are implemented in source with automated tests. Live quote/candle routes are disabled by default. Do not enable client-facing display until the provider account terms permit it and CI passes. PASTX is not yet a functioning exchange; wallet, on-chain asset, and settlement integrations are not enabled.
+## Product today
 
-## Product direction
+- A product landing page explaining the current testnet scope and the longer-term direction.
+- A stock directory of synthetic demo listings and a single buy/sell market ticket.
+- Portfolio views for the connected Portaldot wallet, supported PASTX demo token, and known synthetic stock positions.
+- Transaction activity with explorer links for confirmed transactions recorded in the current browser session.
+- Transfers for supported native test tokens and pUSD when contracts are deployed and configured.
+- A testnet iBridge route between Portaldot V3 EVM and BNB Smart Chain testnet, built around a capped source escrow, wrapped `wtPOTv3` representation, and a trusted relayer. It is not enabled until deployed addresses, the relayer and raw EVM native-value units are verified.
+- A bounded iSwap prototype for exchanging faucet pUSD against a small, funded native tPOT test-value pool. pUSD is not fiat-redeemable, and pool depletion is possible by design.
+- A separate `/native-demo` workspace for the native ink! contract path. It requires the deployed native contract address and verified testnet genesis hash; it is not ready for transactions until those are configured.
+- The earlier external reference-market terminal remains separate at `/research`. Reference stock quotes are not PASTX execution prices.
 
-PASTX aims to provide:
-- A searchable catalogue with clear distinction between reference instruments, simulated markets and verified on-chain assets.
-- Historical charts and market data with source, currency and timestamp.
-- A portfolio and activity view derived from verifiable chain state.
-- A safe order flow that makes asset/payment, quantity, fees and network explicit before the user's wallet signs.
-- Atomic settlement only after Portaldot runtime compatibility is demonstrated.
+## Product roadmap
 
-External stock quotes are references only. They do not represent tokenized equity, ownership rights, backing, or executable PASTX prices.
+After Portaldot mainnet deployment and runtime validation, the roadmap is to enable verified market contracts and asset listings, stronger source-aware market data, and persistent transaction indexing. iSwap and iBridge are planned modules: iSwap for supported asset swaps where pools and liquidity exist; iBridge for approved cross-network routes with clear source/destination assets, amounts, fees and transaction status. These are future goals, not live capabilities of the current demo.
 
-## Architecture
+## Contract source and deployment map
 
-- `apps/web`: React + TypeScript + Vite market terminal.
-- `apps/api`: Fastify HTTP API with security headers, rate limiting and stable error responses. The API is bundled to `apps/api/dist/server.js` for Node.js 22; workspace code is bundled while Fastify and selected runtime dependencies remain external.
-- `packages/shared`: domain types and supported instrument catalogue.
-- `packages/market-data`: Twelve Data adapter; provider credentials remain server-side.
-- `packages/chain-adapter`: read-only Portaldot EVM RPC chain-and-latest-block probe; no transaction writes.
-- `docs/`: architecture, API, settlement, security, tests and deployment notes.
+The individual contract sources are organized in the root [`contracts/`](contracts/README.md) library, with a [`contracts/manifest.json`](contracts/manifest.json) registry and one named folder per contract. Deployment tooling remains in `contracts/cross-chain/`. The guarded primary EVM iSwap/iBridge deploy command is `npm --prefix contracts/cross-chain run deploy:all:testnet`; it first runs read-only preflights and never starts the relayer automatically.
 
-See [Architecture](docs/ARCHITECTURE.md), [API](docs/API.md), [Settlement Design](docs/SETTLEMENT-DESIGN.md), [Hackathon Requirements](docs/HACKATHON-REQUIREMENTS.md), and [Project Status](docs/PROJECT-STATUS.md).
+## Product truth and safety
 
-## Requirements
-
-- Node.js 22+
-- pnpm 10.15.0 (pinned in the root manifest)
+- pUSD is a test-only PASTX demo token, not USDC/USDT or fiat-redeemable. The optional iSwap can exchange it against a capped, funded pool of native tPOT test value; that does not give pUSD real-world value.
+- pAAPL/pNVDA/pTSLA/pMSFT are synthetic test assets and do not confer equity ownership.
+- Prices are owner-set demo prices, not live stock quotes, exchange prices or oracle prices.
+- The current market contract is a fixed-price test market, not a live brokerage or full exchange order book.
+- Portaldot is the core product network. BNB-side compiler/test sources are auxiliary development coverage, not evidence of a live Portaldot–BNB bridge.
+- Contract addresses must be configured after a human-approved deployment. This change does not deploy contracts.
 
 ## Local development
+
+Requirements: Node.js 22+ and pnpm 10.15.0.
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-The root `pnpm dev` command starts the web app and API dev servers in parallel. Vite proxies `/api` requests to `http://127.0.0.1:4000`. The web app is normally available at `http://localhost:5173`, and the API at `http://localhost:4000`.
+Landing page: `http://localhost:5173`; demo workspace: `http://localhost:5173/demo`; native Substrate contract demo: `http://localhost:5173/native-demo`; reference terminal: `http://localhost:5173/research`; API: `http://localhost:4000`.
 
-To start them separately, use two terminals:
-
-```bash
-pnpm --filter @pastx/web dev
-pnpm --filter @pastx/api dev
-```
-
-The web app defaults to Vite's local development port; the API defaults to `http://localhost:4000`.
-
-Copy `.env.example` to `.env` for local API configuration. Set `MARKET_DATA_API_KEY` on the API process only. Never add a real key to Git or a `VITE_*` variable. Without a key, the API returns a clear `PROVIDER_NOT_CONFIGURED` error rather than invented quote data. Quote/candle display is also blocked unless `MARKET_DATA_DISPLAY_ENABLED=true`; confirm client-facing display rights before enabling it.
-
-## API examples
-
-```bash
-curl http://localhost:4000/api/health
-curl http://localhost:4000/api/markets
-curl http://localhost:4000/api/markets/AAPL
-curl http://localhost:4000/api/markets/AAPL/quote
-curl "http://localhost:4000/api/markets/AAPL/candles?interval=1day&outputsize=30"
-```
-
-The quote and candles routes require a valid provider key and provider access for the requested symbols. Current Twelve Data Basic terms describe free access as internal/non-display; verify licensing before exposing live data in a public client-facing app. See [Twelve Data business pricing](https://twelvedata.com/pricing-business).
-
-## Quality checks
+## Checks
 
 ```bash
 pnpm check
 pnpm test
 pnpm build
+cd contracts/cross-chain
+npm install
+npm test
+npm run compile:bnb
+npm run compile:portal
 ```
 
-CI status: [GitHub Actions](https://github.com/Investorquab/PASTX/actions).
+BNB EVM tests do not prove Portaldot PolkaVM compatibility. Verify native-token semantics and the actual target runtime before deployment. No mainnet deployment or live bridge transfer is part of this branch.
 
-## Portaldot integration and release gates
+## Documentation
 
-The repository deliberately does not enable wallet connection or trade submission yet. The Portaldot V3 testnet/runtime, supported wallet path, asset/payment interoperability, and atomic settlement must be verified before implementation is represented as complete. See [Settlement Design](docs/SETTLEMENT-DESIGN.md) and [Security](docs/SECURITY.md).
-
-## Hackathon fit
-
-PASTX is primarily an **Ecosystem DApp**: a consumer-facing market/asset application. The API and provider-normalization layer also contributes to **Modular Cloud & Middleware**. The final submission must demonstrate actual Portaldot V3 usage, deployment evidence, and at least one verifiable core flow; a UI-only preview is not sufficient.
-
-## License
-
-No license has been declared yet. Confirm project licensing before accepting external contributions or redistributing code.
+[Architecture](docs/ARCHITECTURE.md) · [API](docs/API.md) · [Settlement](docs/SETTLEMENT-DESIGN.md) · [Hackathon requirements](docs/HACKATHON-REQUIREMENTS.md) · [Project status](docs/PROJECT-STATUS.md) · [Human validation](docs/HUMAN-VALIDATION-CHECKLIST.md) · [Market implementation](docs/PASTX-MARKET-IMPLEMENTATION.md) · [Contract package](contracts/cross-chain/README.md)
