@@ -125,3 +125,25 @@
 .bridge-card>p,.bridge-side-card p{font-size:12px}
 .activity-row strong{font-size:12px}
 .workspace-footer{font-size:9px}
+
+
+/* Readability correction v2: increase workspace and cross-chain UI type with explicit selector priority. Landing page and Try Demo markup remain untouched. */
+.workspace-shell .workspace-header nav button{font-size:12px!important}
+.workspace-shell .network-pill{font-size:11px!important}
+.workspace-shell .workspace-notice{font-size:13px!important}
+.workspace-shell .workspace-heading h1{font-size:30px!important}
+.workspace-shell .workspace-heading p{font-size:13px!important}
+.workspace-shell .market-tabs button{font-size:12px!important}
+.workspace-shell .market-list-head{font-size:10px!important}
+.workspace-shell .market-identity strong,.workspace-shell .activity-row strong{font-size:13px!important}
+.workspace-shell .market-identity small,.workspace-shell .market-price small{font-size:11px!important}
+.workspace-shell .market-price,.workspace-shell .market-position{font-size:12px!important}
+.workspace-shell .market-disclaimer,.workspace-shell .trade-panel>p,.workspace-shell .trade-footnote,.workspace-shell .bridge-card>p,.workspace-shell .bridge-side-card p{font-size:13px!important}
+.workspace-shell .trade-field span,.workspace-shell .trade-summary span,.workspace-shell .trade-summary strong{font-size:12px!important}
+.workspace-shell .trade-field input,.workspace-shell .trade-field select{font-size:14px!important}
+.workspace-shell .balance-grid span,.workspace-shell .balance-grid small{font-size:12px!important}
+.workspace-shell .holding-row{font-size:14px!important}
+.workspace-shell .empty-state{font-size:13px!important}
+.cross-chain-page .cross-chain-intro,.cross-chain-page .cross-chain-status-card,.cross-chain-page .cross-chain-flow,.cross-chain-page .cross-chain-evidence-card,.cross-chain-page .cross-chain-actions-grid,.cross-chain-page .cross-chain-market-stats{font-size:15px!important}
+.cross-chain-page .cross-chain-intro p,.cross-chain-page .cross-chain-config-row,.cross-chain-page .cross-chain-flow p,.cross-chain-page .cross-chain-evidence-note,.cross-chain-page .cross-chain-disclaimer{font-size:13px!important}
+.cross-chain-page .cross-chain-button,.cross-chain-page .cross-chain-primary-button,.cross-chain-page .cross-chain-secondary-button{font-size:13px!important}

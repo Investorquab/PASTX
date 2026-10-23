@@ -89,3 +89,17 @@
 .native-button{font-size:13px}
 .native-message{font-size:13px}
 .native-demo-footer{font-size:11px}
+
+
+/* Readability correction v2: stronger selector priority for native demo labels and controls. */
+.native-demo-shell .native-eyebrow{font-size:11px!important}
+.native-demo-shell .native-demo-intro>p{font-size:15px!important}
+.native-demo-shell .native-network-status{font-size:13px!important}
+.native-demo-shell .native-warning{font-size:13px!important}
+.native-demo-shell .native-section-head h2,.native-demo-shell .native-card h2{font-size:19px!important}
+.native-demo-shell .native-stock-identity strong,.native-demo-shell .native-stock-price strong{font-size:13px!important}
+.native-demo-shell .native-stock-identity small,.native-demo-shell .native-stock-price small{font-size:11px!important}
+.native-demo-shell .native-market-disclaimer{font-size:12px!important}
+.native-demo-shell .native-field{font-size:12px!important}
+.native-demo-shell .native-field input,.native-demo-shell .native-field select{font-size:14px!important}
+.native-demo-shell .native-button{font-size:13px!important}
