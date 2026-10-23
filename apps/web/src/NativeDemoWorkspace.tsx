@@ -427,21 +427,14 @@ export function NativeDemoWorkspace({ view = "markets" }: { view?: NativeWorkspa
 
   return (
     <div className="native-demo-shell">
-      <header className="native-demo-header">
-        <a className="native-demo-brand" href="/"><span className="native-demo-mark">P</span><span>PASTX<small>NATIVE CONTRACT DEMO</small></span></a>
-        <nav>
-          <a href="/demo">EVM demo</a>
-          <a href="/research">Research</a>
-          <a href="https://node-console.portaldot.dev/" target="_blank" rel="noreferrer">Node console <ExternalLink size={12}/></a>
-        </nav>
-        <button type="button" className="native-button native-button-dark" onClick={() => void connectWallet()} disabled={busy}>
-          <Wallet size={15}/>{selectedAccount ? "Wallet connected" : "Connect SubWallet"}
-        </button>
-      </header>
-
-      <main className="native-demo-main">
+<main className="native-demo-main">
         <section className="native-demo-intro">
-          <span className="native-eyebrow"><Activity size={13}/> PORTALDOT V3 · NATIVE SUBSTRATE</span>
+          <div className="native-intro-top">
+            <span className="native-eyebrow"><Activity size={13}/> PORTALDOT V3 · NATIVE SUBSTRATE</span>
+            <button type="button" className="native-button native-button-dark" onClick={() => void connectWallet()} disabled={busy}>
+              <Wallet size={15}/>{selectedAccount ? "Wallet connected" : "Connect SubWallet"}
+            </button>
+          </div>
           <h1>PASTX native market</h1>
           <p>Portaldot-native testnet market. Only configured contract state is actionable; pUSD credits and shares are synthetic demo assets, not real equity.</p>
           <div className="native-network-status">
