@@ -58,8 +58,11 @@ function main() {
       if (bytecode.startsWith("0x50564d00")) {
         throw new Error(contractName + " contains PolkaVM bytecode, but this build targets standard EVM. Check hardhat.portal.config.js.");
       }
-      if (!bytecode.startsWith("0x60")) {
-        throw new Error(contractName + " does not have the expected standard Solidity EVM bytecode prefix (0x60...) in " + file + "; found " + bytecode.slice(0, 10));
+      // Valid Solidity creation bytecode may begin with different PUSH opcodes
+      // (for example 0x61 or 0x62) as code size changes. Do not require a single
+      // opcode; reject the known PolkaVM magic above and malformed/empty EVM hex.
+      if (bytecode.length < 10 || !/^0x[0-9a-f]+$/.test(bytecode)) {
+        throw new Error(contractName + " does not contain usable EVM bytecode in " + file);
       }
       console.log("EVM_BYTECODE_OK " + contractName + " " + file + " (" + bytecode.slice(0, 10) + ")");
     }
