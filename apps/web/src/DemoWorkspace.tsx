@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, ArrowRight, Bell, CircleDot, ExternalLink, GitCompareArrows, Layers3, LayoutDashboard, ShieldCheck, X } from "lucide-react";
+import { Activity, ArrowRight, BarChart3, Bell, CheckCircle2, CircleDot, ExternalLink, GitCompareArrows, Layers3, LayoutDashboard, ShieldCheck, X } from "lucide-react";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { getStoredLanguage, saveStoredLanguage, textFor, type LanguageCode } from "./i18n";
 import { workspaceTextFor } from "./productI18n";
