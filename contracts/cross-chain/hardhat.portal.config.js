@@ -1,3 +1,4 @@
+const path = require("node:path");
 require("@nomicfoundation/hardhat-toolbox");
 require("dotenv").config();
 
@@ -38,9 +39,10 @@ module.exports = {
     }
   },
   paths: {
-    sources: "../portaldot-v3/evm",
-    tests: "./test/portal-unit",
-    cache: "./cache/portal",
-    artifacts: "./artifacts/portal"
+    root: path.resolve(__dirname, "../.."),
+    sources: "contracts/portaldot-v3/evm",
+    tests: "contracts/cross-chain/test/portal-unit",
+    cache: "contracts/cross-chain/cache/portal",
+    artifacts: "contracts/cross-chain/artifacts/portal"
   }
 };

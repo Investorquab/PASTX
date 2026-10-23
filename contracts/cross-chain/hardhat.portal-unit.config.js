@@ -1,3 +1,4 @@
+const path = require("node:path");
 // Local EVM unit tests only. They do not prove behavior on the live Portaldot V3 EVM RPC.
 require("@nomicfoundation/hardhat-toolbox");
 
@@ -8,9 +9,10 @@ module.exports = {
   },
   networks: { hardhat: { chainId: 420420777 } },
   paths: {
-    sources: "../portaldot-v3/evm",
-    tests: "./test/portal-unit",
-    cache: "./cache/portal-unit",
-    artifacts: "./artifacts/portal-unit"
+    root: path.resolve(__dirname, "../.."),
+    sources: "contracts/portaldot-v3/evm",
+    tests: "contracts/cross-chain/test/portal-unit",
+    cache: "contracts/cross-chain/cache/portal-unit",
+    artifacts: "contracts/cross-chain/artifacts/portal-unit"
   }
 };
