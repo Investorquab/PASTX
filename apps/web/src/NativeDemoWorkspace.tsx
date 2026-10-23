@@ -484,18 +484,16 @@ export function NativeDemoWorkspace({ view = "markets" }: { view?: NativeWorkspa
 
           {(view === "markets" || view === "portfolio") && <section className="native-card native-account-card">
             <span className="native-eyebrow">YOUR NATIVE ACCOUNT</span>
-            <h2>Portfolio and faucet</h2>
-            {accounts.length > 0 && <label className="native-field"><span>Wallet account</span><select value={selectedAddress} onChange={(event) => { setSelectedAddress(event.target.value); setPending(null); }} disabled={busy}>{accounts.map((account) => <option key={account.address} value={account.address}>{account.label} · {account.address.slice(0, 7)}…{account.address.slice(-5)}</option>)}</select></label>}
+            <h2>Account</h2>
+            {accounts.length > 1 && <label className="native-field"><span>Wallet</span><select value={selectedAddress} onChange={(event) => { setSelectedAddress(event.target.value); setPending(null); }} disabled={busy}>{accounts.map((account) => <option key={account.address} value={account.address}>{account.label} · {account.address.slice(0, 7)}…{account.address.slice(-5)}</option>)}</select></label>}
             <div className="native-balance-grid">
-              <div><span>pUSD balance</span><strong>{portfolio ? formatWhole(portfolio.balance) : "—"}</strong><small>Whole-unit app credits</small></div>
-              <div><span>{stock.symbol} shares</span><strong>{portfolio ? formatWhole(portfolio.shares) : "—"}</strong><small>Non-transferable demo positions</small></div>
-              <div><span>Free native balance</span><strong>{formatNative(freeBalance)}</strong><small>Gas and storage deposits</small></div>
-              <div><span>Global faucet cap</span><strong>1,000,000 pUSD</strong><small>1,000 successful claims of 1,000 each</small></div>
+              <div><span>pUSD balance</span><strong>{portfolio ? formatWhole(portfolio.balance) : "—"}</strong></div>
+              <div><span>{stock.symbol} shares</span><strong>{portfolio ? formatWhole(portfolio.shares) : "—"}</strong></div>
+              <div><span>Available tPOT</span><strong>{formatNative(freeBalance)}</strong></div>
             </div>
             <button className="native-button native-button-green native-full-button" type="button" disabled={!canWrite} onClick={() => void prepareAction(1)}>
-              Claim 1,000 pUSD
+              {busy ? "Processing…" : "Claim faucet"}
             </button>
-            <p className="native-helper">First claim is immediate; the same account can claim once per hour. Global cap: 1,000,000 pUSD. pUSD is not tPOT and cannot pay gas.</p>
           </section>}
 
           {view === "markets" && <section className="native-card native-trade-card">
