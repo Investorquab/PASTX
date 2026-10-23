@@ -3,7 +3,7 @@ pragma solidity ^0.8.28;
 
 /// @title PastxDemoToken
 /// @notice Capped pUSD token for the PASTX Portaldot V3 testnet demonstration.
-/// @dev Valueless test currency; not USDC/USDT and not redeemable.
+/// @dev Valueless test currency; not USDC/USDT or fiat-redeemable. Optional testnet iSwap conversion is capped and reserve-backed.
 contract PastxDemoToken {
     uint256 public constant EXPECTED_CHAIN_ID = 420420777;
     uint8 public constant decimals = 18;
@@ -63,6 +63,14 @@ contract PastxDemoToken {
         totalSupply += amount;
         balanceOf[to] += amount;
         emit Transfer(address(0), to, amount);
+    }
+
+    function burn(uint256 amount) external {
+        if (amount == 0) revert InvalidAmount();
+        if (balanceOf[msg.sender] < amount) revert InsufficientBalance();
+        balanceOf[msg.sender] -= amount;
+        totalSupply -= amount;
+        emit Transfer(msg.sender, address(0), amount);
     }
 
     function approve(address spender, uint256 amount) external returns (bool) {

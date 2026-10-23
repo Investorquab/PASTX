@@ -2,6 +2,14 @@ const hre = require("hardhat");
 require("dotenv").config();
 
 async function main() {
+  if (process.env.PASTX_PORTAL_NATIVE_VALUE_SEMANTICS_VERIFIED !== "true") {
+    throw new Error("Deployment blocked until Portaldot EVM msg.value/native-value units have been independently verified.");
+  }
+  const maxDepositText = (process.env.PASTX_BRIDGE_MAX_DEPOSIT_RAW || "").trim();
+  if (!/^[0-9]+$/.test(maxDepositText) || BigInt(maxDepositText) <= 0n) {
+    throw new Error("Set PASTX_BRIDGE_MAX_DEPOSIT_RAW to a positive verified raw-unit value.");
+  }
+  const maxDepositRaw = BigInt(maxDepositText);
   const network = await hre.ethers.provider.getNetwork();
   if (network.chainId !== 97n) {
     throw new Error(`Refusing deployment: expected BNB Smart Chain testnet 97, received ${network.chainId}`);
@@ -18,7 +26,7 @@ async function main() {
 
   const [deployer] = await hre.ethers.getSigners();
   const factory = await hre.ethers.getContractFactory("BnbTestnetGateway");
-  const contract = await factory.deploy(relayer, 420420777, sourceEscrow);
+  const contract = await factory.deploy(relayer, 420420777, sourceEscrow, maxDepositRaw);
   const receipt = await contract.deploymentTransaction().wait();
   await contract.waitForDeployment();
 
@@ -29,6 +37,7 @@ async function main() {
     relayer,
     expectedSourceChainId: 420420777,
     expectedSourceEscrow: sourceEscrow,
+    maxDepositRaw: maxDepositRaw.toString(),
     deployer: deployer.address,
     deploymentTx: receipt.hash,
     deploymentBlock: receipt.blockNumber,

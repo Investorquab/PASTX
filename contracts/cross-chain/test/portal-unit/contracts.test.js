@@ -5,7 +5,7 @@ describe("PASTX PortalDOT escrow EVM unit model", function () {
   it("records a unique test deposit and locks native test value", async function () {
     const [relayer, user, recipient] = await ethers.getSigners();
     const factory = await ethers.getContractFactory("PortalDotTestnetEscrow");
-    const escrow = await factory.deploy(relayer.address, 97);
+    const escrow = await factory.deploy(relayer.address, 97, 100n);
     await escrow.waitForDeployment();
 
     const amount = 7n;
@@ -26,7 +26,7 @@ describe("PASTX PortalDOT escrow EVM unit model", function () {
   it("restricts releases, prevents replay, and caps release by deposits", async function () {
     const [relayer, user, recipient] = await ethers.getSigners();
     const factory = await ethers.getContractFactory("PortalDotTestnetEscrow");
-    const escrow = await factory.deploy(relayer.address, 97);
+    const escrow = await factory.deploy(relayer.address, 97, 100n);
     await escrow.waitForDeployment();
 
     const amount = 9n;
@@ -44,7 +44,7 @@ describe("PASTX PortalDOT escrow EVM unit model", function () {
   it("rolls back withdrawal accounting when the recipient rejects native value", async function () {
     const [relayer, user, recipient] = await ethers.getSigners();
     const factory = await ethers.getContractFactory("PortalDotTestnetEscrow");
-    const escrow = await factory.deploy(relayer.address, 97);
+    const escrow = await factory.deploy(relayer.address, 97, 100n);
     await escrow.waitForDeployment();
 
     const amount = 11n;
@@ -65,3 +65,15 @@ describe("PASTX PortalDOT escrow EVM unit model", function () {
     assert.equal(await escrow.totalReleased(), amount);
   });
 });
+
+
+  it("rejects a source bridge deposit above the configured demo cap", async function () {
+    const [relayer, user, recipient] = await ethers.getSigners();
+    const factory = await ethers.getContractFactory("PortalDotTestnetEscrow");
+    const escrow = await factory.deploy(relayer.address, 97, 100n);
+    await escrow.waitForDeployment();
+
+    await assert.rejects(escrow.connect(user).deposit(recipient.address, { value: 101n }));
+    assert.equal(await escrow.totalDeposited(), 0n);
+    assert.equal(await ethers.provider.getBalance(escrow.target), 0n);
+  });

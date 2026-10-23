@@ -16,14 +16,21 @@ async function main() {
   const token = await hre.ethers.getContractAt("PastxDemoToken", manifest.contracts.demoToken.address);
   const market = await hre.ethers.getContractAt("PastxMarket", manifest.contracts.market.address);
   const faucet = await hre.ethers.getContractAt("PastxFaucet", manifest.contracts.faucet.address);
+  const swapInfo = manifest.contracts.iSwap;
+  if (!swapInfo?.address) throw new Error("Deployment manifest has no iSwap contract address.");
+  const swap = await hre.ethers.getContractAt("PastxISwap", swapInfo.address);
   const checks = [];
   const check = (ok, message) => { if (!ok) throw new Error(message); checks.push(message); };
   check(await token.symbol() === "pUSD" && Number(await token.decimals()) === 18, "pUSD metadata verified.");
   check((await market.paymentToken()).toLowerCase() === manifest.contracts.demoToken.address.toLowerCase(), "Market pUSD address verified.");
   check((await faucet.token()).toLowerCase() === manifest.contracts.demoToken.address.toLowerCase(), "Faucet token verified.");
   check(await token.minters(manifest.contracts.faucet.address), "Faucet mint role verified.");
+  check(await token.minters(swapInfo.address), "iSwap pUSD mint role verified.");
+  check((await swap.token()).toLowerCase() === manifest.contracts.demoToken.address.toLowerCase(), "iSwap pUSD binding verified.");
+  check(await swap.maxNativePerSwapRaw() === BigInt(swapInfo.maxNativePerSwapRaw), "iSwap per-swap cap verified.");
+  check((await hre.ethers.provider.getBalance(swapInfo.address)) >= BigInt(swapInfo.maxNativePerSwapRaw), "iSwap has the configured minimum native liquidity.");
   check(await market.listingCount() === 4n, "Four listings found.");
-  const addresses = [manifest.contracts.demoToken.address, manifest.contracts.market.address, manifest.contracts.faucet.address, ...STOCKS.map(s => manifest.contracts.stocks[s.key].address)];
+  const addresses = [manifest.contracts.demoToken.address, manifest.contracts.market.address, manifest.contracts.faucet.address, swapInfo.address, ...STOCKS.map(s => manifest.contracts.stocks[s.key].address)];
   for (const address of addresses) check((await hre.ethers.provider.getCode(address)) !== "0x", "Code exists at " + address + ".");
   const listings = [];
   for (const s of STOCKS) {

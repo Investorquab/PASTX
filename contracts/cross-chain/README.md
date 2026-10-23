@@ -19,6 +19,14 @@ There are **two different native contract architectures** in this repository. Do
 
 Use `npm run deploy:native:portal` only for the compact single-contract route, after you have confirmed the native `5...` signer matches SubWallet, verified the genesis hash against official Portaldot V3 testnet details, pinned both values in the local `.env`, and received a passing live preflight. The alternative full Solang deployment remains explicitly named `npm run deploy:native:solang-market`. Neither path should be represented as deployed until its finalized transaction and on-chain contract address are verified.
 
+## iSwap + iBridge judge demonstration
+
+The EVM market route now includes `PastxISwap`: 1,000 faucet pUSD maps to one configured native-value cap, which should be configured to 0.01 tPOT only after the runtime's raw `msg.value` mapping has been independently tested. pUSD redeemed through iSwap is burned; native-to-pUSD swaps deposit native test value into the pool and mint pUSD. Every native payout is limited by the pool's actual balance and the per-swap cap. The pool is deliberately tiny and can be exhausted; it is not a production liquidity pool, price oracle, or fiat redemption.
+
+The source escrow enforces the same raw per-deposit cap. The BNB gateway mints `wtPOTv3` using the source event amount at 14 display decimals; on the return path it burns only bridge-backed amount and the trusted relayer releases the same raw amount from the source escrow. The intended judge path is: claim 1,000 pUSD → iSwap to 0.01 tPOT → iBridge to 0.01 wtPOTv3 on BNB testnet → bridge back to 0.01 tPOT on Portaldot. Gas is paid separately on each network.
+
+**Deployment gate:** keep `PASTX_PORTAL_NATIVE_VALUE_SEMANTICS_VERIFIED=false` until a small real test establishes how raw `msg.value` maps to the 14-decimal native balance. The EVM market deploy and source-escrow deploy scripts refuse to proceed without that flag and matching raw caps. Never derive those raw values from a UI assumption. The existing native ink! route is a separate Substrate execution model; it does not contain the EVM iSwap or cross-chain bridge.
+
 ## Seven contracts in the core demo
 
 - PastxDemoToken: capped pUSD, 18 decimals, 1,000,000-token cap.
@@ -88,4 +96,4 @@ npm run verify:market:portal
 
 The verifier writes verification.json without submitting transactions. Check all addresses and hashes against the target RPC or an official explorer.
 
-The trusted-relayer Portaldot/BNB prototype remains separate and is not connected to the iBridge simulation. Never use demo contracts with valuable assets.
+The trusted-relayer Portaldot/BNB prototype remains testnet-only. It is separate from the native ink! contract, and the relayer must be running with verified addresses and keys for either direction to complete. No on-chain light-client proof is verified; never use these contracts with valuable assets.

@@ -14,7 +14,37 @@ const STOCKS = [
 const keyOf = s => hre.ethers.encodeBytes32String(s);
 const runIdOf = d => d.toISOString().replace(/[:.]/g, "-");
 
+function requiredRaw(name) {
+  const value = (process.env[name] || "").trim();
+  if (!/^[0-9]+$/.test(value) || BigInt(value) <= 0n) {
+    throw new Error("Set " + name + " to a positive raw-unit integer after independently verifying Portaldot EVM native-value semantics.");
+  }
+  return BigInt(value);
+}
+
+function readISwapConfig() {
+  if (process.env.PASTX_PORTAL_NATIVE_VALUE_SEMANTICS_VERIFIED !== "true") {
+    throw new Error("Deployment blocked: verify Portaldot EVM msg.value/native-value units with a small test first, then set PASTX_PORTAL_NATIVE_VALUE_SEMANTICS_VERIFIED=true locally.");
+  }
+  const rate = requiredRaw("PASTX_ISWAP_NATIVE_RAW_PER_WHOLE_PUSD");
+  const maxNative = requiredRaw("PASTX_ISWAP_MAX_NATIVE_PER_SWAP_RAW");
+  const seed = requiredRaw("PASTX_ISWAP_INITIAL_LIQUIDITY_RAW");
+  const bridgeCap = requiredRaw("PASTX_BRIDGE_MAX_DEPOSIT_RAW");
+  const quote = (CLAIM * rate) / hre.ethers.parseEther("1");
+  if (quote !== maxNative) {
+    throw new Error("iSwap configuration mismatch: exactly one 1,000 pUSD faucet claim must quote to PASTX_ISWAP_MAX_NATIVE_PER_SWAP_RAW.");
+  }
+  if (seed !== maxNative) {
+    throw new Error("For the judge demo, seed liquidity must equal one capped swap: PASTX_ISWAP_INITIAL_LIQUIDITY_RAW must equal PASTX_ISWAP_MAX_NATIVE_PER_SWAP_RAW.");
+  }
+  if (bridgeCap !== maxNative) {
+    throw new Error("iSwap and iBridge amount caps must match: PASTX_BRIDGE_MAX_DEPOSIT_RAW must equal PASTX_ISWAP_MAX_NATIVE_PER_SWAP_RAW.");
+  }
+  return { rate, maxNative, seed, bridgeCap };
+}
+
 async function main() {
+  const iSwapConfig = readISwapConfig();
   const preflight = await assertPortalTestnet(hre);
   const [deployer] = await hre.ethers.getSigners();
   const startedAt = new Date().toISOString();
@@ -30,12 +60,12 @@ async function main() {
     network: { name: "Portaldot V3 Testnet", chainId: preflight.chainId.toString(), rpcConfiguration: process.env.PORTALDOT_V3_EVM_RPC_URL ? "operator-configured" : "default-configured", nativeCurrency: { name: "tPOTv3", symbol: "tPOTv3", decimals: 14 }, blockNumberAtStart: preflight.blockNumber },
     deployer: deployer.address,
     deployerNativeBalanceAtStart: { raw: preflight.balance.toString(), tPOTv3: hre.ethers.formatUnits(preflight.balance, 14) },
-    configuration: { pUSD: { symbol: "pUSD", decimals: 18, cap: "1000000", capRaw: CAP.toString() }, faucet: { claimAmount: "1000 pUSD", claimAmountRaw: CLAIM.toString(), cooldownSeconds: COOLDOWN }, paymentModel: "All four listings use pUSD; native tPOTv3 is for gas only.", prices: STOCKS.map(s => ({ listing: s.key, symbol: s.symbol, pricePusd: s.price })) },
-    contracts: { demoToken: null, market: null, faucet: null, stocks: {} },
+    configuration: { pUSD: { symbol: "pUSD", decimals: 18, cap: "1000000", capRaw: CAP.toString() }, faucet: { claimAmount: "1000 pUSD", claimAmountRaw: CLAIM.toString(), cooldownSeconds: COOLDOWN }, paymentModel: "All four listings use pUSD; native tPOTv3 is used for gas and the capped test-only iSwap pool.", iSwap: { nativeRawPerWholePusd: iSwapConfig.rate.toString(), maxNativePerSwapRaw: iSwapConfig.maxNative.toString(), initialNativeLiquidityRaw: iSwapConfig.seed.toString(), semanticsVerifiedByOperator: true }, prices: STOCKS.map(s => ({ listing: s.key, symbol: s.symbol, pricePusd: s.price })) },
+    contracts: { demoToken: null, market: null, faucet: null, iSwap: null, stocks: {} },
     transactions: [],
     verification: { completed: false, checks: [] },
     frontendEnv: null,
-    limitations: ["pUSD is valueless test currency, not USDC/USDT and not redeemable.", "Synthetic stock tokens do not represent issuer equity.", "Prices are fixed and owner-set, not live quotes or oracle values.", "This deployment does not activate the iBridge simulation."]
+    limitations: ["pUSD is valueless test currency, not USDC/USDT or fiat-redeemable; iSwap only converts it against a capped, funded native test-value pool.", "Synthetic stock tokens do not represent issuer equity.", "Prices are fixed and owner-set, not live quotes or oracle values.", "This deployment does not activate the iBridge simulation."]
   };
 
   async function save() {
@@ -82,6 +112,15 @@ async function main() {
     const token = await deploy("PastxDemoToken", [CAP], "demoToken", { name: "PASTX Demo Dollar", symbol: "pUSD", decimals: 18, cap: "1000000" });
     const tokenAddress = await token.getAddress();
 
+    stage = "deploy bounded iSwap";
+    const swap = await deploy("PastxISwap", [tokenAddress, iSwapConfig.rate, iSwapConfig.maxNative], "iSwap", {
+      demoToken: tokenAddress,
+      nativeRawPerWholePusd: iSwapConfig.rate.toString(),
+      maxNativePerSwapRaw: iSwapConfig.maxNative.toString(),
+      nativeValueSemanticsVerified: true
+    });
+    const swapAddress = await swap.getAddress();
+
     stage = "deploy market";
     const market = await deploy("PastxMarket", [tokenAddress], "market", { paymentToken: tokenAddress });
     const marketAddress = await market.getAddress();
@@ -92,8 +131,13 @@ async function main() {
 
     stage = "authorize faucet minter role";
     await send("Authorize faucet to mint pUSD", () => token.setMinter(faucetAddress, true));
+    stage = "authorize iSwap minter";
+    await send("Authorize iSwap to mint pUSD for native-to-demo swaps", () => token.setMinter(swapAddress, true));
     stage = "revoke deployer direct minter role";
     await send("Disable deployer direct pUSD mint", () => token.setMinter(deployer.address, false));
+
+    stage = "seed capped iSwap native liquidity";
+    await send("Seed iSwap with one capped native-value swap", () => swap.fundNativeLiquidity({ value: iSwapConfig.seed }));
 
     for (const s of STOCKS) {
       stage = "deploy synthetic share token " + s.key;
@@ -113,7 +157,8 @@ async function main() {
     if (await token.name() !== "PASTX Demo Dollar" || await token.symbol() !== "pUSD" || Number(await token.decimals()) !== 18 || await token.cap() !== CAP) throw new Error("pUSD metadata/cap verification failed.");
     if ((await market.paymentToken()).toLowerCase() !== tokenAddress.toLowerCase()) throw new Error("Market pUSD binding failed.");
     if ((await faucet.token()).toLowerCase() !== tokenAddress.toLowerCase() || await faucet.claimAmount() !== CLAIM || await faucet.cooldown() !== BigInt(COOLDOWN)) throw new Error("Faucet configuration verification failed.");
-    if (!(await token.minters(faucetAddress)) || await token.minters(deployer.address)) throw new Error("pUSD minter permissions are incorrect.");
+    if (!(await token.minters(faucetAddress)) || !(await token.minters(swapAddress)) || await token.minters(deployer.address)) throw new Error("pUSD minter permissions are incorrect.");
+    if ((await swap.token()).toLowerCase() !== tokenAddress.toLowerCase() || await swap.nativeRawPerWholePusd() !== iSwapConfig.rate || await swap.maxNativePerSwapRaw() !== iSwapConfig.maxNative || await hre.ethers.provider.getBalance(swapAddress) < iSwapConfig.seed) throw new Error("iSwap token, rate, cap, or native liquidity verification failed.");
     if (await market.listingCount() !== 4n) throw new Error("Expected exactly four listings.");
 
     const listingChecks = [];
@@ -131,24 +176,27 @@ async function main() {
 
     manifest.network.blockNumberAtEnd = endBlock;
     manifest.verification = { completed: true, completedAt: new Date().toISOString(), checks: ["Chain ID checked before deploy and after.", "All contract addresses contain deployed bytecode.", "pUSD metadata, decimals and cap verified.", "Faucet settings and minter permissions verified.", "Market uses pUSD.", "Four enabled pUSD listings and prices verified.", "Synthetic token market authorities verified."], listings: listingChecks };
-    manifest.frontendEnv = { VITE_PASTX_PORTAL_MARKET: marketAddress, VITE_PASTX_PORTAL_TOKEN: tokenAddress, VITE_PASTX_PORTAL_FAUCET: faucetAddress };
+    manifest.frontendEnv = { VITE_PASTX_PORTAL_MARKET: marketAddress, VITE_PASTX_PORTAL_TOKEN: tokenAddress, VITE_PASTX_PORTAL_FAUCET: faucetAddress, VITE_PASTX_PORTAL_ISWAP_ADDRESS: swapAddress, VITE_PASTX_BRIDGE_MAX_DEPOSIT_RAW: iSwapConfig.bridgeCap.toString(), VITE_PASTX_SOURCE_VALUE_SEMANTICS_VERIFIED: "true" };
     manifest.status = "deployed-and-verified";
     manifest.finishedAt = new Date().toISOString();
 
     const abiDir = path.join(runDirectory, "abi");
     await fs.mkdir(abiDir, { recursive: true });
-    for (const name of ["PastxDemoToken", "PastxFaucet", "PastxStockToken", "PastxMarket"]) {
+    for (const name of ["PastxDemoToken", "PastxFaucet", "PastxStockToken", "PastxMarket", "PastxISwap"]) {
       const artifact = await hre.artifacts.readArtifact(name);
       await fs.writeFile(path.join(abiDir, name + ".json"), JSON.stringify(artifact.abi, null, 2) + "\n", "utf8");
     }
     const envText = "# Public contract addresses only. Copy to apps/web/.env.local.\n" +
       "VITE_PASTX_PORTAL_MARKET=" + marketAddress + "\n" +
       "VITE_PASTX_PORTAL_TOKEN=" + tokenAddress + "\n" +
-      "VITE_PASTX_PORTAL_FAUCET=" + faucetAddress + "\n";
+      "VITE_PASTX_PORTAL_FAUCET=" + faucetAddress + "\n" +
+      "VITE_PASTX_PORTAL_ISWAP_ADDRESS=" + swapAddress + "\n" +
+      "VITE_PASTX_BRIDGE_MAX_DEPOSIT_RAW=" + iSwapConfig.bridgeCap.toString() + "\n" +
+      "VITE_PASTX_SOURCE_VALUE_SEMANTICS_VERIFIED=true\n";
     await fs.writeFile(path.join(runDirectory, "frontend.env"), envText, "utf8");
     await fs.writeFile(path.join(outputRoot, "frontend.env"), envText, "utf8");
 
-    const lines = ["# PASTX Portaldot V3 testnet deployment", "", "- Status: " + manifest.status, "- Chain ID: " + manifest.network.chainId, "- Deployer: " + manifest.deployer, "- Started: " + startedAt, "- Finished: " + manifest.finishedAt, "", "## Core contracts", "", "- pUSD: " + tokenAddress + " — tx " + manifest.contracts.demoToken.deploymentTransactionHash, "- Market: " + marketAddress + " — tx " + manifest.contracts.market.deploymentTransactionHash, "- Faucet: " + faucetAddress + " — tx " + manifest.contracts.faucet.deploymentTransactionHash, "", "## Synthetic listings", ""];
+    const lines = ["# PASTX Portaldot V3 testnet deployment", "", "- Status: " + manifest.status, "- Chain ID: " + manifest.network.chainId, "- Deployer: " + manifest.deployer, "- Started: " + startedAt, "- Finished: " + manifest.finishedAt, "", "## Core contracts", "", "- pUSD: " + tokenAddress + " — tx " + manifest.contracts.demoToken.deploymentTransactionHash, "- iSwap: " + swapAddress + " — tx " + manifest.contracts.iSwap.deploymentTransactionHash + " (one 1,000 pUSD claim maps to one capped native-test-value payout)", "- Market: " + marketAddress + " — tx " + manifest.contracts.market.deploymentTransactionHash, "- Faucet: " + faucetAddress + " — tx " + manifest.contracts.faucet.deploymentTransactionHash, "", "## Synthetic listings", ""];
     for (const s of STOCKS) {
       const item = manifest.contracts.stocks[s.key];
       lines.push("- " + s.key + " (" + s.symbol + ", " + s.price + " pUSD): " + item.address + " — tx " + item.deploymentTransactionHash);

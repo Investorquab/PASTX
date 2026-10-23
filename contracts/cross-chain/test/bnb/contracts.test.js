@@ -10,7 +10,7 @@ describe("PASTX BNB testnet gateway", function () {
   async function deployGateway() {
     const [owner, relayer, user, other] = await ethers.getSigners();
     const factory = await ethers.getContractFactory("BnbTestnetGateway");
-    const gateway = await factory.deploy(relayer.address, SOURCE_CHAIN_ID, other.address);
+    const gateway = await factory.deploy(relayer.address, SOURCE_CHAIN_ID, other.address, 1_000_000n * UNIT);
     await gateway.waitForDeployment();
     return { owner, relayer, user, other, gateway, escrowAddress: other.address };
   }
@@ -48,6 +48,18 @@ describe("PASTX BNB testnet gateway", function () {
       depositId, sender, ctx.user.address, amount, SOURCE_CHAIN_ID, ctx.escrowAddress,
       DESTINATION_CHAIN_ID, 0n, txHash, 0n
     ));
+  });
+
+  it("rejects a destination mint above the immutable per-deposit cap", async function () {
+    const ctx = await deployGateway();
+    const amount = 1_000_000n * UNIT + 1n;
+    const depositId = depositIdFor({ sourceEscrow: ctx.escrowAddress, sender: ctx.other.address, recipient: ctx.user.address, amount });
+    await assert.rejects(ctx.gateway.connect(ctx.relayer).completeDeposit(
+      depositId, ctx.other.address, ctx.user.address, amount, SOURCE_CHAIN_ID,
+      ctx.escrowAddress, DESTINATION_CHAIN_ID, 0n,
+      ethers.keccak256(ethers.toUtf8Bytes("deposit-over-cap")), 0n
+    ));
+    assert.equal(await ctx.gateway.totalBridgedIn(), 0n);
   });
 
   it("mints 1:1 raw units and rejects deposit replay", async function () {

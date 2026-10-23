@@ -7,6 +7,7 @@ contract PortalDotTestnetEscrow {
     uint256 public constant EXPECTED_SOURCE_CHAIN_ID = 420420777;
     address public immutable relayer;
     uint256 public immutable destinationChainId;
+    uint256 public immutable maxDepositRaw;
     uint256 public nextDepositNonce;
     uint256 public totalDeposited;
     uint256 public totalReleased;
@@ -30,6 +31,7 @@ contract PortalDotTestnetEscrow {
     error InvalidDestinationChain();
     error InvalidRecipient();
     error InvalidAmount();
+    error DepositExceedsDemoCap();
     error DuplicateWithdrawal();
     error InsufficientEscrowBalance();
     error ReleaseExceedsDeposits();
@@ -40,12 +42,14 @@ contract PortalDotTestnetEscrow {
         _;
     }
 
-    constructor(address relayer_, uint256 destinationChainId_) {
+    constructor(address relayer_, uint256 destinationChainId_, uint256 maxDepositRaw_) {
         if (block.chainid != EXPECTED_SOURCE_CHAIN_ID) revert InvalidSourceChain();
         if (relayer_ == address(0)) revert InvalidRelayer();
         if (destinationChainId_ != 97) revert InvalidDestinationChain();
+        if (maxDepositRaw_ == 0) revert InvalidAmount();
         relayer = relayer_;
         destinationChainId = destinationChainId_;
+        maxDepositRaw = maxDepositRaw_;
     }
 
     /// @notice Lock native PortalDOT V3 testnet value and request a matching BNB-testnet representation.
@@ -53,6 +57,7 @@ contract PortalDotTestnetEscrow {
     function deposit(address destinationRecipient) external payable returns (bytes32 depositId) {
         if (destinationRecipient == address(0)) revert InvalidRecipient();
         if (msg.value == 0) revert InvalidAmount();
+        if (msg.value > maxDepositRaw) revert DepositExceedsDemoCap();
 
         uint256 nonce = nextDepositNonce++;
         totalDeposited += msg.value;

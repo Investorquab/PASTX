@@ -10,6 +10,7 @@ contract BnbTestnetGateway {
     uint256 public constant SHARE_SCALE = 1_000_000;
     uint256 public constant UNIT = 10 ** 14;
     uint256 public constant MAX_TEST_MARKET_LIQUIDITY = 1_000_000 * UNIT;
+    uint256 public immutable maxDepositRaw;
 
     address public owner;
     address public immutable relayer;
@@ -50,6 +51,7 @@ contract BnbTestnetGateway {
     error WrongDestinationChain();
     error InvalidAddress();
     error InvalidAmount();
+    error DepositExceedsDemoCap();
     error WrongSourceChain();
     error WrongSourceEscrow();
     error SourceEvidenceMissing();
@@ -76,15 +78,17 @@ contract BnbTestnetGateway {
         _;
     }
 
-    constructor(address relayer_, uint256 sourceChainId_, address sourceEscrow_) {
+    constructor(address relayer_, uint256 sourceChainId_, address sourceEscrow_, uint256 maxDepositRaw_) {
         if (block.chainid != 97) revert WrongDestinationChain();
         if (relayer_ == address(0) || sourceEscrow_ == address(0)) revert InvalidAddress();
         if (sourceChainId_ != 420420777) revert WrongSourceChain();
+        if (maxDepositRaw_ == 0) revert InvalidAmount();
 
         owner = msg.sender;
         relayer = relayer_;
         expectedSourceChainId = sourceChainId_;
         expectedSourceEscrow = sourceEscrow_;
+        maxDepositRaw = maxDepositRaw_;
 
         _listStock(bytes32("AAPL-TEST"), 200 * UNIT);
         _listStock(bytes32("TSLA-TEST"), 250 * UNIT);
@@ -132,6 +136,7 @@ contract BnbTestnetGateway {
         if (block.chainid != 97) revert WrongDestinationChain();
         if (sourceSender == address(0) || recipient == address(0)) revert InvalidAddress();
         if (amount == 0) revert InvalidAmount();
+        if (amount > maxDepositRaw) revert DepositExceedsDemoCap();
         if (sourceChainId != expectedSourceChainId || destinationChainId != block.chainid) revert WrongSourceChain();
         if (sourceEscrow != expectedSourceEscrow) revert WrongSourceEscrow();
         if (sourceTxHash == bytes32(0)) revert SourceEvidenceMissing();

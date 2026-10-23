@@ -9,7 +9,8 @@
 - Portfolio views for the connected Portaldot wallet, supported PASTX demo token, and known synthetic stock positions.
 - Transaction activity with explorer links for confirmed transactions recorded in the current browser session.
 - Transfers for supported native test tokens and pUSD when contracts are deployed and configured.
-- An iBridge route-preview experience. It is a local simulation; no cross-chain transaction is submitted.
+- A testnet iBridge route between Portaldot V3 EVM and BNB Smart Chain testnet, built around a capped source escrow, wrapped `wtPOTv3` representation, and a trusted relayer. It is not enabled until deployed addresses, the relayer and raw EVM native-value units are verified.
+- A bounded iSwap prototype for exchanging faucet pUSD against a small, funded native tPOT test-value pool. pUSD is not fiat-redeemable, and pool depletion is possible by design.
 - A separate `/native-demo` workspace for the native ink! contract path. It requires the deployed native contract address and verified testnet genesis hash; it is not ready for transactions until those are configured.
 - The earlier external reference-market terminal remains separate at `/research`. Reference stock quotes are not PASTX execution prices.
 
@@ -19,7 +20,7 @@ After Portaldot mainnet deployment and runtime validation, the roadmap is to ena
 
 ## Product truth and safety
 
-- pUSD is a test-only PASTX demo token, not USDC/USDT and not redeemable.
+- pUSD is a test-only PASTX demo token, not USDC/USDT or fiat-redeemable. The optional iSwap can exchange it against a capped, funded pool of native tPOT test value; that does not give pUSD real-world value.
 - pAAPL/pNVDA/pTSLA/pMSFT are synthetic test assets and do not confer equity ownership.
 - Prices are owner-set demo prices, not live stock quotes, exchange prices or oracle prices.
 - The current market contract is a fixed-price test market, not a live brokerage or full exchange order book.
