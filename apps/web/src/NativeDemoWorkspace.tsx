@@ -477,7 +477,7 @@ export function NativeDemoWorkspace({ view = "markets" }: { view?: NativeWorkspa
             <div className="native-market-disclaimer"><ShieldCheck size={14}/> Fixed demonstration prices, not live market data or oracle-verified prices.</div>
           </section>}
 
-          {view === "markets" && <section className="native-card native-activity-card">
+          {(view === "markets" || view === "portfolio") && <section className="native-card native-activity-card">
             <span className="native-eyebrow">CONNECTED ACCOUNT</span><h2>Your positions</h2>
             {positions.filter((position) => position.shares > 0n).length
               ? positions.filter((position) => position.shares > 0n).map((position) => (
