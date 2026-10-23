@@ -158,6 +158,7 @@ export function NativeDemoWorkspace({ view = "markets" }: { view?: NativeWorkspa
   const [stockId, setStockId] = useState<number>(0);
   const [shareQuantity, setShareQuantity] = useState("1");
   const [portfolio, setPortfolio] = useState<NativeCommandResult | null>(null);
+  const [positions, setPositions] = useState<Array<{ symbol: string; name: string; shares: bigint; quote: bigint }>>([]);
   const [freeBalance, setFreeBalance] = useState<bigint | null>(null);
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [busy, setBusy] = useState(false);
@@ -213,11 +214,17 @@ export function NativeDemoWorkspace({ view = "markets" }: { view?: NativeWorkspa
     if (!api || !selectedAddress || !CONTRACT_ADDRESS) return;
     setBusy(true);
     try {
-      const [query, info] = await Promise.all([
-        simulateCommand(api, selectedAddress, CONTRACT_ADDRESS, 0, stockId, 0),
+      const [queries, info] = await Promise.all([
+        Promise.all(STOCKS.map((item) => simulateCommand(api, selectedAddress, CONTRACT_ADDRESS, 0, item.id, 0))),
         api.query.system.account(selectedAddress)
       ]);
-      setPortfolio(query.result);
+      setPortfolio(queries[stockId]?.result ?? queries[0]?.result ?? null);
+      setPositions(queries.map((query, index) => ({
+        symbol: STOCKS[index].symbol,
+        name: STOCKS[index].name,
+        shares: query.result.shares,
+        quote: query.result.quote
+      })));
       setFreeBalance(BigInt((info as any).data.free.toString()));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not read the native portfolio.");
@@ -468,6 +475,18 @@ export function NativeDemoWorkspace({ view = "markets" }: { view?: NativeWorkspa
               )) : <p className="native-helper">No verified Portaldot market listings are available. Configure the deployed contract address and expected testnet genesis hash before displaying tradable listings.</p>}
             </div>
             <div className="native-market-disclaimer"><ShieldCheck size={14}/> Fixed demonstration prices, not live market data or oracle-verified prices.</div>
+          </section>}
+
+          {view === "markets" && <section className="native-card native-activity-card">
+            <span className="native-eyebrow">CONNECTED ACCOUNT</span><h2>Your positions</h2>
+            {positions.filter((position) => position.shares > 0n).length
+              ? positions.filter((position) => position.shares > 0n).map((position) => (
+                <div className="native-activity-row" key={position.symbol}>
+                  <CheckCircle2 size={15}/>
+                  <span><strong>{position.symbol}</strong> · {formatWhole(position.shares)} demo share(s) · {formatWhole(position.quote)} pUSD fixed quote</span>
+                </div>
+              ))
+              : <p className="native-helper">{selectedAddress ? "No demo share positions were returned by the configured contract for this account." : "Connect a native wallet and configure the verified market contract to read positions."}</p>}
           </section>}
 
           {(view === "markets" || view === "portfolio") && <section className="native-card native-account-card">
