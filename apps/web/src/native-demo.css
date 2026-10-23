@@ -103,3 +103,27 @@
 .native-demo-shell .native-field{font-size:12px!important}
 .native-demo-shell .native-field input,.native-demo-shell .native-field select{font-size:14px!important}
 .native-demo-shell .native-button{font-size:13px!important}
+
+
+/* Workspace polish: one global navigation, one compact market toolbar. */
+.native-demo-shell{min-height:0;background:transparent}
+.native-demo-main{max-width:1180px;margin:0 auto;padding:22px 24px 26px}
+.native-demo-intro{margin-bottom:20px;padding:0 0 20px;border-bottom:1px solid #e1e8eb}
+.native-intro-top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:8px}
+.native-demo-intro h1{margin:10px 0 8px;font-size:clamp(26px,3vw,34px);letter-spacing:-.045em}
+.native-demo-intro>p{max-width:760px;margin-bottom:14px}
+.native-demo-shell .native-demo-grid{gap:16px}
+.native-demo-shell .native-card{border-radius:12px;box-shadow:0 3px 14px rgba(17,38,51,.025);padding:20px}
+.native-demo-shell .native-section-head h2,.native-demo-shell .native-card h2{margin-top:6px}
+.native-demo-shell .native-network-status{margin-top:7px}
+.native-demo-shell .native-button-dark{background:#102a38;border-color:#102a38;white-space:nowrap}
+@media(max-width:840px){
+  .native-demo-main{padding:18px 16px 22px}
+  .native-intro-top{align-items:flex-start}
+}
+@media(max-width:520px){
+  .native-demo-main{padding:16px 12px 20px}
+  .native-intro-top{gap:10px;flex-wrap:wrap}
+  .native-intro-top .native-button{min-height:36px;padding:8px 10px}
+  .native-demo-shell .native-card{padding:16px}
+}
