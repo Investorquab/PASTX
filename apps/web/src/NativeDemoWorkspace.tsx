@@ -78,9 +78,22 @@ function depositCharge(response: any): bigint {
   const deposit = typeof value?.toJSON === "function" ? value.toJSON() : value;
   if (deposit && typeof deposit === "object") {
     const entry = Object.entries(deposit as Record<string, unknown>).find(([key]) => key.toLowerCase() === "charge");
-    if (entry) return BigInt(String(entry[1]));
+    if (entry) {
+      const amount = entry[1];
+      if (amount === null || amount === undefined) {
+        throw new Error("Native runtime returned an empty storage-deposit charge.");
+      }
+      try {
+        const parsed = BigInt(String(amount));
+        if (parsed < 0n) throw new Error("negative deposit");
+        return parsed;
+      } catch {
+        throw new Error("Native runtime returned an invalid storage-deposit charge; transaction preparation is blocked.");
+      }
+    }
+    if (Object.keys(deposit).some((key) => key.toLowerCase() === "refund")) return 0n;
   }
-  return 0n;
+  throw new Error("Native runtime storage-deposit result is unrecognized; transaction preparation is blocked rather than assuming a zero deposit.");
 }
 
 function decodeDispatchError(api: ApiPromise, error: any): string {
