@@ -103,3 +103,25 @@
     padding: 7px 9px;
   }
 }
+
+
+/* Readability pass: modestly increase compact workspace text without changing layout or design. */
+.workspace-shell{font-size:16px}
+.workspace-header nav button{font-size:11px}
+.network-pill{font-size:10px}
+.workspace-notice{font-size:12px}
+.workspace-heading p{font-size:12px}
+.market-tabs button{font-size:11px}
+.market-list-head{font-size:9px}
+.market-identity strong{font-size:12px}
+.market-identity small,.market-price small{font-size:10px}
+.market-price,.market-position{font-size:11px}
+.market-disclaimer,.trade-panel>p,.trade-footnote{font-size:12px}
+.trade-field span,.trade-summary span,.trade-summary strong{font-size:11px}
+.trade-field input,.trade-field select{font-size:13px}
+.balance-grid span,.balance-grid small{font-size:11px}
+.holding-row{font-size:13px}
+.empty-state{font-size:12px}
+.bridge-card>p,.bridge-side-card p{font-size:12px}
+.activity-row strong{font-size:12px}
+.workspace-footer{font-size:9px}
