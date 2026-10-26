@@ -1,4 +1,4 @@
-"use strict";
+﻿"use strict";
 
 const fs = require("node:fs");
 const path = require("node:path");
@@ -6,7 +6,7 @@ const { ApiPromise, WsProvider } = require("@polkadot/api");
 const { CodePromise, ContractPromise } = require("@polkadot/api-contract");
 const { Keyring } = require("@polkadot/keyring");
 const { cryptoWaitReady } = require("@polkadot/util-crypto");
-require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
+require("dotenv").config({ path: path.resolve(__dirname, "../../../../../.env"), override: true });
 
 const PACKAGE_ROOT = path.resolve(__dirname, "..");
 const CROSS_CHAIN_ROOT = path.resolve(PACKAGE_ROOT, "..");
@@ -406,3 +406,6 @@ module.exports = {
   saveJson,
   redact
 };
+
+
+

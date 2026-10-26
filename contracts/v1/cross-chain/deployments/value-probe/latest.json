@@ -1,0 +1,20 @@
+{
+  "network": "Portaldot V3 EVM testnet",
+  "chainId": "420420777",
+  "signer": "0xb15d7C69f360AdF08aE2c3dbf37ca79950e01df7",
+  "probeAddress": null,
+  "probeRaw": "1000000",
+  "displayedAsTpotIf14Decimals": "0.00000001",
+  "deployTxHash": null,
+  "observeTxHash": null,
+  "returnTxHash": null,
+  "observedMsgValueRaw": null,
+  "observedContractBalanceRaw": null,
+  "returnedAmountRaw": null,
+  "returnedRecipient": null,
+  "valueSemanticsMatched": false,
+  "testValueReturned": false,
+  "cleanupError": null,
+  "testedAt": "2026-10-26T12:15:43.674Z",
+  "note": "A passing result supports the EVM raw-unit mapping. Confirm the official 14-decimal tPOT metadata and inspect these receipts before manually setting PASTX_PORTAL_NATIVE_VALUE_SEMANTICS_VERIFIED=true."
+}\n
