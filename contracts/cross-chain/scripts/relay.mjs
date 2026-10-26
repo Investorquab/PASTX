@@ -1,4 +1,4 @@
-import "dotenv/config";
+﻿import "dotenv/config";
 import path from "node:path";
 import { loadRelayCursors, saveRelayCursors } from "./relay-cursor.mjs";
 import {
@@ -134,7 +134,7 @@ async function main() {
   }
 
   logJson({
-    mode: execute ? "TESTNET EXECUTION ENABLED" : "DRY RUN — READ ONLY",
+    mode: execute ? "TESTNET EXECUTION ENABLED" : "DRY RUN ΓÇö READ ONLY",
     portalChainId,
     bnbChainId,
     portalEscrowAddress,

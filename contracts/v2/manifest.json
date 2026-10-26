@@ -1,0 +1,32 @@
+{
+  "version": "2.0.0-testnet-prototype",
+  "status": "source-only-not-deployed",
+  "networks": {
+    "portaldotV3Testnet": {
+      "chainId": 420420777,
+      "nativeAsset": "tPOTv3",
+      "contracts": [
+        "common/PastxTestStock.sol",
+        "portaldot/PortalDotNativeMarket.sol",
+        "portaldot/PortalDotBridgeEscrow.sol"
+      ]
+    },
+    "bnbSmartChainTestnet": {
+      "chainId": 97,
+      "nativeGasAsset": "tBNB",
+      "contracts": [
+        "common/PastxTestStock.sol",
+        "bnb/WrappedPot.sol",
+        "bnb/BnbBridgeGateway.sol",
+        "bnb/BnbWrappedPotMarket.sol"
+      ]
+    }
+  },
+  "explicitlyNotIncluded": [
+    "private keys",
+    "live deployment addresses",
+    "deployment transaction hashes",
+    "automated relayer service",
+    "production bridge security"
+  ]
+}

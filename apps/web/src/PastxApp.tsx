@@ -1,1 +1,19 @@
-import {useEffect,useState} from "react";import {LandingPage} from "./LandingPage";import {DemoWorkspace} from "./DemoWorkspace";import App from "./App";export default function PastxApp(){const[path,setPath]=useState(window.location.pathname);useEffect(()=>{const onPop=()=>setPath(window.location.pathname);window.addEventListener("popstate",onPop);return()=>window.removeEventListener("popstate",onPop)},[]);if(path==="/native-demo"||path.startsWith("/native-demo/")){window.history.replaceState({}, "", "/demo");return <DemoWorkspace/>;}if(path==="/demo"||path.startsWith("/demo/"))return <DemoWorkspace/>;if(path==="/research")return <App/>;return <LandingPage/>}
+import { useEffect, useState } from "react";
+import { LandingPage } from "./LandingPage";
+import { DemoWorkspace } from "./DemoWorkspace";
+
+export default function PastxApp() {
+  const [path, setPath] = useState(window.location.pathname);
+
+  useEffect(() => {
+    const onPopState = () => setPath(window.location.pathname);
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  if (path === "/demo" || path.startsWith("/demo/")) {
+    return <DemoWorkspace />;
+  }
+
+  return <LandingPage />;
+}

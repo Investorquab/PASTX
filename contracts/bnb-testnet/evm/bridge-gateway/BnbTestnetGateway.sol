@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+﻿// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
 /// @notice BNB Smart Chain testnet gateway, wtPOTv3 test representation, and mock stock market.

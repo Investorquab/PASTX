@@ -1,4 +1,4 @@
-{
+﻿{
   "schemaVersion": 1,
   "description": "PASTX smart-contract inventory. Paths are relative to the repository root. Duplicated names under different runtimes are separate implementations, not interchangeable artifacts.",
   "primaryDeployment": {

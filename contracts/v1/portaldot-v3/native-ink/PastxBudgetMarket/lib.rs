@@ -7,6 +7,7 @@ mod pastx_budget_market {
     const CLAIM_AMOUNT: u32 = 1_000;
     const MAX_CLAIMS: u16 = 1_000;
     const CLAIM_COOLDOWN_MS: u64 = 3_600_000;
+    const SHARE_SCALE: u32 = 10; // one unit = 0.1 share
 
     /// Compact one-contract PASTX native demo.
     ///
@@ -15,8 +16,10 @@ mod pastx_budget_market {
     /// Command modes: 0=read only in a dry-run query, 1=claim, 2=buy, 3=sell.
     #[ink(storage)]
     pub struct PastxBudgetMarket {
-        accounts: Mapping<AccountId, (u32, u64)>,
-        holdings: Mapping<(AccountId, u8), u32>,
+        // One persistent record per account: balance, claim cooldown, and all four
+        // market positions. This reduces per-account storage keys; it cannot make
+        // the runtime storage deposit zero.
+        accounts: Mapping<AccountId, (u32, u64, [u32; 4])>,
         remaining_claims: u16,
     }
 
@@ -31,7 +34,6 @@ mod pastx_budget_market {
         pub fn new() -> Self {
             Self {
                 accounts: Mapping::default(),
-                holdings: Mapping::default(),
                 remaining_claims: MAX_CLAIMS,
             }
         }
@@ -45,8 +47,8 @@ mod pastx_budget_market {
         /// 0: simulation-only portfolio read. Do not submit as a transaction.
         /// 1: claim 1,000 pUSD, first claim immediately and then once/hour per
         ///    account. Only 1,000 claims can ever succeed globally (1M pUSD).
-        /// 2: buy whole shares at fixed price using existing pUSD balance.
-        /// 3: sell shares held by the caller at that same fixed price.
+        /// 2: buy shares in tenths (quantity 1 = 0.1 share) using existing pUSD balance.
+        /// 3: sell shares in tenths at that same fixed price.
         ///
         /// pUSD cannot be externally transferred and has no redemption value.
         /// Buying debits pUSD; selling credits only for shares actually held.
@@ -59,9 +61,9 @@ mod pastx_budget_market {
         ) -> (bool, u32, u32, u32) {
             let trader = self.env().caller();
             let price = Self::price_for(stock_id);
-            let (balance, next_claim_at): (u32, u64) =
-                self.accounts.get(trader).unwrap_or((0, 0));
-            let current_shares: u32 = self.holdings.get((trader, stock_id)).unwrap_or(0);
+            let (balance, next_claim_at, mut holdings): (u32, u64, [u32; 4]) =
+                self.accounts.get(trader).unwrap_or((0, 0, [0; 4]));
+            let current_shares: u32 = if (stock_id as usize) < holdings.len() { holdings[stock_id as usize] } else { 0 };
 
             if action == 0 {
                 return (true, balance, current_shares, price);
@@ -79,7 +81,7 @@ mod pastx_budget_market {
                 ) else {
                     return (false, balance, current_shares, price);
                 };
-                self.accounts.insert(trader, &(next_balance, next_claim_at));
+                self.accounts.insert(trader, &(next_balance, next_claim_at, holdings));
                 self.remaining_claims = remaining;
                 return (true, next_balance, current_shares, price);
             }
@@ -87,10 +89,15 @@ mod pastx_budget_market {
             if (action != 2 && action != 3) || price == 0 || quantity == 0 {
                 return (false, balance, current_shares, price);
             }
-            let Some(cost) = price.checked_mul(quantity) else {
+            let Some(cost_numerator) = price.checked_mul(quantity) else {
                 return (false, balance, current_shares, price);
             };
 
+            // Quotes are multiples of 10, so tenths of a share still settle in whole pUSD.
+            if cost_numerator % SHARE_SCALE != 0 {
+                return (false, balance, current_shares, price);
+            }
+            let cost = cost_numerator / SHARE_SCALE;
             let (next_shares, next_balance) = if action == 2 {
                 (current_shares.checked_add(quantity), balance.checked_sub(cost))
             } else {
@@ -100,12 +107,9 @@ mod pastx_budget_market {
                 return (false, balance, current_shares, price);
             };
 
-            self.accounts.insert(trader, &(next_balance, next_claim_at));
-            if next_shares == 0 {
-                self.holdings.remove((trader, stock_id));
-            } else {
-                self.holdings.insert((trader, stock_id), &next_shares);
-            }
+            // `price == 0` was rejected above, so stock_id is guaranteed to be 0..=3.
+            holdings[stock_id as usize] = next_shares;
+            self.accounts.insert(trader, &(next_balance, next_claim_at, holdings));
             (true, next_balance, next_shares, price)
         }
     }
@@ -180,9 +184,18 @@ mod pastx_budget_market {
             ink::env::test::set_caller::<ink::env::DefaultEnvironment>(alice);
             assert!(market.command(1, 0, 0).0);
 
-            assert_eq!(market.command(2, 0, 3), (true, 400, 3, 200));
-            assert_eq!(market.command(3, 0, 2), (true, 800, 1, 200));
+            assert_eq!(market.command(2, 0, 30), (true, 400, 30, 200));
+            assert_eq!(market.command(3, 0, 20), (true, 800, 10, 200));
             assert_eq!(market.remaining_claims, MAX_CLAIMS - 1);
+        }
+
+        #[ink::test]
+        fn fractional_tenth_share_buy_and_sell_work() {
+            let mut market = PastxBudgetMarket::new();
+            ink::env::test::set_caller::<ink::env::DefaultEnvironment>(account(0));
+            assert!(market.command(1, 0, 0).0);
+            assert_eq!(market.command(2, 0, 1), (true, 980, 1, 200));
+            assert_eq!(market.command(3, 0, 1), (true, 1_000, 0, 200));
         }
 
         #[ink::test]
@@ -191,8 +204,8 @@ mod pastx_budget_market {
             let alice = account(0);
             ink::env::test::set_caller::<ink::env::DefaultEnvironment>(alice);
             assert!(market.command(1, 0, 0).0);
-            assert!(!market.command(2, 0, 6).0);
-            assert!(!market.command(3, 0, 1).0);
+            assert!(!market.command(2, 0, 60).0);
+            assert!(!market.command(3, 0, 10).0);
             assert!(!market.command(2, 9, 1).0);
             assert!(!market.command(2, 0, 0).0);
             assert_eq!(market.command(0, 0, 0), (true, CLAIM_AMOUNT, 0, 200));

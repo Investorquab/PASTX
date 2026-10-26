@@ -1,12 +1,13 @@
-'use strict';
+﻿'use strict';
 
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
-require('dotenv').config({ path: path.resolve(process.cwd(), '.env') });
+const dotenv = require(path.resolve('C:\\Users\\NEW\\Desktop\\PASTX\\contracts\\cross-chain\\native-polkadot\\node_modules\\dotenv'));
+dotenv.config({ path: path.resolve(__dirname, '..', '..', '..', '..', 'cross-chain', '.env') });
 
 function requirePolkadotModule(name) {
-  const localPath = path.resolve(process.cwd(), 'native-polkadot', 'node_modules', name);
+  const localPath = path.resolve(__dirname, '..', '..', '..', '..', 'cross-chain', 'native-polkadot', 'node_modules', name);
   try {
     return require(localPath);
   } catch (localError) {
@@ -189,7 +190,7 @@ async function connectAndPrepare({ requirePinnedNetwork = false } = {}) {
       throw new Error(`Native genesis hash mismatch: .env has ${EXPECTED_GENESIS}, live node reports ${genesisText}. No transaction submitted.`);
     }
 
-    const artifactPath = path.resolve(process.cwd(), '..', 'portaldot-v3', 'native-ink', 'PastxBudgetMarket', 'target', 'ink', 'pastx_budget_market.contract');
+    const artifactPath = path.resolve(__dirname, '..', 'target', 'ink', 'pastx_budget_market.contract');
     if (!fs.existsSync(artifactPath)) throw new Error(`Compiled ink! artifact not found: ${artifactPath}. Build the root contracts/portaldot-v3/native-ink/PastxBudgetMarket contract first.`);
     const artifact = JSON.parse(fs.readFileSync(artifactPath, 'utf8'));
     const wasm = artifact.source?.wasm;
@@ -345,9 +346,9 @@ function printReport(p) {
   console.log(`Estimated tx fee:     ${fmtTpot(p.fee)} tPOT`);
   console.log(`Keep-reserve floor:   ${fmtTpot(p.keepReserve)} tPOT`);
   console.log(`Balance needed:       ${fmtTpot(p.minimumRequired)} tPOT including reserve`);
-  console.log(`Balance check:        ${p.canAfford ? 'PASS' : 'FAIL — insufficient free balance for deposit + fee + reserve'}`);
-  if (!EXPECTED_ADDRESS) console.log('Account pin:          NOT SET — set PORTALDOT_NATIVE_EXPECTED_ADDRESS to your confirmed 5... address before deployment.');
-  if (!EXPECTED_GENESIS) console.log('Network pin:          NOT SET — copy the verified genesis hash into PORTALDOT_NATIVE_EXPECTED_GENESIS_HASH before deployment.');
+  console.log(`Balance check:        ${p.canAfford ? 'PASS' : 'FAIL â€” insufficient free balance for deposit + fee + reserve'}`);
+  if (!EXPECTED_ADDRESS) console.log('Account pin:          NOT SET â€” set PORTALDOT_NATIVE_EXPECTED_ADDRESS to your confirmed 5... address before deployment.');
+  if (!EXPECTED_GENESIS) console.log('Network pin:          NOT SET â€” copy the verified genesis hash into PORTALDOT_NATIVE_EXPECTED_GENESIS_HASH before deployment.');
   console.log('\nNo transaction was submitted by this preflight.');
 }
 

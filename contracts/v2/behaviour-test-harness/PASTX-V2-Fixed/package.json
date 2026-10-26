@@ -1,0 +1,17 @@
+{
+  "name": "pastx-v2-contract-behavior-tests",
+  "version": "0.2.0",
+  "private": true,
+  "scripts": {
+    "test:bnb": "hardhat test --config hardhat.config.js test/bnb.test.js",
+    "test:portal": "hardhat test --config hardhat.portal.config.js test/portal.test.js",
+    "test": "npm run test:bnb && npm run test:portal"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "5.0.0",
+    "hardhat": "^2.29.1"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.9"
+  }
+}
