@@ -46,3 +46,20 @@ contracts/cross-chain/typechain-types/
 contracts/cross-chain/ignition/deployments/
 
 contracts/cross-chain/deployments/
+
+# Keep the reviewed PASTX V2 canonical validation report
+!contracts/v2/docs/TEST-RESULTS/
+!contracts/v2/docs/TEST-RESULTS/2026-10-25-canonical-validation.md
+
+# PASTX V2 local Hardhat test output
+/contracts/v2/behaviour-test-harness/PASTX-V2-Fixed/artifacts-test/
+/contracts/v2/behaviour-test-harness/PASTX-V2-Fixed/artifacts-portal-test/
+/contracts/v2/behaviour-test-harness/PASTX-V2-Fixed/cache-test/
+/contracts/v2/behaviour-test-harness/PASTX-V2-Fixed/cache-portal-test/
+/contracts/v2/behaviour-test-harness/PASTX-V2-Fixed/canonical-validation/artifacts-bnb-canonical/
+/contracts/v2/behaviour-test-harness/PASTX-V2-Fixed/canonical-validation/artifacts-portal-canonical/
+/contracts/v2/behaviour-test-harness/PASTX-V2-Fixed/canonical-validation/cache-bnb-canonical/
+/contracts/v2/behaviour-test-harness/PASTX-V2-Fixed/canonical-validation/cache-portal-canonical/
+
+# Local timestamped backups; do not ignore intended source files
+*.20261027-*.bak

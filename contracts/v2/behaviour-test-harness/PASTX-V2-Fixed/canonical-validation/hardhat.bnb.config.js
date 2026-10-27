@@ -1,11 +1,10 @@
-﻿require("@nomicfoundation/hardhat-toolbox");
-module.exports = {
-  solidity: "0.8.28",
-  networks: { hardhat: { chainId: 97 } },
-  paths: {
-    sources: "./contracts",
-    tests: "./test",
-    cache: "./cache-bnb-canonical",
-    artifacts: "./artifacts-bnb-canonical"
-  }
-};
+require('@nomicfoundation/hardhat-toolbox');
+const path = require('path');
+require('dotenv').config({ path: process.env.PASTX_ENV_FILE || path.resolve(__dirname, '../../../../../.env') });
+const first = (...v) => v.find(x => typeof x === 'string' && x.trim());
+const rpc = first(process.env.BNB_TESTNET_RPC_URL, process.env.BSC_TESTNET_RPC_URL, process.env.VITE_PASTX_BSC_TESTNET_RPC_URL);
+const key = first(process.env.PASTX_DEPLOYER_PRIVATE_KEY, process.env.DEPLOYER_PRIVATE_KEY, process.env.BNB_TESTNET_DEPLOYER_PRIVATE_KEY);
+const explorerKey = first(process.env.BNB_TESTNET_EXPLORER_API_KEY, process.env.BSCSCAN_API_KEY);
+const networks = { hardhat: { chainId: 97 } };
+if (rpc && key) networks.bnbTestnet = { url: rpc, chainId: 97, accounts: [key], timeout: 120000 };
+module.exports = { solidity: { version: '0.8.28', settings: { optimizer: { enabled: true, runs: 200 } } }, networks, etherscan: explorerKey ? { apiKey: { bscTestnet: explorerKey } } : undefined, paths: { sources: './contracts', tests: './test', cache: './cache-bnb-canonical', artifacts: './artifacts-bnb-canonical' } };

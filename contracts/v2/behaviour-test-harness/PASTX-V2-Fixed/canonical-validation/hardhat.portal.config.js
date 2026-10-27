@@ -1,11 +1,10 @@
-﻿require("@nomicfoundation/hardhat-toolbox");
-module.exports = {
-  solidity: "0.8.28",
-  networks: { hardhat: { chainId: 420420777 } },
-  paths: {
-    sources: "./contracts",
-    tests: "./test",
-    cache: "./cache-portal-canonical",
-    artifacts: "./artifacts-portal-canonical"
-  }
-};
+require('@nomicfoundation/hardhat-toolbox');
+const path = require('path');
+require('dotenv').config({ path: process.env.PASTX_ENV_FILE || path.resolve(__dirname, '../../../../../.env') });
+const first = (...v) => v.find(x => typeof x === 'string' && x.trim());
+const rpc = first(process.env.PORTALDOT_EVM_RPC_URL, process.env.PASTX_PORTALDOT_EVM_RPC_URL, process.env.VITE_PASTX_PORTALDOT_EVM_RPC_URL, process.env.PORTALDOT_V3_EVM_RPC_URL);
+const key = first(process.env.PASTX_DEPLOYER_PRIVATE_KEY, process.env.DEPLOYER_PRIVATE_KEY, process.env.PORTALDOT_DEPLOYER_PRIVATE_KEY);
+const mnemonic = process.env.PORTALDOT_DEPLOYER_MNEMONIC;
+const networks = { hardhat: { chainId: 420420777 } };
+if (rpc && (key || mnemonic)) networks.portalDotTestnet = { url: rpc, chainId: 420420777, accounts: key ? [key] : { mnemonic, path: "m/44'/60'/0'/0", initialIndex: 0, count: 20 }, timeout: 120000 };
+module.exports = { solidity: { version: '0.8.28', settings: { optimizer: { enabled: true, runs: 200 } } }, networks, paths: { sources: './contracts', tests: './test', cache: './cache-portal-canonical', artifacts: './artifacts-portal-canonical' } };
