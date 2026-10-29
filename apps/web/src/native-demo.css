@@ -127,3 +127,108 @@
   .native-intro-top .native-button{min-height:36px;padding:8px 10px}
   .native-demo-shell .native-card{padding:16px}
 }
+
+
+/* PASTX workspace correction: market + ticket together; account panels only in Portfolio. */
+.native-demo-shell .native-demo-grid{grid-template-columns:minmax(0,1.1fr) minmax(310px,.9fr);align-items:start}
+.native-demo-shell .native-market-card{grid-column:1;grid-row:1}
+.native-demo-shell .native-trade-card{grid-column:2;grid-row:1}
+.native-demo-shell .native-account-card,.native-demo-shell .native-activity-card{grid-column:1/-1;grid-row:auto}
+.native-demo-shell .native-demo-intro h1,.native-demo-shell .native-demo-intro>.native-eyebrow{display:none}
+.workspace-tools .workspace-wallet-actions{display:flex;align-items:center;gap:8px}
+.workspace-tools .workspace-wallet-button.is-connected{background:#137b69;border-color:#137b69;color:#fff}
+.workspace-tools .workspace-faucet-button{white-space:nowrap}
+@media(max-width:840px){
+  .native-demo-shell .native-demo-grid{grid-template-columns:minmax(0,1fr)}
+  .native-demo-shell .native-market-card,.native-demo-shell .native-trade-card,.native-demo-shell .native-account-card,.native-demo-shell .native-activity-card,.native-demo-shell .native-confirm-card{grid-column:1;grid-row:auto}
+}
+
+.workspace-wallet-actions{display:flex;align-items:center;gap:8px}
+.workspace-faucet-button{white-space:nowrap}
+.workspace-wallet-button.is-connected{background:#137b69!important;border-color:#137b69!important;color:#fff!important}
+.workspace-faucet-button:disabled{opacity:.45;cursor:not-allowed}
+.bridge-workspace-note{margin:0 0 14px;color:var(--muted,#71818a);font-size:12px;line-height:1.6}
+@media(max-width:640px){.workspace-wallet-actions{gap:6px}.workspace-wallet-actions .workspace-wallet-button{font-size:11px;padding-inline:9px}}
+
+/* PASTX market-selection modal, account picker, and network selector. */
+.workspace-network-switch{display:flex;align-items:center;gap:5px;padding:4px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.035);white-space:nowrap}
+.workspace-network-label{display:flex;align-items:center;gap:6px;padding:0 7px;color:#dbe6eb;font-size:11px;font-weight:700}
+.workspace-network-label i{width:7px;height:7px;border-radius:50%;background:#2bc49a;box-shadow:0 0 0 3px rgba(43,196,154,.12)}
+.workspace-network-option{border:1px solid transparent;border-radius:7px;padding:7px 9px;background:transparent;color:#a9bbc5;font-size:11px;font-weight:700;cursor:pointer}
+.workspace-network-option.is-active{background:#137b69;color:#fff}
+.workspace-network-option:disabled{opacity:.38;cursor:not-allowed}
+.native-demo-shell .native-market-card{grid-column:1/-1;min-height:calc(100vh - 270px)}
+.native-demo-shell .native-stock-list{grid-template-columns:minmax(0,1fr);gap:10px}
+.native-demo-shell .native-stock-row{grid-template-columns:42px minmax(0,1fr) auto auto;gap:12px;padding:16px 18px;border:1px solid #e4eaed;background:#fbfcfd;min-height:86px}
+.native-demo-shell .native-stock-icon{width:40px;height:40px;font-size:15px}
+.native-demo-shell .native-stock-identity strong{font-size:15px}
+.native-demo-shell .native-stock-identity small{font-size:12px}
+.native-demo-shell .native-stock-price{text-align:right;grid-column:auto}
+.native-demo-shell .native-stock-select{grid-column:auto;padding-left:7px;color:#137b69;font-weight:800}
+.native-trade-overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:22px;background:rgba(4,16,24,.5);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)}
+.native-trade-modal,.native-account-picker{width:min(760px,100%);max-height:min(92vh,900px);overflow:auto;background:#fff;border:1px solid rgba(255,255,255,.6);border-radius:18px;padding:24px;box-shadow:0 28px 100px rgba(0,0,0,.3);color:#142b38}
+.native-trade-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:18px}
+.native-trade-modal-head h2{margin:7px 0 4px;font-size:23px;letter-spacing:-.04em}
+.native-trade-modal-head p{margin:0;color:#74848d;font-size:12px}
+.native-modal-price{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:13px 15px;background:#f5f9f8;border:1px solid #e5efec;border-radius:10px}
+.native-modal-price span{color:#607781;font-size:12px}
+.native-modal-price strong{font-size:21px;color:#153b43}
+.native-modal-price small{margin-left:auto;color:#85949b;font-size:10px}
+.native-demo-chart{margin:12px 0 16px;padding:14px 15px 10px;border:1px solid #e6ecef;border-radius:12px;background:linear-gradient(180deg,#fbfdfd,#fff);color:#819099}
+.native-chart-top,.native-chart-labels{display:flex;justify-content:space-between;gap:8px;font-size:9px;font-weight:800;letter-spacing:.08em}
+.native-demo-chart svg{display:block;width:100%;height:auto;margin:8px 0 2px;color:#71838d}
+.native-chart-labels{font-weight:500;letter-spacing:0;text-transform:none}
+.native-trade-modal .native-confirm-card{margin-top:18px;padding:16px}
+.native-account-picker{width:min(560px,100%)}
+.native-account-options{display:grid;gap:8px}
+.native-account-option{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:14px;border:1px solid #dfe8eb;border-radius:11px;background:#f9fbfc;text-align:left;color:#17313d;cursor:pointer}
+.native-account-option:hover{border-color:#72b9aa;background:#eff9f6}
+.native-account-option span{display:grid;gap:5px;min-width:0}
+.native-account-option strong{font-size:13px}
+.native-account-option small{font-size:11px;color:#71828c}
+.native-account-option code{font-size:10px;overflow-wrap:anywhere;color:#42606c}
+@media(max-width:900px){.workspace-network-switch{order:1}.workspace-tools{flex-wrap:wrap;justify-content:flex-end}}
+@media(max-width:640px){
+ .workspace-network-switch{width:100%;justify-content:space-between}
+ .workspace-network-label{font-size:10px}
+ .native-demo-shell .native-stock-list{grid-template-columns:minmax(0,1fr)}
+ .native-demo-shell .native-market-card{min-height:0}
+ .native-trade-overlay{padding:10px}
+ .native-trade-modal,.native-account-picker{padding:17px;border-radius:14px;max-height:96vh}
+ .native-trade-modal-head h2{font-size:20px}
+ .native-modal-price small{margin-left:0}
+}
+
+/* Network control: one compact dropdown; mainnet remains disabled. */
+.workspace-network-switch{gap:8px}
+.workspace-network-dropdown{appearance:auto;max-width:180px;border:1px solid rgba(255,255,255,.16);border-radius:7px;padding:8px 10px;background:#137b69;color:#fff;font:inherit;font-size:11px;font-weight:750;cursor:pointer}
+.workspace-network-dropdown option{background:#fff;color:#14212d}
+.workspace-network-dropdown option:disabled{color:#9aa6ad}
+@media(max-width:640px){.workspace-network-dropdown{flex:1;max-width:none}}
+
+/* Portfolio refinement: compact controls, address copy, standalone balance cards. */
+.workspace-tools .workspace-wallet-actions{gap:6px}
+.workspace-tools .workspace-wallet-button.workspace-icon-action{min-height:32px;padding:7px 10px;gap:6px;border-radius:8px;font-size:11px;line-height:1}
+.workspace-tools .workspace-wallet-button.workspace-icon-action svg{width:14px;height:14px;flex:0 0 auto}
+.workspace-tools .workspace-wallet-button.workspace-faucet-button:disabled{display:none}
+.native-demo-shell .native-account-card{padding:24px;background:linear-gradient(180deg,#fff 0%,#fbfdfd 100%);border-color:#dce6e9;box-shadow:0 8px 26px rgba(17,38,51,.045)}
+.native-demo-shell .native-account-card h2{margin:6px 0 18px;font-size:22px;letter-spacing:-.035em}
+.native-wallet-address{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px 12px;margin:0 0 20px;padding:14px 15px;border:1px solid #e0e8eb;border-radius:11px;background:#f8fafb;min-width:0}
+.native-wallet-address>span{grid-column:1/-1;color:#71848e;font-size:9px;font-weight:800;letter-spacing:.13em}
+.native-wallet-address code{min-width:0;overflow-wrap:anywhere;color:#193745;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;line-height:1.6}
+.native-copy-address{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:32px;padding:7px 9px;border:1px solid #d9e3e7;border-radius:8px;background:#fff;color:#315866;font-size:10px;font-weight:750;cursor:pointer}
+.native-demo-shell .native-balance-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0}
+.native-demo-shell .native-balance-grid>div.native-balance-card{padding:17px 16px;border:1px solid #e0e8eb;border-radius:12px;background:#fff;box-shadow:0 3px 12px rgba(17,38,51,.025)}
+.native-demo-shell .native-balance-card span{font-size:9px;font-weight:800;letter-spacing:.08em;color:#71848e}
+.native-demo-shell .native-balance-card strong{margin:12px 0 6px;font-size:22px;line-height:1.2;color:#112e3b;font-variant-numeric:tabular-nums}
+.native-demo-shell .native-balance-card small{display:block;color:#87959d;font-size:10px;line-height:1.5}
+@media(max-width:640px){.workspace-tools .workspace-wallet-button.workspace-icon-action{padding:7px 8px}.native-demo-shell .native-balance-grid{grid-template-columns:1fr}.native-demo-shell .native-balance-grid>div.native-balance-card{padding:14px}.native-demo-shell .native-balance-card strong{font-size:20px}.native-wallet-address code{font-size:10px}.native-copy-address{padding:7px}.native-copy-address span{display:none}}
+/* Confirmation panel is brought into view after a successful dry-run. */
+.native-confirm-card { scroll-margin-block: 28px; }
+.native-trade-price input { font-variant-numeric: tabular-nums; }
+
+/* Faucet claim modal: explicit, accessible overlay and clear cost preflight. */
+.native-faucet-overlay{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:20px;background:rgba(5,18,27,.64);backdrop-filter:blur(5px)}
+.native-faucet-modal{width:min(100%,480px);max-height:min(88vh,760px);overflow:auto;background:#fff;border:1px solid #dce6e9;border-radius:18px;padding:24px;box-shadow:0 28px 90px rgba(0,0,0,.28);color:#142b38}
+.native-faucet-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.native-faucet-head h2{margin:8px 0 0;font-size:24px;letter-spacing:-.04em}.native-faucet-amount{display:grid;gap:7px;margin:22px 0 16px;padding:18px;border:1px solid #d7e9e4;border-radius:12px;background:#f1faf7}.native-faucet-amount span,.native-faucet-amount small,.native-faucet-status,.native-faucet-footnote{font-size:12px;line-height:1.65;color:#647b83}.native-faucet-amount strong{font-size:30px;letter-spacing:-.04em;color:#126c5d}.native-faucet-status{padding:12px 14px;border-radius:9px;background:#f5f8fa}.native-faucet-preflight{display:grid;gap:10px;margin:14px 0}.native-faucet-preflight>div{display:flex;justify-content:space-between;gap:12px;padding:11px 12px;background:#f7f9fa;border-radius:8px;font-size:12px}.native-faucet-preflight>div span{color:#667d86}.native-faucet-preflight>div strong{color:#173c47}.native-faucet-preflight>p{font-size:11px;line-height:1.65;color:#657c85}.native-faucet-actions{display:flex;gap:9px;margin-top:18px}.native-faucet-actions>*{flex:1}.native-faucet-footnote{margin-top:14px}.native-faucet-modal button{min-height:42px}
+@media(max-width:520px){.native-faucet-modal{padding:18px}.native-faucet-amount strong{font-size:26px}}
