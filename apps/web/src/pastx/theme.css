@@ -1,4 +1,4 @@
-/* PASTX app design system — matched to the landing page (light fintech).
+/* PASTX app design system - matched to the landing page (light fintech).
    Palette, type and components mirror product.css so / and /demo are one product. */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
@@ -21,7 +21,7 @@
   --dark:      #13241f;   /* dark cards / buttons */
   --dark-soft: #294138;
   --dark-mint: #7ae2bb;
-  --purple:    #7561d3;   /* secondary — BNB chain */
+  --purple:    #7561d3;   /* secondary - BNB chain */
   --purple-soft:#f0edff;
   --up:        #00a879;
   --down:      #d8484f;

@@ -9,8 +9,8 @@ import { nativeMarketAbi, wrappedMarketAbi, erc20Abi, escrowAbi, gatewayAbi } fr
 import { ADDRESSES, PORTAL_LISTINGS, BNB_LISTINGS, ALL_LISTINGS, symbolKey, PORTALDOT, LINKS, explorerTxUrl, explorerExtrinsicUrl, type StockListing } from "./pastx/config";
 import "./pastx/pastx-dashboard.css";
 
-const short = (a?: string, n = 4) => (a ? a.slice(0, n + 2) + "…" + a.slice(-n) : "—");
-const fmt = (v?: bigint, d = 4) => { if (v === undefined) return "—"; const [i, f = ""] = formatEther(v).split("."); return f ? `${i}.${f.slice(0, d)}` : i; };
+const short = (a?: string, n = 4) => (a ? a.slice(0, n + 2) + "…" + a.slice(-n) : "-");
+const fmt = (v?: bigint, d = 4) => { if (v === undefined) return "-"; const [i, f = ""] = formatEther(v).split("."); return f ? `${i}.${f.slice(0, d)}` : i; };
 
 // A confirmed transaction: its hash plus the explorer link to view it on-chain.
 type TxInfo = { hash: string; href: string; label?: string };
@@ -106,7 +106,7 @@ export default function PastxDashboard() {
       </main>
 
       <footer className="px-foot">
-        <span className="ulabel">synthetic test assets — not real equities</span>
+        <span className="ulabel">synthetic test assets, not real equities</span>
         <span className="ulabel">bridge = trusted testnet relayer, not trustless</span>
       </footer>
 
@@ -123,7 +123,7 @@ function StatusBar({ block, w, onConnect, onMenu }: { block: number | null; w: P
       <a className="px-brand" href="/"><PastxMark size={28} />PASTX</a>
       <span className="px-sep" />
       <span className="ulabel">Portaldot · chain {PORTALDOT.evmChainId}</span>
-      <span className="px-block num"><span className="live-dot" /> block {block ?? "—"}</span>
+      <span className="px-block num"><span className="live-dot" /> block {block ?? "-"}</span>
       <div className="px-status-right">
         {w.evm
           ? <button className="px-acct" onClick={onMenu}><span className="live-dot" /> <span className="num">{short(w.evm.address)}</span> <span className="ulabel">{w.evm.walletName}</span></button>
@@ -309,8 +309,8 @@ function ConnectModal({ w, onClose }: { w: PastxWallet; onClose: () => void }) {
   return (
     <Modal title="connect wallet" onClose={onClose}>
       {step === "cat" && <div className="px-opts">
-        <button className="px-opt" onClick={goEvm}><b>EVM wallet</b><span>MetaMask · Rabby · OKX — signs trades on both chains</span></button>
-        <button className="px-opt" onClick={goSub}><b>Substrate wallet</b><span>Polkadot.js · Talisman · SubWallet — funds your EVM &amp; signs native transfers</span></button>
+        <button className="px-opt" onClick={goEvm}><b>EVM wallet</b><span>MetaMask · Rabby · OKX. Signs trades on both chains</span></button>
+        <button className="px-opt" onClick={goSub}><b>Substrate wallet</b><span>Polkadot.js · Talisman · SubWallet. Funds your EVM &amp; signs native transfers</span></button>
       </div>}
       {step === "evm" && <div className="px-opts">
         {evmWallets === null && <div className="dim">scanning…</div>}
@@ -387,7 +387,7 @@ function TopupModal({ w, onClose, onDone }: { w: PastxWallet; onClose: () => voi
       <p className="dim sm">Send native tPOT from your Substrate wallet into your EVM trading account. Destination is your mapped <span className="num">5…</span> address (fixed).</p>
       <label className="ulabel">amount · tPOT<input className="field amt num" value={amount} inputMode="decimal" onChange={(e) => setAmount(e.target.value)} /></label>
       <div className="px-row"><span className="ulabel">from · substrate</span><span className="num">{short(w.selectedSubstrate ?? undefined, 6)}</span></div>
-      <div className="px-row"><span className="ulabel">free balance</span><span className="num">{free === null ? "—" : formatUnits(free, PORTALDOT.nativeDecimals)} tPOT</span></div>
+      <div className="px-row"><span className="ulabel">free balance</span><span className="num">{free === null ? "-" : formatUnits(free, PORTALDOT.nativeDecimals)} tPOT</span></div>
       <div className="px-row"><span className="ulabel">to · mapped 5… (fixed)</span><span className="num">{short(w.derivedSubstrate ?? undefined, 6)}</span></div>
       <button className="btn btn-primary wfull" disabled={busy || !w.selectedSubstrate} onClick={go}>Sign &amp; top up</button>
       {status && <div className="ticket-status num">{status}</div>}
@@ -497,11 +497,11 @@ function Transfer({ w, balances, onDone }: { w: PastxWallet; balances: Balances 
   useEffect(() => { if (sel.kind === "native-sub" && w.selectedSubstrate) substrateFreeBalance(w.selectedSubstrate).then(setSubFree).catch(() => {}); }, [sel, w.selectedSubstrate]);
 
   const balOf = (a: Sendable): string => {
-    if (a.kind === "native-sub") return subFree != null ? formatUnits(subFree, PORTALDOT.nativeDecimals) : "—";
+    if (a.kind === "native-sub") return subFree != null ? formatUnits(subFree, PORTALDOT.nativeDecimals) : "-";
     if (a.key === "tpot-evm") return fmt(balances?.tpot);
     if (a.key === "wtpot") return fmt(balances?.wtpot);
     if (a.key === "tbnb") return fmt(balances?.tbnb);
-    return "—";
+    return "-";
   };
   const recipOk = sel.to === "evm" ? /^0x[0-9a-fA-F]{40}$/.test(to.trim()) : /^5[1-9A-HJ-NP-Za-km-z]{40,}$/.test(to.trim());
 

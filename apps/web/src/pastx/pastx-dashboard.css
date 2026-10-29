@@ -1,4 +1,4 @@
-/* PASTX dashboard — light fintech, matched to the landing. Uses theme.css tokens. */
+/* PASTX dashboard - light fintech, matched to the landing. Uses theme.css tokens. */
 .px{min-height:100vh;display:flex;flex-direction:column;background:var(--bg);}
 
 /* top bar */
@@ -76,7 +76,7 @@ table.grid tbody tr:hover{background:var(--panel-soft);}
 .btn.sell:hover{background:#fdf2f2;}
 .ticket-status{margin-top:4px;padding:11px 13px;background:var(--panel-soft);border:1px solid var(--line);border-radius:var(--radius-sm);font-size:13px;color:var(--ink-2);word-break:break-all;}
 
-/* tx receipt — hash + copy + explorer link, shown after any confirmed transaction */
+/* tx receipt - hash + copy + explorer link, shown after any confirmed transaction */
 .px-txr{margin-top:10px;display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:11px 13px;background:var(--panel-soft);border:1px solid var(--line);border-radius:var(--radius-sm);font-size:12.5px;}
 .px-txr .ulabel{flex-basis:100%;color:var(--faint);}
 .px-txr-hash{color:var(--ink-2);font-size:12.5px;letter-spacing:-.01em;}
