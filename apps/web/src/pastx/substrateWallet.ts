@@ -64,7 +64,7 @@ export async function transferNative(
   return new Promise<SubstrateTxResult>((resolve, reject) => {
     tx.signAndSend(from, { signer: injector.signer }, (result: any) => {
       onStatus?.(result.status.type);
-      if (result.status.isInBlock) onStatus?.("In block — finalizing");
+      if (result.status.isInBlock) onStatus?.("In block, finalizing");
       if (result.dispatchError) reject(new Error(result.dispatchError.toString()));
       else if (result.status.isFinalized) resolve({ txHash, block: result.status.asFinalized.toString() });
     }).catch(reject);

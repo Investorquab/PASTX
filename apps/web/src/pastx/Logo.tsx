@@ -1,4 +1,4 @@
-// PASTX brand mark — a "PX" monogram: the letter P beside an X formed by two
+// PASTX brand mark - a "PX" monogram: the letter P beside an X formed by two
 // crossing chart lines (a rising green line over a falling mint one). Kept in
 // sync with /public/favicon.svg. Scales cleanly from favicon size up.
 export function PastxMark({ size = 30, className }: { size?: number; className?: string }) {

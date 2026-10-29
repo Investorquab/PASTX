@@ -81,10 +81,10 @@ export const LINKS = {
 export const explorerTxUrl = (chain: "portaldot" | "bnb", hash: string): string =>
   `${(chain === "bnb" ? BNB.explorer : PORTALDOT.explorer).replace(/\/$/, "")}/tx/${hash}`;
 
-// Portaldot substrate extrinsic — accepts the extrinsic hash or a `<height>-<index>` id.
+// Portaldot substrate extrinsic - accepts the extrinsic hash or a `<height>-<index>` id.
 export const explorerExtrinsicUrl = (hashOrId: string): string =>
   `${PORTALDOT.explorer.replace(/\/$/, "")}/extrinsics/${hashOrId}`;
 
-// Portaldot substrate block — accepts the block hash or height.
+// Portaldot substrate block - accepts the block hash or height.
 export const explorerBlockUrl = (hashOrHeight: string | number): string =>
   `${PORTALDOT.explorer.replace(/\/$/, "")}/blocks/${hashOrHeight}`;

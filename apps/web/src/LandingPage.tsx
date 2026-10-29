@@ -29,9 +29,9 @@ const BNB = {
 const steps = [
   { icon: <Wallet size={18} />, title: "Connect", body: "An EVM wallet (MetaMask, Rabby, OKX) signs trades. A Substrate wallet (Talisman, Polkadot.js, SubWallet) funds it. Keys never leave your browser." },
   { icon: <Coins size={18} />, title: "Fund your EVM account", body: "Move faucet tPOT from your 5… address into your EVM account. Portaldot maps every 0x address to a backing 5… account, so the transfer credits your EVM balance 1:1." },
-  { icon: <Repeat size={18} />, title: "Trade on Portaldot", body: "Buy and sell synthetic stocks with native tPOT. Orders settle in the PortalDotNativeMarket contract — real on-chain positions, not a mock." },
+  { icon: <Repeat size={18} />, title: "Trade on Portaldot", body: "Buy and sell synthetic stocks with native tPOT. Orders settle in the PortalDotNativeMarket contract: real on-chain positions, not a mock." },
   { icon: <GitBranch size={18} />, title: "Bridge to BNB", body: "Lock tPOT in the escrow; a relayer attests it to the BNB gateway, which mints the same amount of wtPOT to your address. 1:1, replay-protected." },
-  { icon: <Boxes size={18} />, title: "Trade on BNB", body: "Use bridged wtPOT to trade synthetic stocks on the BNB market — the same mechanics, a second venue." },
+  { icon: <Boxes size={18} />, title: "Trade on BNB", body: "Use bridged wtPOT to trade synthetic stocks on the BNB market: the same mechanics, a second venue." },
   { icon: <Send size={18} />, title: "Send to anyone", body: "Transfer your tPOT, wtPOT or tBNB to any address directly from PASTX, without leaving for your wallet app." },
 ];
 
@@ -67,7 +67,7 @@ function HeroTerminal() {
   const seeded = useRef(false);
 
   useEffect(() => {
-    // demo price motion — purely illustrative movement around the fixed demo price
+    // demo price motion - purely illustrative movement around the fixed demo price
     const id = setInterval(() => {
       setRows((rs) => rs.map((r) => {
         const drift = (Math.random() - 0.5) * 0.02;
@@ -149,7 +149,7 @@ export function LandingPage() {
           <div className="hero-copy">
             <div className="eyebrow"><span className="eyebrow-dot" /> Live on Portaldot V3 <span className="eyebrow-divider" /> BNB testnet</div>
             <h1>Synthetic stock markets,<br /><em>settled on Portaldot.</em></h1>
-            <p className="hero-lede">PASTX brings stock-style trading to the Portaldot testnet. Fund an account from your tPOT faucet balance, buy and sell synthetic equities on-chain, and bridge value to BNB to trade there too — backed by real deployed contracts, not a mockup.</p>
+            <p className="hero-lede">PASTX brings stock-style trading to the Portaldot testnet. Fund an account from your tPOT faucet balance, buy and sell synthetic equities on-chain, and bridge value to BNB to trade there too, backed by real deployed contracts, not a mockup.</p>
             <div className="hero-actions"><a className="button button-green" href="/demo">Launch the app <ArrowRight size={16} /></a><a className="text-link" href="#contracts">View deployed contracts <ArrowRight size={15} /></a></div>
             <ul className="hero-chips">
               <li><Repeat size={13} /> On-chain settlement</li>
@@ -165,14 +165,14 @@ export function LandingPage() {
         <section className="product-status-strip">
           <div><CircleDot size={15} className="green-icon" /><strong>Portaldot-first</strong><small>Trade synthetic stocks natively with tPOT. Every buy and sell settles in an on-chain market contract on Portaldot V3.</small></div>
           <div><GitBranch size={15} className="purple-icon" /><strong>Cross-chain</strong><small>Move value to BNB through an escrow-and-gateway route and trade there with wtPOT, a 1:1 bridged representation of tPOT.</small></div>
-          <div><ShieldCheck size={15} className="green-icon" /><strong>Self-custody</strong><small>Your wallet signs every transaction. The relayer only attests deposits — it never holds your keys or your funds.</small></div>
+          <div><ShieldCheck size={15} className="green-icon" /><strong>Self-custody</strong><small>Your wallet signs every transaction. The relayer only attests deposits; it never holds your keys or your funds.</small></div>
         </section>
 
         <section className="landing-section product-section" id="product">
           <div className="section-intro">
             <div className="eyebrow">What PASTX is</div>
             <h2>A working testnet exchange,<br /><em>not a pitch deck.</em></h2>
-            <p>PASTX is a full trading app for the Portaldot ecosystem. You connect a wallet, see your balances across Portaldot and BNB, and trade a small set of synthetic stocks that settle entirely on-chain. It demonstrates the complete mechanics — pricing, settlement, cross-chain transfer and transaction history — without pretending the test tokens are real money or that the synthetic shares are regulated equities.</p>
+            <p>PASTX is a full trading app for the Portaldot ecosystem. You connect a wallet, see your balances across Portaldot and BNB, and trade a small set of synthetic stocks that settle entirely on-chain. It demonstrates the complete mechanics (pricing, settlement, cross-chain transfer and transaction history) without pretending the test tokens are real money or that the synthetic shares are regulated equities.</p>
             <p>The point is activity on Portaldot: tPOT holders get somewhere to use their balance, and the app shows how a real asset marketplace could grow on top of Portaldot's native runtime.</p>
             <a className="text-link" href="/demo">Open the workspace <ArrowRight size={15} /></a>
           </div>
@@ -208,7 +208,7 @@ export function LandingPage() {
             <ContractGroup title="Portaldot V3" tagClass="pdot" chainId={PORTAL.chainId} rows={PORTAL.contracts} />
             <ContractGroup title="BNB Smart Chain testnet" tagClass="bnb" chainId={BNB.chainId} rows={BNB.contracts} explorer={BNB.explorer} />
           </div>
-          <div className="truth-note"><ShieldCheck size={18} /><div><strong>What these contracts are — and are not</strong><p>Prices are owner-set demo prices, not live quotes or oracle prices. Stock tokens are non-transferable except through their market, and confer no equity, dividend or ownership rights. The bridge is operated by a single trusted relayer; it does not verify the other chain's consensus and is not a trustless bridge. All of this is testnet.</p></div></div>
+          <div className="truth-note"><ShieldCheck size={18} /><div><strong>What these contracts are, and what they are not</strong><p>Prices are owner-set demo prices, not live quotes or oracle prices. Stock tokens are non-transferable except through their market, and confer no equity, dividend or ownership rights. The bridge is operated by a single trusted relayer; it does not verify the other chain's consensus and is not a trustless bridge. All of this is testnet.</p></div></div>
         </section>
 
         <section className="landing-section status-section" id="status">
