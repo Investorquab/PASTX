@@ -64,4 +64,4 @@ contracts/cross-chain/deployments/
 # Local timestamped backups; do not ignore intended source files
 *.20261027-*.bak
 .vercel
-.env*
+.env*.local

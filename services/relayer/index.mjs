@@ -11,7 +11,16 @@ import {
 import { privateKeyToAccount } from "viem/accounts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: process.env.PASTX_ENV_FILE || path.resolve(here, "../../.env") });
+// Load env from the first file that sets each var (dotenv does not override
+// already-set vars). On a VPS, drop a services/relayer/.env next to this file;
+// for local dev, the repo-root .env is picked up. PASTX_ENV_FILE overrides both.
+for (const envPath of [
+  process.env.PASTX_ENV_FILE,
+  path.resolve(here, ".env"),
+  path.resolve(here, "../../.env"),
+].filter(Boolean)) {
+  dotenv.config({ path: envPath });
+}
 
 const first = (...v) => v.find((x) => typeof x === "string" && x.trim());
 const PORTAL_RPC = first(process.env.PORTALDOT_EVM_RPC_URL, process.env.PASTX_PORTALDOT_EVM_RPC_URL, process.env.VITE_PASTX_PORTALDOT_EVM_RPC_URL, process.env.PORTALDOT_V3_EVM_RPC_URL) || "https://test-evm-rpc-v3.portaldot.dev";
