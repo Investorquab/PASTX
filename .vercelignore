@@ -1,0 +1,22 @@
+# Vercel only needs the web app + workspace packages to build the SPA.
+# Everything below is irrelevant to the frontend build or is local junk.
+
+# Heavy / unrelated to the frontend build
+contracts/
+docs/
+services/
+
+# Local timestamped backups & archives (not tracked for deploy)
+_pastx-*/
+patch-backups/
+*.zip
+*.bak
+*.ps1
+*.bak-*
+*.backup-*
+*.20261023-*.bak
+
+# Secrets / env (defense in depth; .gitignore already covers these)
+.env
+.env.*
+!.env.example
