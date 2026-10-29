@@ -8,7 +8,7 @@
 
 #### *Real stock-market UX. On-chain settlement. Cross-chain by design.*
 
-**PASTX brings the familiar experience of trading stocks — a portfolio, a live market, a buy/sell ticket — on-chain, settled natively on [Portaldot](https://portaldot.dev), and bridged live to BNB Smart Chain. Every single action returns a transaction hash and a one-click explorer link, so nothing has to be taken on trust.**
+**PASTX brings the familiar experience of trading stocks, a portfolio, a live market and a buy/sell ticket, fully on-chain: settled natively on [Portaldot](https://portaldot.dev) and bridged live to BNB Smart Chain. Every single action returns a transaction hash and a one-click explorer link, so nothing has to be taken on trust.**
 
 <br/>
 
@@ -29,12 +29,12 @@
 
 > ## ⚡ 30-second overview
 > **What:** a decentralized exchange for **synthetic equities** (`pAAPL`, `pNVDA`) with a **working cross-chain bridge**.
-> **Where:** **Portaldot V3** — a Polkadot-SDK chain running the **`pallet-revive` EVM** — mirrored onto **BNB Smart Chain**.
+> **Where:** **Portaldot V3**, a Polkadot-SDK chain running the **`pallet-revive` EVM**, mirrored onto **BNB Smart Chain**.
 > **Why it's different:** it's not a mock-up. You connect a real wallet, sign real transactions, move real (testnet) value across two chains, and **verify every step on a block explorer**.
 >
 > 👉 **Try it:** **[pastx.vercel.app](https://pastx.vercel.app)** → open `/demo` → connect → trade.
 >
-> ⚠️ *Synthetic test assets on testnet only — not real equities, not securities, no monetary value. A hackathon research prototype.*
+> ⚠️ *Synthetic test assets on testnet only. Not real equities, not securities, no monetary value. A hackathon research prototype.*
 
 ---
 
@@ -51,11 +51,11 @@
 
 ## 🎯 Why we built PASTX
 
-Access to equity markets is still **gated** — by geography, by brokers, by minimums, by hours, by intermediaries who sit between you and the asset. And the web3 answer to "move value between chains" is usually a **black-box bridge** you have to trust blindly.
+Access to equity markets is still **gated**: by geography, by brokers, by minimums, by hours, by intermediaries who sit between you and the asset. And the web3 answer to "move value between chains" is usually a **black-box bridge** you have to trust blindly.
 
 We set out to prove a single, ambitious idea on Portaldot:
 
-> **You can deliver a polished, stock-market-grade trading experience that is fully on-chain, settles natively on a Polkadot-SDK chain, moves liquidity across ecosystems, and is auditable at every step — today.**
+> **You can deliver a polished, stock-market-grade trading experience that is fully on-chain, settles natively on a Polkadot-SDK chain, moves liquidity across ecosystems, and is auditable at every step, today.**
 
 PASTX is the proof. It shows that Portaldot's `pallet-revive` EVM can run standard Solidity markets, that a Substrate-native chain can host a familiar DeFi UX, and that cross-chain value transfer can be **transparent and verifiable** rather than opaque. This is a foundation we intend to grow into a serious, trust-minimized, multi-asset exchange.
 
@@ -63,7 +63,7 @@ PASTX is the proof. It shows that Portaldot's `pallet-revive` EVM can run standa
 
 ## ✨ What we built
 
-A complete, end-to-end product — not a slide deck. Here is everything in the box:
+A complete, end-to-end product, not a slide deck. Here is everything in the box:
 
 ### 🏦 The trading exchange
 
@@ -71,17 +71,17 @@ A complete, end-to-end product — not a slide deck. Here is everything in the b
 |---|---|
 | 📈 **Synthetic equity markets** | Buy & sell `pAAPL` (synthetic Apple) and `pNVDA` (synthetic Nvidia) against a fixed-price, fully on-chain market contract. |
 | 💼 **Live portfolio** | Real-time balances across **tPOT** (Portaldot), **wtPOT** (BNB), **tBNB** (gas) and every open position, read straight from chain. |
-| 🧮 **Order ticket** | Pick an asset, set share count, see cost and holdings, and execute — with inline status for approvals and confirmations. |
+| 🧮 **Order ticket** | Pick an asset, set share count, see cost and holdings, and execute - with inline status for approvals and confirmations. |
 | 🔴 **Live network indicator** | A ticking block number shows the chain is live and the app is connected. |
 
 ### 🔗 The wallet layer
 
 | Capability | Details |
 |---|---|
-| 🦊 **EVM wallets** | MetaMask · Rabby · OKX — discovered via EIP-6963, used to sign trades on **both** chains. |
-| 🟣 **Substrate wallets** | Polkadot.js · Talisman · SubWallet — used to **fund** your EVM account and sign **native** tPOT transfers. |
+| 🦊 **EVM wallets** | MetaMask · Rabby · OKX - discovered via EIP-6963, used to sign trades on **both** chains. |
+| 🟣 **Substrate wallets** | Polkadot.js · Talisman · SubWallet - used to **fund** your EVM account and sign **native** tPOT transfers. |
 | 🔁 **Automatic network switching** | The app adds/switches to Portaldot or BNB in your wallet as needed. |
-| 🏷️ **Address mapping** | Your EVM `0x…` account maps deterministically to its backing Substrate `5…` account — fund one, trade with the other. |
+| 🏷️ **Address mapping** | Your EVM `0x…` account maps deterministically to its backing Substrate `5…` account - fund one, trade with the other. |
 
 ### 💸 Movement of value
 
@@ -96,7 +96,7 @@ A complete, end-to-end product — not a slide deck. Here is everything in the b
 | Capability | Details |
 |---|---|
 | 🔎 **Transaction receipts** | **Every** trade, approval, transfer, top-up and bridge step surfaces its **tx hash + copy button + clickable explorer link**. |
-| 🏛️ **Honest labelling** | Synthetic assets and the trusted-relayer bridge are clearly marked in the UI — no overstated claims. |
+| 🏛️ **Honest labelling** | Synthetic assets and the trusted-relayer bridge are clearly marked in the UI - no overstated claims. |
 | 📱 **Responsive design** | One coherent product from wide desktop down to a phone. |
 
 ---
@@ -108,7 +108,7 @@ Move tPOT from Portaldot to BNB as **wtPOT**, 1:1. Every step is a real on-chain
 | Step | Chain | What happens | Contract call | Result |
 |:--:|:--|:--|:--|:--|
 | **1 · Lock** | 🟢 Portaldot | You deposit tPOT into the escrow | `PortalDotBridgeEscrow.deposit()` → emits `DepositInitiated` | 🔒 tPOT locked |
-| **2 · Attest** | 🔁 Relayer | The relayer observes the deposit event | off-chain watcher — [`services/relayer`](services/relayer) | 👀 deposit verified |
+| **2 · Attest** | 🔁 Relayer | The relayer observes the deposit event | off-chain watcher - [`services/relayer`](services/relayer) | 👀 deposit verified |
 | **3 · Mint** | 🟡 BNB | The relayer mints matching wtPOT to **you** | `BnbBridgeGateway.completeDeposit()` | 🪙 1:1 wtPOT received |
 | **4 · Trade** | 🟡 BNB | You trade the mirrored market in wtPOT | `BnbWrappedPotMarket.buy()` / `sell()` | 📈 position opened |
 
@@ -123,7 +123,7 @@ Move tPOT from Portaldot to BNB as **wtPOT**, 1:1. Every step is a real on-chain
   └──────────────────────┘                                     └──────────────────────┘
 ```
 
-> 🔒 **We state the trust model plainly:** this is an **explicitly trusted, single-relayer** bridge — **not** trustless. It faithfully demonstrates the full cross-chain lifecycle; making it trust-minimized is the headline item on our [roadmap](#-the-future-of-pastx).
+> 🔒 **We state the trust model plainly:** this is an **explicitly trusted, single-relayer** bridge, **not** trustless. It faithfully demonstrates the full cross-chain lifecycle; making it trust-minimized is the headline item on our [roadmap](#-the-future-of-pastx).
 
 ---
 
@@ -137,7 +137,7 @@ PASTX never asks you to take its word for anything. After **every** action the U
 | BNB (trade, approve, transfer) | `testnet.bscscan.com/tx/<hash>` |
 | Substrate (funding & native transfers) | `scanner-testnet-v3.portaldot.dev/extrinsics/<hash>` |
 
-Copy the hash, or click **view ↗** — a judge, an auditor, or a user can verify any claim on-chain in a single click. **This is the heart of the product: provable, not promised.**
+Copy the hash, or click **view ↗**: a judge, an auditor, or a user can verify any claim on-chain in a single click. **This is the heart of the product: provable, not promised.**
 
 ---
 
@@ -148,7 +148,7 @@ A clean **pnpm monorepo**:
 ```
 PASTX/
 ├── apps/
-│   └── web/            React 19 + Vite 7 SPA — the trading app (viem + @polkadot/api)
+│   └── web/            React 19 + Vite 7 SPA - the trading app (viem + @polkadot/api)
 ├── services/
 │   └── relayer/        Always-on Node watcher: Portaldot escrow → BNB gateway (mints wtPOT)
 ├── contracts/          Solidity contracts, deploy scripts & on-chain validation harness
@@ -156,7 +156,7 @@ PASTX/
     └── shared/         Shared market types & helpers
 ```
 
-The **frontend talks directly to each chain's RPC** — `viem` for EVM, `@polkadot/api` for Substrate. Trading, transfers and top-ups require **no backend at all**. The **only** server-side component is the bridge **relayer**.
+The **frontend talks directly to each chain's RPC**: `viem` for EVM, `@polkadot/api` for Substrate. Trading, transfers and top-ups require **no backend at all**. The **only** server-side component is the bridge **relayer**.
 
 ---
 
@@ -197,18 +197,18 @@ pnpm --filter @pastx/web dev
 
 Open **`/demo`**, connect your wallet, and trade. RPCs, addresses and explorer URLs ship as defaults; override any with `VITE_PASTX_*` env vars (see `.env.example`).
 
-> **Want the Bridge tab to work too?** Run the relayer — see **[services/relayer/README.md](services/relayer/README.md)** for local and VPS (pm2) instructions.
+> **Want the Bridge tab to work too?** Run the relayer; see **[services/relayer/README.md](services/relayer/README.md)** for local and VPS (pm2) instructions.
 
 ---
 
 ## ☁️ Deployment
 
-The app is a **static SPA — deploy to Vercel with zero backend.** The included `vercel.json` builds `apps/web` from the monorepo root and rewrites all routes to `index.html` for client-side routing.
+The app is a **static SPA, so it deploys to Vercel with zero backend.** The included `vercel.json` builds `apps/web` from the monorepo root and rewrites all routes to `index.html` for client-side routing.
 
 | Part of PASTX | Needs a server? | Where it runs |
 |---|:--:|---|
 | Trading · transfers · top-ups | ❌ **No** | **Vercel** (static CDN) |
-| Cross-chain **bridge relayer** | ✅ **Yes** (always-on) | A VPS under **pm2** (or Railway / Render / Fly.io) — see [services/relayer](services/relayer) |
+| Cross-chain **bridge relayer** | ✅ **Yes** (always-on) | A VPS under **pm2** (or Railway / Render / Fly.io); see [services/relayer](services/relayer) |
 
 > The relayer holds a signing key and continuously watches for events, so it **cannot** run on Vercel's serverless runtime, and its key must **never** reach the frontend. On our deployment it runs under **pm2** on a VPS so the bridge stays live for everyone.
 
@@ -220,7 +220,7 @@ We are deliberate and honest about what is and isn't guaranteed:
 
 - 🧪 **Testnet only.** Assets are synthetic and carry no monetary value.
 - 🔑 **No secrets in the client.** The frontend never holds a server key. The relayer's key lives only in its own gitignored `.env` on the server.
-- 🔁 **Trusted relayer (stated).** The bridge currently relies on a single authorized relayer wallet — a clearly-labelled prototype, not a trustless bridge.
+- 🔁 **Trusted relayer (stated).** The bridge currently relies on a single authorized relayer wallet, a clearly-labelled prototype, not a trustless bridge.
 - 🧾 **Verifiable by design.** Every action is a real transaction you can independently confirm on a public explorer.
 - 🛡️ **Non-transferable share tokens.** Synthetic shares move only to/from the authorized market, preventing out-of-band transfers.
 
@@ -230,20 +230,20 @@ We are deliberate and honest about what is and isn't guaranteed:
 
 We built PASTX to be a **foundation, not a one-off demo.** Where we're taking it:
 
-### Phase 1 — Harden the core
-- 🔐 **Trust-minimized bridge** — replace the single relayer with a **multi-sig / light-client / proof-based** attestation path, removing the trusted party.
-- 🧪 **Expanded test & audit coverage** — grow the on-chain validation harness toward audit-readiness.
+### Phase 1: Harden the core
+- 🔐 **Trust-minimized bridge**: replace the single relayer with a **multi-sig / light-client / proof-based** attestation path, removing the trusted party.
+- 🧪 **Expanded test & audit coverage**: grow the on-chain validation harness toward audit-readiness.
 
-### Phase 2 — Grow the market
-- 📊 **Dynamic pricing** — move from fixed-price listings to an **order book or AMM** curve for real price discovery.
-- 🏦 **More assets** — a larger synthetic-equity universe, indices, and potentially other asset classes.
-- 🌐 **More chains** — additional settlement chains beyond BNB, leaning into Portaldot's cross-chain strengths.
+### Phase 2: Grow the market
+- 📊 **Dynamic pricing**: move from fixed-price listings to an **order book or AMM** curve for real price discovery.
+- 🏦 **More assets**: a larger synthetic-equity universe, indices, and potentially other asset classes.
+- 🌐 **More chains**: additional settlement chains beyond BNB, leaning into Portaldot's cross-chain strengths.
 
-### Phase 3 — Go live & go wide
-- 🚀 **Mainnet** — graduate from the V3 testnet to **Portaldot mainnet** (`scanner-live-v3.portaldot.dev`).
-- 📱 **Mobile** — deeper integration with the **Portaldot mobile wallet** for trading on the go.
-- ⚡ **Performance** — route-level code-splitting and caching for instant loads at scale.
-- 🧑‍🤝‍🧑 **Community & liquidity** — incentives, market-maker tooling, and onboarding flows.
+### Phase 3: Go live & go wide
+- 🚀 **Mainnet**: graduate from the V3 testnet to **Portaldot mainnet** (`scanner-live-v3.portaldot.dev`).
+- 📱 **Mobile**: deeper integration with the **Portaldot mobile wallet** for trading on the go.
+- ⚡ **Performance**: route-level code-splitting and caching for instant loads at scale.
+- 🧑‍🤝‍🧑 **Community & liquidity**: incentives, market-maker tooling, and onboarding flows.
 
 **Our thesis:** the next wave of on-chain finance will be judged on **accessibility and verifiability**. PASTX is our bet that a Polkadot-SDK chain like Portaldot is the right place to build it.
 
