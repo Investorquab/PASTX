@@ -1,0 +1,12 @@
+{
+  "name": "pastx-relayer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "PASTX trusted testnet relayer: watches the Portaldot escrow and mints wtPOT on BNB. Not a trustless bridge.",
+  "scripts": { "start": "node index.mjs" },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "viem": "^2.21.0"
+  }
+}

@@ -1,1 +1,1 @@
-import React from "react";import {createRoot} from "react-dom/client";import PastxApp from "./PastxApp";import "./styles.css";import "./product.css";createRoot(document.getElementById("root")!).render(<React.StrictMode><PastxApp/></React.StrictMode>);
+import React from "react";import {createRoot} from "react-dom/client";import PastxApp from "./PastxApp";import "./pastx/theme.css";import "./styles.css";import "./product.css";createRoot(document.getElementById("root")!).render(<React.StrictMode><PastxApp/></React.StrictMode>);

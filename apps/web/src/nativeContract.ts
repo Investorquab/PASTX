@@ -13,7 +13,7 @@ function byteHex(value: number): string {
   return value.toString(16).padStart(2, "0");
 }
 
-/** SCALE-encode the compact ink! command selector plus (u8, u8, u32 LE). */
+/** SCALE-encode the compact ink! command selector plus (u8, u8, u32 LE (share quantity in tenths)). */
 export function encodeNativeCommand(action: NativeDemoAction, stockId: number, quantity: number): string {
   if (!Number.isInteger(action) || action < 0 || action > 3) {
     throw new Error("Unsupported native contract action.");
@@ -22,7 +22,7 @@ export function encodeNativeCommand(action: NativeDemoAction, stockId: number, q
     throw new Error("Stock ID must be an integer from 0 to 255.");
   }
   if (!Number.isSafeInteger(quantity) || quantity < 0 || quantity > 0xffff_ffff) {
-    throw new Error("Quantity must be a non-negative 32-bit integer.");
+    throw new Error("Quantity must be a non-negative 32-bit integer in tenths of a share.");
   }
 
   const bytes = new Uint8Array(4);
@@ -31,7 +31,7 @@ export function encodeNativeCommand(action: NativeDemoAction, stockId: number, q
     Array.from(bytes, byteHex).join("");
 }
 
-/** Decode the ink! Result<(bool, u32, u32, u32), LangError> returned by command(). */
+/** Decode the ink! Result<(bool, u32, u32, u32), LangError>; shares are in tenths returned by command(). */
 export function decodeNativeCommand(outputHex: string): NativeCommandResult {
   if (!/^0x(?:[0-9a-f]{2})+$/i.test(outputHex)) {
     throw new Error("Contract returned malformed SCALE data.");

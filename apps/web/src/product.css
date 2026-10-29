@@ -164,3 +164,105 @@
 .native-demo-shell .native-balance-grid small{display:none}
 .native-demo-shell .native-trade-card .native-helper{margin-top:9px}
 @media(max-width:680px){.workspace-wallet-button{font-size:11px;padding:0 9px}.workspace-tools{gap:6px}}
+
+/* PASTX iBridge result layout: completed receipt stays in the left column; guidance stays right. */
+.ibridge-workspace.is-complete{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(320px,.95fr);gap:18px;align-items:start}
+.ibridge-workspace.is-complete .bridge-workspace-intro{grid-column:1/-1}
+.ibridge-workspace.is-complete .bridge-result-card{grid-column:1;grid-row:2;min-width:0}
+.ibridge-workspace.is-complete .simulation-side-card{grid-column:2;grid-row:2;min-width:0;align-self:stretch;opacity:1;transform:none}
+@media(max-width:800px){.ibridge-workspace.is-complete{grid-template-columns:minmax(0,1fr)}.ibridge-workspace.is-complete .bridge-result-card,.ibridge-workspace.is-complete .simulation-side-card{grid-column:1;grid-row:auto}}
+
+/* ===== PASTX landing: hero facts, flow steps, contracts (rewrite) ===== */
+.pastx-landing .hero-facts{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-content:center}
+.pastx-landing .hero-fact{display:flex;flex-direction:column;gap:8px;background:#fff;border:1px solid #e1eae4;border-radius:14px;padding:20px;box-shadow:0 16px 40px #193a2a0a}
+.pastx-landing .hero-fact-num{font-size:34px;font-weight:800;letter-spacing:-.05em;color:#07835e;line-height:1}
+.pastx-landing .hero-fact span{font-size:13px;font-weight:600;color:#25352d;line-height:1.35}
+.pastx-landing .hero-fact small{display:block;font-size:11px;font-weight:500;color:#7d8a82;margin-top:3px}
+.pastx-landing .product-status-strip div{display:flex;flex-direction:column;gap:8px}
+.pastx-landing .product-status-strip strong{font-size:16px;letter-spacing:-.03em}
+.pastx-landing .product-status-strip small{font-size:12px;line-height:1.7;color:#6a7a71}
+
+/* six-step flow */
+.pastx-landing .arch-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.pastx-landing .arch-step{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;gap:4px 14px;background:#fff;border:1px solid #e1eae4;border-radius:14px;padding:20px;transition:transform .24s ease,border-color .24s ease,box-shadow .24s ease}
+.pastx-landing .arch-step:hover{transform:translateY(-4px);border-color:#b9d7c7;box-shadow:0 16px 40px #193a2a0d}
+.pastx-landing .arch-step-n{grid-row:1;font:700 12px/1 ui-monospace,monospace;color:#9fb0a7;align-self:center}
+.pastx-landing .arch-step-icon{grid-row:1;grid-column:1;display:none}
+.pastx-landing .arch-step>div{grid-column:1 / -1;grid-row:2}
+.pastx-landing .arch-step h3{font-size:17px;letter-spacing:-.04em;margin:8px 0 7px;display:flex;align-items:center;gap:8px}
+.pastx-landing .arch-step p{font-size:12.5px;line-height:1.75;color:#6a7a71;margin:0}
+
+/* contracts */
+.pastx-landing .contract-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px}
+.pastx-landing .contract-col{background:#fff;border:1px solid #e1eae4;border-radius:16px;padding:8px 20px 16px}
+.pastx-landing .contract-col-head{display:flex;align-items:center;justify-content:space-between;padding:16px 0 10px;border-bottom:1px solid #eef3f0}
+.pastx-landing .contract-col-head h3{font-size:16px;letter-spacing:-.03em;margin:0}
+.pastx-landing .chain-pill{font:600 10px/1 ui-monospace,monospace;letter-spacing:.04em;padding:5px 9px;border-radius:999px}
+.pastx-landing .chain-pill.pdot{color:#07835e;background:#e6f6f0}
+.pastx-landing .chain-pill.bnb{color:#7561d3;background:#f0edff}
+.pastx-landing .contract-item{padding:13px 0;border-bottom:1px solid #f1f5f2}
+.pastx-landing .contract-item:last-child{border-bottom:0}
+.pastx-landing .contract-item-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.pastx-landing .contract-item strong{font-size:13.5px;letter-spacing:-.02em}
+.pastx-landing .contract-item p{margin:4px 0 0;font-size:12px;color:#7d8a82;line-height:1.6}
+.pastx-landing .addr{display:inline-flex;align-items:center;gap:4px;font:500 11.5px/1 ui-monospace,monospace;color:#5a6b61;background:#f3f7f4;border:1px solid #e4ebe7;border-radius:6px;padding:5px 8px;text-decoration:none}
+.pastx-landing a.addr:hover{color:#07835e;border-color:#b9d7c7}
+
+@media(max-width:860px){
+  .pastx-landing .hero-facts{grid-template-columns:1fr 1fr}
+  .pastx-landing .arch-steps{grid-template-columns:1fr 1fr}
+  .pastx-landing .contract-cols{grid-template-columns:1fr}
+}
+@media(max-width:540px){
+  .pastx-landing .arch-steps{grid-template-columns:1fr}
+}
+
+/* ===== PASTX landing: animated hero terminal + motion ===== */
+.pastx-landing .hero-chips{list-style:none;display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 0;padding:0}
+.pastx-landing .hero-chips li{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:#3f5349;background:#edf7f1;border:1px solid #d7ece2;border-radius:999px;padding:6px 11px}
+.pastx-landing .hero-chips svg{color:#07835e}
+
+.pastx-landing .hero-terminal{align-self:center;background:#0f1f1a;border:1px solid #20362c;border-radius:20px;padding:18px;
+  box-shadow:0 36px 80px rgba(13,33,24,.28);animation:htIn .75s cubic-bezier(.2,.75,.25,1) both}
+@keyframes htIn{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+.pastx-landing .ht-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid #20362c}
+.pastx-landing .ht-title{display:flex;align-items:center;gap:8px;color:#e4f1ea;font-weight:700;font-size:13px}
+.pastx-landing .ht-block{color:#5f7a6f;font:500 11px/1 ui-monospace,monospace}
+.pastx-landing .ht-rows{display:flex;flex-direction:column;padding:6px 0}
+.pastx-landing .ht-row{display:grid;grid-template-columns:52px auto 1fr auto;align-items:center;gap:10px;padding:10px 8px;border-radius:9px;transition:background .6s ease}
+.pastx-landing .ht-row.up{background:rgba(18,211,145,.12)}
+.pastx-landing .ht-row.down{background:rgba(255,92,106,.1)}
+.pastx-landing .ht-sym{color:#fff;font-weight:700;font-family:ui-monospace,monospace;font-size:13px}
+.pastx-landing .ht-price{color:#cfe0d8;font-family:ui-monospace,monospace;font-size:13px;text-align:right;font-variant-numeric:tabular-nums}
+.pastx-landing .ht-price small{color:#6f877c}
+.pastx-landing .ht-delta{font-family:ui-monospace,monospace;font-size:12px;min-width:72px;text-align:right;font-variant-numeric:tabular-nums}
+.pastx-landing .ht-delta.pos{color:#19d79a}
+.pastx-landing .ht-delta.neg{color:#ff5c6a}
+.pastx-landing .hero-terminal .chain-pill{font-size:9px;padding:4px 7px}
+.pastx-landing .hero-terminal .chain-pill.pdot{color:#8fe7c6;background:rgba(18,211,145,.14)}
+.pastx-landing .hero-terminal .chain-pill.bnb{color:#e6c766;background:rgba(243,186,47,.14)}
+.pastx-landing .ht-bridge{display:flex;align-items:center;gap:10px;padding:13px 8px;margin:6px 0;border-top:1px solid #20362c;border-bottom:1px solid #20362c}
+.pastx-landing .ht-wire{position:relative;flex:1;height:2px;background:linear-gradient(90deg,#20362c,#2f5143);border-radius:2px;overflow:hidden}
+.pastx-landing .ht-spark{position:absolute;top:-2px;left:-22px;width:22px;height:6px;border-radius:3px;background:linear-gradient(90deg,transparent,#19d79a);animation:htSpark 2.3s linear infinite}
+@keyframes htSpark{from{left:-22px}to{left:100%}}
+.pastx-landing .ht-bridge-note{color:#6f877c;font-size:11px;white-space:nowrap}
+.pastx-landing .ht-foot{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-top:12px;color:#8aa399;font-size:11.5px}
+.pastx-landing .ht-foot b{color:#fff}
+.pastx-landing .ht-live{margin-left:auto;display:flex;align-items:center;gap:6px;color:#19d79a}
+
+/* scroll reveal */
+.landing-redesign.reveal-enabled .landing-section,
+.landing-redesign.reveal-enabled .product-status-strip,
+.landing-redesign.reveal-enabled .landing-cta{opacity:0;transform:translateY(22px);transition:opacity .65s ease,transform .65s cubic-bezier(.2,.7,.2,1)}
+.landing-redesign.reveal-enabled .landing-section.is-visible,
+.landing-redesign.reveal-enabled .product-status-strip.is-visible,
+.landing-redesign.reveal-enabled .landing-cta.is-visible{opacity:1;transform:none}
+
+@media(prefers-reduced-motion:reduce){
+  .pastx-landing .hero-terminal{animation:none}
+  .pastx-landing .ht-spark{animation:none;display:none}
+  .pastx-landing .ht-row{transition:none}
+  .landing-redesign.reveal-enabled .landing-section,
+  .landing-redesign.reveal-enabled .product-status-strip,
+  .landing-redesign.reveal-enabled .landing-cta{opacity:1;transform:none;transition:none}
+}

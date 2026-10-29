@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40" role="img" aria-label="PASTX">
+  <rect width="40" height="40" rx="10" fill="#13241f"/>
+  <!-- P: stem + bowl -->
+  <rect x="9" y="9" width="4.6" height="22" rx="2.3" fill="#ffffff"/>
+  <path d="M13.6 9h5.1a6.4 6.4 0 0 1 0 12.8h-5.1z" fill="#ffffff"/>
+  <!-- X formed by two crossing chart lines: rising (green) over falling (mint) -->
+  <path d="M22.2 11.5 33 29.5" fill="none" stroke="#7ae2bb" stroke-width="3.4" stroke-linecap="round" opacity="0.85"/>
+  <path d="M22.2 29.5 33 11.5" fill="none" stroke="#00a879" stroke-width="4.2" stroke-linecap="round"/>
+</svg>

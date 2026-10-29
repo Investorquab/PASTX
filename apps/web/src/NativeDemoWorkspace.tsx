@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ApiPromise, WsProvider } from "@polkadot/api";
-import { Activity, ArrowLeftRight, CheckCircle2, ExternalLink, RefreshCw, ShieldCheck, Wallet } from "lucide-react";
+import {ArrowLeftRight, CheckCircle2, ExternalLink, RefreshCw, ShieldCheck, X, Copy } from "lucide-react";
 import { decodeNativeCommand, encodeNativeCommand, formatNativeTpot, type NativeCommandResult, type NativeDemoAction } from "./nativeContract";
 import "./native-demo.css";
 
 const RPC_URL = import.meta.env.VITE_PASTX_NATIVE_WS_RPC_URL?.trim() || "wss://test-node-v3.portaldot.dev";
 const CONTRACT_ADDRESS = import.meta.env.VITE_PASTX_NATIVE_CONTRACT_ADDRESS?.trim() || "5G99ixmXqViMj8gVz4ZWGavV5ryeajGDY7Hq4qZ1qQN6pYFq";
-const EXPECTED_GENESIS = import.meta.env.VITE_PASTX_NATIVE_EXPECTED_GENESIS_HASH?.trim().toLowerCase() || "0xd4f9acbcf7f52388d8b095abe3c198d19fc510e0343e643e87cfbccb155283bd";
+const EXPECTED_GENESIS = import.meta.env.VITE_PASTX_NATIVE_EXPECTED_GENESIS_HASH?.trim().toLowerCase() || "";
 const STOCKS = [
   { id: 0, symbol: "pAAPL", name: "Apple Demo", price: 200 },
   { id: 1, symbol: "pNVDA", name: "NVIDIA Demo", price: 180 },
@@ -39,6 +39,7 @@ type PendingAction = {
   description: string;
   result: NativeCommandResult;
   storageDeposit: bigint;
+  storageDepositLimit: bigint;
   estimatedFee: bigint;
   freeBalance: bigint;
   gasLimit: unknown;
@@ -150,12 +151,17 @@ type NativeWorkspaceView = "markets" | "portfolio" | "activity";
 
 export function NativeDemoWorkspace({ view = "markets" }: { view?: NativeWorkspaceView }) {
   const [api, setApi] = useState<ApiPromise | null>(null);
-  const [chainName, setChainName] = useState("Connecting to Portaldot V3 Testnet…");
+  const [, setChainName] = useState("Connecting to Portaldot V3 Testnet…");
   const [genesisHash, setGenesisHash] = useState("");
-  const [rpcError, setRpcError] = useState("");
+  const [, setRpcError] = useState("");
   const [accounts, setAccounts] = useState<WalletAccount[]>([]);
   const [selectedAddress, setSelectedAddress] = useState("");
+
   const [stockId, setStockId] = useState<number>(0);
+  const [tradeModalOpen, setTradeModalOpen] = useState(false);
+  const [faucetModalOpen, setFaucetModalOpen] = useState(false);
+  const [faucetEligibilityChecked, setFaucetEligibilityChecked] = useState(false);
+  const [accountPickerOpen, setAccountPickerOpen] = useState(false);
   const [shareQuantity, setShareQuantity] = useState("1");
   const [portfolio, setPortfolio] = useState<NativeCommandResult | null>(null);
   const [positions, setPositions] = useState<Array<{ symbol: string; name: string; shares: bigint; quote: bigint }>>([]);
@@ -165,6 +171,7 @@ export function NativeDemoWorkspace({ view = "markets" }: { view?: NativeWorkspa
   const [message, setMessage] = useState("");
   const [activity, setActivity] = useState<string[]>([]);
   const enabledBySource = useRef(new Map<string, EnabledExtension>());
+  const confirmationRef = useRef<HTMLElement | null>(null);
 
   const stock = STOCKS.find((item) => item.id === stockId) ?? STOCKS[0];
   const networkVerified = Boolean(EXPECTED_GENESIS && genesisHash && EXPECTED_GENESIS === genesisHash.toLowerCase());
@@ -265,9 +272,16 @@ export function NativeDemoWorkspace({ view = "markets" }: { view?: NativeWorkspa
         throw new Error("The connected extension did not provide an account. Approve account access in your wallet and try again.");
       }
       setAccounts(connectedAccounts);
-      setSelectedAddress(connectedAccounts[0].address);
       setPending(null);
-      setMessage("Native wallet connected. Read-only portfolio checks use the selected account.");
+      if (connectedAccounts.length === 1) {
+        setSelectedAddress(connectedAccounts[0].address);
+        setAccountPickerOpen(false);
+        window.dispatchEvent(new Event("pastx:native-wallet-connected"));
+        setMessage("Native wallet connected. Read-only portfolio checks use the selected account.");
+      } else {
+        setAccountPickerOpen(true);
+        setMessage("Choose the account address you want PASTX to use.");
+      }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Wallet connection was cancelled.");
     } finally {
@@ -290,9 +304,10 @@ export function NativeDemoWorkspace({ view = "markets" }: { view?: NativeWorkspa
       setMessage("Writes are blocked until VITE_PASTX_NATIVE_EXPECTED_GENESIS_HASH is set to the independently verified Portaldot V3 testnet genesis hash.");
       return;
     }
-    const quantity = action === 1 ? 0 : Number(shareQuantity);
-    if (action !== 1 && (!Number.isInteger(quantity) || quantity < 1 || quantity > 0xffff_ffff)) {
-      setMessage("Enter a whole-share quantity between 1 and 4,294,967,295.");
+    const enteredQuantity = action === 1 ? 0 : Number(shareQuantity);
+    const quantity = action === 1 ? 0 : Math.round(enteredQuantity * 10);
+    if (action !== 1 && (!Number.isFinite(enteredQuantity) || enteredQuantity <= 0 || Math.abs(enteredQuantity * 10 - quantity) > 1e-8 || quantity > 0xffff_ffff)) {
+      setMessage("Enter a quantity of at least 0.1 share, in increments of 0.1.");
       return;
     }
     setBusy(true);
@@ -321,15 +336,17 @@ export function NativeDemoWorkspace({ view = "markets" }: { view?: NativeWorkspa
       ]);
       const estimatedFee = BigInt(feeInfo.partialFee.toString());
       const available = BigInt((accountInfo as any).data.free.toString());
+      const storageDepositLimit = available > estimatedFee ? available - estimatedFee : 0n;
       const next: PendingAction = {
         action,
         stockId,
         quantity,
         description: action === 1
           ? "Claim 1,000 whole-unit pUSD"
-          : `${action === 2 ? "Buy" : "Sell"} ${quantity} ${stock.symbol} share(s) at ${stock.price} pUSD each`,
+          : `${action === 2 ? "Buy" : "Sell"} ${(quantity / 10).toFixed(1)} ${stock.symbol} share(s) at ${stock.price} pUSD each`,
         result: simulation.result,
         storageDeposit: simulation.storageDeposit,
+        storageDepositLimit,
         estimatedFee,
         freeBalance: available,
         gasLimit: simulation.gasLimit,
@@ -345,6 +362,25 @@ export function NativeDemoWorkspace({ view = "markets" }: { view?: NativeWorkspa
       setBusy(false);
     }
   };
+
+  useEffect(() => {
+    const handleFaucetRequest = () => {
+      setFaucetModalOpen(true);
+      setFaucetEligibilityChecked(false);
+      setPending(null);
+      setMessage("");
+    };
+    window.addEventListener("pastx:claim-native-faucet", handleFaucetRequest);
+    return () => window.removeEventListener("pastx:claim-native-faucet", handleFaucetRequest);
+  });
+
+  useEffect(() => {
+    if (!pending) return;
+    const frame = window.requestAnimationFrame(() => {
+      confirmationRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [pending]);
 
   const confirmAction = async () => {
     if (!api || !selectedAccount || !pending) return;
@@ -368,7 +404,7 @@ export function NativeDemoWorkspace({ view = "markets" }: { view?: NativeWorkspa
         CONTRACT_ADDRESS,
         "0",
         pending.gasLimit,
-        pending.storageDeposit.toString(),
+        pending.storageDepositLimit.toString(),
         pending.inputData
       );
       const txHash = await new Promise<string>((resolve, reject) => {
@@ -420,6 +456,11 @@ export function NativeDemoWorkspace({ view = "markets" }: { view?: NativeWorkspa
       setActivity((current) => [`${actionName(pending.action)} · ${txHash}`, ...current].slice(0, 10));
       setPending(null);
       setMessage(`Finalized ${actionName(pending.action)}. Transaction: ${txHash}`);
+      if (pending.action === 1) {
+        setFaucetModalOpen(false);
+        setFaucetEligibilityChecked(true);
+        window.dispatchEvent(new Event("pastx:native-faucet-claimed"));
+      }
       await refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Transaction failed. Check the native explorer and wallet activity.");
@@ -435,18 +476,6 @@ export function NativeDemoWorkspace({ view = "markets" }: { view?: NativeWorkspa
     <div className="native-demo-shell">
 <main className="native-demo-main">
         <section className="native-demo-intro">
-          <span className="native-eyebrow"><Activity size={13}/> PORTALDOT V3 · NATIVE MARKET</span>
-          <h1>PASTX native market</h1>
-          <div className="native-network-status">
-            <span className={api ? "native-status-dot is-ready" : "native-status-dot"} />
-            <span>{chainName}</span>
-            <small>{api ? `RPC ${RPC_URL}` : rpcError || "Connecting…"}</small>
-          </div>
-          <div className="native-network-status">
-            <ShieldCheck size={15}/>
-            <span>Genesis: {genesisHash ? `${genesisHash.slice(0, 14)}…${genesisHash.slice(-8)}` : "not read"}</span>
-            <small>{networkVerified ? "Verified against configured pin" : "Write actions locked until expected genesis is pinned"}</small>
-          </div>
           {!contractConfigured && <div className="native-warning">Contract address is not set. After deployment, add <code>VITE_PASTX_NATIVE_CONTRACT_ADDRESS</code> to the app environment; this page will not guess an address.</div>}
           {contractConfigured && !networkVerified && <div className="native-warning">Writes are disabled until <code>VITE_PASTX_NATIVE_EXPECTED_GENESIS_HASH</code> contains the independently verified testnet genesis hash. A chain label alone is not sufficient.</div>}
         </section>
@@ -459,7 +488,7 @@ export function NativeDemoWorkspace({ view = "markets" }: { view?: NativeWorkspa
             </div>
             <div className="native-stock-list">
               {STOCKS.map((item) => (
-                <button className={item.id === stockId ? "native-stock-row is-selected" : "native-stock-row"} key={item.id} type="button" onClick={() => setStockId(item.id)}>
+                <button className={item.id === stockId ? "native-stock-row is-selected" : "native-stock-row"} key={item.id} type="button" onClick={() => { setStockId(item.id); setPending(null); if (!selectedAccount) { setMessage("Connect your wallet before opening a trade."); window.dispatchEvent(new Event("pastx:connect-native-wallet")); return; } setMessage(""); setTradeModalOpen(true); }}>
                   <span className="native-stock-icon">{item.symbol.slice(1, 2)}</span>
                   <span className="native-stock-identity"><strong>{item.symbol}</strong><small>{item.name}</small></span>
                   <span className="native-stock-price"><strong>{item.price} pUSD</strong><small>Fixed demo quote</small></span>
@@ -470,7 +499,59 @@ export function NativeDemoWorkspace({ view = "markets" }: { view?: NativeWorkspa
             <div className="native-market-disclaimer"><ShieldCheck size={14}/> Fixed demonstration prices, not live market data or oracle-verified prices.</div>
           </section>}
 
-          {(view === "markets" || view === "portfolio") && <section className="native-card native-activity-card">
+          {view === "markets" && tradeModalOpen && <div className="native-trade-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) { setTradeModalOpen(false); setPending(null); } }}>
+            <section className="native-trade-modal" role="dialog" aria-modal="true" aria-labelledby="native-trade-modal-title">
+              <div className="native-trade-modal-head">
+                <div><span className="native-eyebrow">DEMO ORDER TICKET</span><h2 id="native-trade-modal-title">{stock.symbol} · {stock.name}</h2><p>Fixed demo quote · no live equity market data</p></div>
+                <button type="button" className="native-icon-button" aria-label="Close trading modal" onClick={() => { setTradeModalOpen(false); setPending(null); }}><X size={16}/></button>
+              </div>
+              <div className="native-modal-price"><span>Demo price</span><strong>{selectedQuote} pUSD</strong><small>Illustrative chart only</small></div>
+              <div className="native-demo-chart" aria-label="Illustrative demo price graph">
+                <div className="native-chart-top"><span>PRICE MOVEMENT</span><span>ILLUSTRATIVE · NOT LIVE</span></div>
+                <svg viewBox="0 0 640 180" role="img" aria-label="Illustrative price movement line">
+                  <defs><linearGradient id="pastx-chart-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#42b9a0" stopOpacity=".25"/><stop offset="100%" stopColor="#42b9a0" stopOpacity="0"/></linearGradient></defs>
+                  <path d="M0 145 H640 M0 105 H640 M0 65 H640 M0 25 H640" stroke="currentColor" strokeOpacity=".09" fill="none"/>
+                  <path d="M0 128 L45 117 L85 125 L130 86 L175 98 L220 66 L265 82 L310 51 L355 74 L400 43 L445 56 L490 29 L535 49 L580 20 L640 34 L640 180 L0 180 Z" fill="url(#pastx-chart-fill)"/>
+                  <path d="M0 128 L45 117 L85 125 L130 86 L175 98 L220 66 L265 82 L310 51 L355 74 L400 43 L445 56 L490 29 L535 49 L580 20 L640 34" fill="none" stroke="#168b78" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <div className="native-chart-labels"><span>Past</span><span>Illustrative trend</span><span>Now</span></div>
+              </div>
+              <div className="native-trade-price"><span>Price per share</span><strong>{selectedQuote} pUSD</strong></div>
+              <label className="native-field"><span>Shares (minimum 0.1)</span><input value={shareQuantity} onChange={(event) => { const value = event.target.value; if (/^\d*(?:\.\d?)?$/.test(value)) setShareQuantity(value); setPending(null); }} inputMode="decimal" aria-label="Share quantity" /></label>
+              <div className="native-estimated-cost"><span>Estimated order value</span><strong>{formatWhole(estimatedCost)} pUSD</strong></div>
+              <div className="native-trade-actions">
+                <button className="native-button native-button-green" type="button" disabled={!canWrite || busy} onClick={() => void prepareAction(2)}>Buy shares</button>
+                <button className="native-button native-button-outline" type="button" disabled={!canWrite || busy} onClick={() => void prepareAction(3)}>Sell shares</button>
+              </div>
+              <p className="native-helper">Buys debit pUSD and create demo shares. Sells require shares and return the same fixed price. No order book, live pricing, or real equity.</p>
+              {view === "markets" && pending && <section ref={confirmationRef} className="native-card native-confirm-card">
+                <span className="native-eyebrow">DRY-RUN PASSED · REVIEW BEFORE SIGNING</span>
+                <h2>{pending.description}</h2>
+                <div className="native-confirm-details">
+                  <div><span>Expected pUSD balance</span><strong>{formatWhole(pending.result.balance)} pUSD</strong></div>
+                  <div><span>Expected {stock.symbol} shares</span><strong>{(pending.result.shares / 10).toLocaleString(undefined, { maximumFractionDigits: 1 })}</strong></div>
+                  <div><span>Simulated storage deposit charge</span><strong>{formatNative(pending.storageDeposit)}</strong></div>
+                  <div><span>Maximum storage-deposit limit</span><strong>{formatNative(pending.storageDepositLimit)}</strong></div>
+                  <div><span>Estimated extrinsic fee</span><strong>{formatNative(pending.estimatedFee)}</strong></div>
+                  <div><span>Wallet free balance after estimate</span><strong>{estimatedRemaining === null ? "—" : formatNative(estimatedRemaining)}</strong></div>
+                </div>
+                <p className="native-confirm-note">The transaction allows storage deposit up to the selected wallet’s free balance after the estimated extrinsic fee. The runtime may still reject the call if its required deposit exceeds this limit. Review the limit before signing.</p>
+                <div className="native-trade-actions">
+                  <button className="native-button native-button-green" type="button" disabled={!canWrite || pending.freeBalance < pendingTotal} onClick={() => void confirmAction()}>Confirm in wallet</button>
+                  <button className="native-button native-button-outline" type="button" disabled={busy} onClick={() => setPending(null)}>Cancel</button>
+                </div>
+              </section>}
+            </section>
+          </div>}
+
+          {accountPickerOpen && <div className="native-trade-overlay" role="presentation">
+            <section className="native-account-picker" role="dialog" aria-modal="true" aria-labelledby="native-account-picker-title">
+              <div className="native-trade-modal-head"><div><span className="native-eyebrow">WALLET ACCOUNTS</span><h2 id="native-account-picker-title">Choose an address</h2><p>Select which wallet address PASTX should use.</p></div><button type="button" className="native-icon-button" aria-label="Close account selector" onClick={() => setAccountPickerOpen(false)}><X size={16}/></button></div>
+              <div className="native-account-options">{accounts.map((account) => <button key={account.address} type="button" className="native-account-option" onClick={() => { setSelectedAddress(account.address); setAccountPickerOpen(false); setPending(null); window.dispatchEvent(new Event("pastx:native-wallet-connected")); setMessage("Wallet connected using the selected address."); }}><span><strong>{account.label}</strong><small>{account.source.replace(/-js$/i, "")}</small><code>{account.address}</code></span><ArrowLeftRight size={16}/></button>)}</div>
+            </section>
+          </div>}
+
+          {view === "portfolio" && <section className="native-card native-activity-card">
             <span className="native-eyebrow">CONNECTED ACCOUNT</span><h2>Your positions</h2>
             {positions.filter((position) => position.shares > 0n).length
               ? positions.filter((position) => position.shares > 0n).map((position) => (
@@ -482,43 +563,34 @@ export function NativeDemoWorkspace({ view = "markets" }: { view?: NativeWorkspa
               : <p className="native-helper">{selectedAddress ? "No demo share positions were returned by the configured contract for this account." : "Connect a native wallet and configure the verified market contract to read positions."}</p>}
           </section>}
 
-          {(view === "markets" || view === "portfolio") && <section className="native-card native-account-card">
+          {view === "portfolio" && <section className="native-card native-account-card">
             <span className="native-eyebrow">YOUR NATIVE ACCOUNT</span>
             <h2>Account</h2>
-            {accounts.length > 1 && <label className="native-field"><span>Wallet</span><select value={selectedAddress} onChange={(event) => { setSelectedAddress(event.target.value); setPending(null); }} disabled={busy}>{accounts.map((account) => <option key={account.address} value={account.address}>{account.label} · {account.address.slice(0, 7)}…{account.address.slice(-5)}</option>)}</select></label>}
+            {accounts.length > 1 && <label className="native-field"><span>Choose address</span><select value={selectedAddress} onChange={(event) => { setSelectedAddress(event.target.value); setPending(null); }} disabled={busy}>{accounts.map((account) => <option key={account.address} value={account.address}>{account.address}</option>)}</select></label>}
+            <div className="native-wallet-address">
+              <span>WALLET ADDRESS</span>
+              <code title={selectedAddress}>{selectedAddress || "Connect a wallet to view your address"}</code>
+              {selectedAddress && <button type="button" className="native-copy-address" aria-label="Copy wallet address" title="Copy address" onClick={() => { void navigator.clipboard.writeText(selectedAddress).then(() => setMessage("Wallet address copied.")).catch(() => setMessage("Could not copy address; copy it manually.")); }}><Copy size={14}/><span>Copy</span></button>}
+            </div>
             <div className="native-balance-grid">
-              <div><span>pUSD balance</span><strong>{portfolio ? formatWhole(portfolio.balance) : "—"}</strong></div>
-              <div><span>{stock.symbol} shares</span><strong>{portfolio ? formatWhole(portfolio.shares) : "—"}</strong></div>
-              <div><span>Available tPOT</span><strong>{formatNative(freeBalance)}</strong></div>
+              <div className="native-balance-card"><span>pUSD BALANCE</span><strong>{portfolio ? formatWhole(portfolio.balance) : "â€”"}</strong><small>Demo settlement token</small></div>
+              <div className="native-balance-card"><span>{stock.symbol} SHARES</span><strong>{portfolio ? formatWhole(portfolio.shares) : "â€”"}</strong><small>Selected market position</small></div>
+              <div className="native-balance-card"><span>AVAILABLE tPOT</span><strong>{formatNative(freeBalance)}</strong><small>Native testnet gas</small></div>
             </div>
-            <button className="native-button native-button-green native-full-button" type="button" disabled={!canWrite} onClick={() => void prepareAction(1)}>
-              {busy ? "Processing…" : "Claim faucet"}
-            </button>
           </section>}
 
-          {view === "markets" && <section className="native-card native-trade-card">
-            <div className="native-section-head"><div><span className="native-eyebrow">FIXED-PRICE TRADING</span><h2>{stock.symbol} order ticket</h2></div><ArrowLeftRight size={18}/></div>
-            <div className="native-trade-price"><span>Price per share</span><strong>{selectedQuote} pUSD</strong></div>
-            <label className="native-field"><span>Whole shares</span><input value={shareQuantity} onChange={(event) => { setShareQuantity(event.target.value.replace(/[^0-9]/g, "")); setPending(null); }} inputMode="numeric" aria-label="Whole shares" /></label>
-            <div className="native-estimated-cost"><span>Estimated order value</span><strong>{formatWhole(estimatedCost)} pUSD</strong></div>
-            <div className="native-trade-actions">
-              <button className="native-button native-button-green" type="button" disabled={!canWrite || busy} onClick={() => void prepareAction(2)}>Buy shares</button>
-              <button className="native-button native-button-outline" type="button" disabled={!canWrite || busy} onClick={() => void prepareAction(3)}>Sell shares</button>
-            </div>
-            <p className="native-helper">Buys debit pUSD and create paper shares. Sells require shares and return the same fixed price. No fractional shares, order book, or real equity.</p>
-          </section>}
-
-          {view === "markets" && pending && <section className="native-card native-confirm-card">
+          {view === "markets" && tradeModalOpen && pending && <section ref={confirmationRef} className="native-card native-confirm-card">
             <span className="native-eyebrow">DRY-RUN PASSED · REVIEW BEFORE SIGNING</span>
             <h2>{pending.description}</h2>
             <div className="native-confirm-details">
               <div><span>Expected pUSD balance</span><strong>{formatWhole(pending.result.balance)} pUSD</strong></div>
-              <div><span>Expected {stock.symbol} shares</span><strong>{formatWhole(pending.result.shares)}</strong></div>
-              <div><span>Storage deposit charge (refundable hold)</span><strong>{formatNative(pending.storageDeposit)}</strong></div>
+              <div><span>Expected {stock.symbol} shares</span><strong>{(pending.result.shares / 10).toLocaleString(undefined, { maximumFractionDigits: 1 })}</strong></div>
+              <div><span>Simulated storage deposit charge</span><strong>{formatNative(pending.storageDeposit)}</strong></div>
+              <div><span>Maximum storage-deposit limit</span><strong>{formatNative(pending.storageDepositLimit)}</strong></div>
               <div><span>Estimated extrinsic fee</span><strong>{formatNative(pending.estimatedFee)}</strong></div>
               <div><span>Wallet free balance after estimate</span><strong>{estimatedRemaining === null ? "—" : formatNative(estimatedRemaining)}</strong></div>
             </div>
-            <p className="native-confirm-note">The dry-run estimates storage growth and the extrinsic fee. The call is submitted with a storage-deposit limit equal to the simulated charge; if state or runtime costs change, it should fail rather than silently exceed this cap. Reserved deposits are not the same as transaction fees.</p>
+            <p className="native-confirm-note">The transaction allows storage deposit up to the selected wallet’s free balance after the estimated extrinsic fee. The runtime may still reject the call if its required deposit exceeds this limit. A storage deposit can be reserved separately from the transaction fee; review the limit before signing.</p>
             <div className="native-trade-actions">
               <button className="native-button native-button-green" type="button" disabled={!canWrite || pending.freeBalance < pendingTotal} onClick={() => void confirmAction()}>Confirm in wallet</button>
               <button className="native-button native-button-outline" type="button" disabled={busy} onClick={() => setPending(null)}>Cancel</button>
@@ -531,6 +603,17 @@ export function NativeDemoWorkspace({ view = "markets" }: { view?: NativeWorkspa
             <p className="native-helper">This list contains transactions finalized by this app session; it is not a complete explorer index of all wallet activity.</p>
           </section>}
         </div>
+        {faucetModalOpen && <div className="native-faucet-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) setFaucetModalOpen(false); }}>
+          <section className="native-faucet-modal" role="dialog" aria-modal="true" aria-labelledby="native-faucet-title">
+            <div className="native-faucet-head"><div><span className="native-eyebrow">PORTALDOT V3 TESTNET</span><h2 id="native-faucet-title">Claim test pUSD</h2></div><button className="native-icon-button" type="button" aria-label="Close faucet" disabled={busy} onClick={() => setFaucetModalOpen(false)}><X size={16}/></button></div>
+            <div className="native-faucet-amount"><span>Faucet allocation</span><strong>1,000 pUSD</strong><small>Demo-only market credits. Not transferable and not redeemable.</small></div>
+            {!selectedAccount && <p className="native-faucet-status" role="status">Connect a compatible Polkadot wallet first. Then reopen Faucet to check eligibility.</p>}
+            {selectedAccount && !faucetEligibilityChecked && !pending && <p className="native-faucet-status">Check on-chain eligibility before claiming. The contract enforces the one-hour wallet cooldown and remaining global claim cap.</p>}
+            {pending?.action === 1 && <div className="native-faucet-preflight"><div><span>Estimated transaction fee</span><strong>{formatNative(pending.estimatedFee)}</strong></div><div><span>Estimated storage deposit</span><strong>{formatNative(pending.storageDeposit)}</strong></div><div><span>Available free tPOT</span><strong>{formatNative(pending.freeBalance)}</strong></div><p>These are preflight estimates. The wallet will ask you to sign only after you choose Claim. The chain can still reject a call if its actual storage requirement exceeds the allowed limit.</p><button className="native-button native-button-green native-full-button" type="button" disabled={!canWrite || pending.freeBalance < pending.estimatedFee + pending.storageDeposit || busy} onClick={() => void confirmAction()}>Claim 1,000 pUSD in wallet</button></div>}
+            <div className="native-faucet-actions">{!selectedAccount && <button className="native-button native-button-green" type="button" disabled={busy} onClick={() => window.dispatchEvent(new Event("pastx:connect-native-wallet"))}>Connect wallet</button>}{selectedAccount && !pending && <button className="native-button native-button-green" type="button" disabled={!canWrite || busy} onClick={() => { setFaucetEligibilityChecked(true); void prepareAction(1); }}>{busy ? "Checking eligibility…" : "Check eligibility"}</button>}<button className="native-button native-button-outline" type="button" disabled={busy} onClick={() => setFaucetModalOpen(false)}>Close</button></div>
+            {!networkVerified && <p className="native-faucet-footnote">Writes remain disabled until the configured genesis hash matches the connected testnet.</p>}
+          </section>
+        </div>}
         {message && <div className="native-message" role="status"><span>{message}</span><button type="button" onClick={() => setMessage("")}>Dismiss</button></div>}
         <footer className="native-demo-footer">
           <span>Native ink! demo · no real money or equity</span>

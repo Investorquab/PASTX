@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { LandingPage } from "./LandingPage";
-import { DemoWorkspace } from "./DemoWorkspace";
+import PastxDashboard from "./PastxDashboard";
 
 export default function PastxApp() {
   const [path, setPath] = useState(window.location.pathname);
@@ -11,8 +11,8 @@ export default function PastxApp() {
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
-  if (path === "/demo" || path.startsWith("/demo/")) {
-    return <DemoWorkspace />;
+  if (path === "/demo" || path.startsWith("/demo/") || path === "/app") {
+    return <PastxDashboard />;
   }
 
   return <LandingPage />;
